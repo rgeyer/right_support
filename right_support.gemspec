@@ -17,8 +17,6 @@ spec = Gem::Specification.new do |s|
   s.summary = %q{Reusable foundation code.}
   s.description = %q{A toolkit of useful, reusable foundation code created by RightScale.}
 
-  s.add_dependency('yajl-ruby', ['~> 1.1'])
-
   basedir = File.dirname(__FILE__)
   candidates = ['right_support.gemspec', 'LICENSE', 'README.rdoc'] + Dir['lib/**/*']
   s.files = candidates.sort
