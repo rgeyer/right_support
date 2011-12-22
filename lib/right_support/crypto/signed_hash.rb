@@ -1,8 +1,19 @@
 module RightSupport::Crypto
   class SignedHash
+
+    if_require_succeeds('yajl') do
+      DefaultEncoding = ::Yajl
+    end
+
+    if_require_succeeds('json') do
+      DefaultEncoding = ::JSON
+    end unless defined?(DefaultEncoding)
+
+    DefaultEncoding = nil unless defined?(DefaultEncoding)
+
     DEFAULT_OPTIONS = {
       :digest   => Digest::SHA1,
-      :encoding => JSON
+      :encoding => DefaultEncoding
     }
 
     def initialize(hash={}, options={})
