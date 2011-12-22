@@ -2,7 +2,6 @@ PATH
   remote: .
   specs:
     right_support (1.1.2)
-      yajl-ruby (~> 1.1)
 
 GEM
   remote: http://rubygems.org/
@@ -48,7 +47,6 @@ GEM
     ruby_core_source (0.1.5)
       archive-tar-minitar (>= 0.5.2)
     term-ansicolor (1.0.7)
-    yajl-ruby (1.1.0)
 
 PLATFORMS
   ruby
