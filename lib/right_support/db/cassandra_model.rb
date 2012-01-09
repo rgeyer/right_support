@@ -181,10 +181,9 @@ module RightSupport::DB
       # opt(Hash):: Request options such as :consistency
       #
       # === Return
-      # true:: Always return true
+      # (Array):: Mutation map and consistency level
       def insert(key, values, opt={})
         do_op(:insert, column_family, key, values, opt)
-        true
       end
 
       # Delete row or columns of row
@@ -193,10 +192,9 @@ module RightSupport::DB
       # args(Array):: Key, columns, options
       #
       # === Return
-      # true:: Always return true
+      # (Array):: Mutation map and consistency level
       def remove(*args)
         do_op(:remove, column_family, *args)
-        true
       end
 
       # Open a batch operation and yield self
@@ -212,14 +210,13 @@ module RightSupport::DB
       # Required block making Cassandra requests
       #
       # === Returns
-      # true:: Always return true
+      # (Array):: Mutation map and consistency level
       #
       # === Raise
       # Exception:: If block not specified
       def batch(*args, &block)
         raise "Block required!" unless block_given?
         do_op(:batch, *args, &block)
-        true
       end
 
       # Execute Cassandra request
