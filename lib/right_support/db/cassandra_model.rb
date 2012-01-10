@@ -1,23 +1,52 @@
-# Monkey patch Cassandra gem so that it accepts list of columns when doing indexed slice
-# otherwise not able to get specific columns using secondary index lookup
-require 'cassandra/0.8'
-class Cassandra
-  module Protocol
-    def _get_indexed_slices(column_family, index_clause, columns, count, start, finish, reversed, consistency)
-      column_parent = CassandraThrift::ColumnParent.new(:column_family => column_family)
-      if columns
-        predicate = CassandraThrift::SlicePredicate.new(:column_names => [columns].flatten)
-      else
-        predicate = CassandraThrift::SlicePredicate.new(:slice_range =>
-          CassandraThrift::SliceRange.new(
-            :reversed => reversed,
-            :count => count,
-            :start => start,
-            :finish => finish))
+#
+# Copyright (c) 2011 RightScale Inc
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+begin
+  require 'cassandra/0.8'
+
+  # Monkey patch Cassandra gem so that it accepts list of columns when doing indexed slice
+  # otherwise not able to get specific columns using secondary index lookup
+  class Cassandra
+    module Protocol
+      def _get_indexed_slices(column_family, index_clause, columns, count, start, finish, reversed, consistency)
+        column_parent = CassandraThrift::ColumnParent.new(:column_family => column_family)
+        if columns
+          predicate = CassandraThrift::SlicePredicate.new(:column_names => [columns].flatten)
+        else
+          predicate = CassandraThrift::SlicePredicate.new(:slice_range =>
+            CassandraThrift::SliceRange.new(
+              :reversed => reversed,
+              :count => count,
+              :start => start,
+              :finish => finish))
+        end
+        client.get_indexed_slices(column_parent, index_clause, predicate, consistency)
       end
-      client.get_indexed_slices(column_parent, index_clause, predicate, consistency)
     end
   end
+rescue LoadError => e
+  # Make sure we're dealing with a legitimate missing-file LoadError
+  raise e unless e.message =~ /^no such file to load/
+  # Missing 'cassandra/0.8' indicates that the cassandra gem is not installed; we can ignore this
 end
 
 module RightSupport::DB
