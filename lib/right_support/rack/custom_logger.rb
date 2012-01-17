@@ -28,19 +28,37 @@ module RightSupport::Rack
   # to a file-based Logger and doesn't allow you to control anything other than the
   # filename.
   class CustomLogger
-    # Initialize an instance of the middleware.
+    # Initialize an instance of the middleware. For backward compatibility, the order of the
+    # logger and level parameters can be switched.
     #
     # === Parameters
     # app(Object):: the inner application or middleware layer; must respond to #call
-    # level(Integer):: one of the Logger constants: DEBUG, INFO, WARN, ERROR, FATAL
-    # logger(Logger):: (optional) the Logger object to use, if other than default
+    # logger(Logger):: (optional) the Logger object to use, defaults to a STDERR logger
+    # level(Integer):: (optional) a Logger level-constant (INFO, ERROR) to set the logger to
     #
-    def initialize(app, level = ::Logger::INFO, logger = nil)
-      @app, @level = app, level
+    def initialize(app, arg1=nil, arg2=nil)
+      if arg1.is_a?(Integer)
+        level = arg1
+      elsif arg1.is_a?(Logger)
+        logger = arg1
+      end
 
-      logger ||= ::Logger.new(env['rack.errors'])
-      logger.level = @level
+      if arg2.is_a?(Integer)
+        level = arg2
+      elsif arg2.is_a?(Logger)
+        logger = arg2
+      end
+
+      if level
+        warn 'Passing a log level is deprecated and will be removed in RightSupport 2.0!'
+      end
+      unless logger
+        warn 'No logger provided; using STDERR. Passing a logger will become mandatory in RightSupport 2.0!'
+      end
+
+      @app    = app
       @logger = logger
+      @level  = level
     end
 
     # Add a logger to the Rack environment and call the next middleware.
@@ -51,8 +69,31 @@ module RightSupport::Rack
     # === Return
     # always returns whatever value is returned by the next layer of middleware
     def call(env)
+      #emulate the behavior of Rack::CommonLogger middleware, which instantiates a
+      #default logger if one has not been provided in the initializer
+      unless @logger
+        @logger = ::Logger.new(env['rack.errors'] || STDERR)
+        @logger.level = @level if @level
+      end
+
       env['rack.logger'] = @logger
-      return @app.call(env)
+
+      status, header, body = @app.call(env)
+      log_exception(env['sinatra.error']) if env['sinatra.error']
+
+      return [status, header, body]
+    rescue Exception => e
+      log_exception(e)
+      raise e
+    end
+
+    protected
+
+    def log_exception(e)
+      msg = ["#{e.class} - #{e.message}", *e.backtrace].join("\n")
+      @logger.error(msg)
+    rescue
+      #no-op, something is seriously messed up by this point...
     end
   end
 end
