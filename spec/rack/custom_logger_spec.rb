@@ -40,33 +40,4 @@ describe RightSupport::Rack::CustomLogger do
       end
     end
   end
-
-  context :call do
-    context 'when the app raises an exception' do
-      before(:each) do
-        @app.should_receive(:call).and_raise(OhNoes)
-        @middleware = RightSupport::Rack::CustomLogger.new(@app, @logger)
-      end
-
-      it 'should log the exception' do
-        @logger.should_receive(:error)
-        lambda {
-          @middleware.call({})
-        }.should raise_error(OhNoes)
-      end
-    end
-
-    context 'when Sinatra stores an exception' do
-      before(:each) do
-        @app.should_receive(:call).and_return([500, {}, 'body'])
-        @env = {'sinatra.error' => OhNoes.new}
-        @middleware = RightSupport::Rack::CustomLogger.new(@app, @logger)
-      end
-
-      it 'should log the exception' do
-        @logger.should_receive(:error)
-        @middleware.call(@env)
-      end
-    end
-  end
 end
