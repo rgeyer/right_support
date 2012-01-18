@@ -78,6 +78,10 @@ module RightSupport::Rack
     def log_request(logger, env, status, began_at)
       duration = Time.now - began_at
 
+      # Assuming remote addresses are IPv4, make them all align to the same width
+      remote_addr = env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-"
+      remote_addr = remote_addr.ljust(15)
+
       # Log the fact that a query string was present, but do not log its contents
       # because it may have sensitive data.
       if (query = env["QUERY_STRING"]) && !query.empty?
@@ -87,7 +91,7 @@ module RightSupport::Rack
       end
 
       params = [
-        env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-",
+        remote_addr,
         env["REQUEST_METHOD"],
         env["PATH_INFO"],
         query_info,
