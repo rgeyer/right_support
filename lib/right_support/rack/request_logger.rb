@@ -78,18 +78,25 @@ module RightSupport::Rack
     def log_request(logger, env, status, began_at)
       duration = Time.now - began_at
 
+      # Log the fact that a query string was present, but do not log its contents
+      # because it may have sensitive data.
+      if (query = env["QUERY_STRING"]) && !query.empty?
+        query_info = '?...'
+      else
+        query_info = ''
+      end
+
       params = [
         env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-",
-        env["REMOTE_USER"] || "-",
         env["REQUEST_METHOD"],
         env["PATH_INFO"],
-        env["QUERY_STRING"].nil? ? "" : "?"+env["QUERY_STRING"],
+        query_info,
         env["HTTP_VERSION"],
         status,
         duration
       ]
 
-      logger.info %Q{%s - %s "%s %s%s %s" %d %0.3f} % params
+      logger.info %Q{%s "%s %s%s %s" %d %0.3f} % params
     end
 
     def log_exception(logger, e)
