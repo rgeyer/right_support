@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2011 RightScale Inc
+# Copyright (c) 2012 RightScale Inc
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -20,17 +20,25 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightSupport
-  #
-  # A namespace for logging functionality.
-  #
-  module Log
+module RightSupport::Log
+  module ClassLogging
 
+    module ClassMethods
+      def logger
+        @@logger ||= RightSupport::Log::NullLogger.new
+      end
+
+      def logger=(logger)
+        @@logger = logger
+      end
+    end
+
+    def self.included(base)
+      base.extend(ClassMethods)
+    end
+
+    def logger
+      self.class.logger
+    end
   end
 end
-
-require 'right_support/log/system_logger'
-require 'right_support/log/filter_logger'
-require 'right_support/log/tag_logger'
-require 'right_support/log/null_logger'
-require 'right_support/log/class_logging'
