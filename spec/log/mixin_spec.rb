@@ -25,7 +25,8 @@ describe RightSupport::Log::Mixin do
           @victim.class.logger = nil
         end
 
-        it 'does nothing' do
+        it 'uses the default logger' do
+          flexmock(RightSupport::Log::Mixin.default_logger).should_receive(:info).twice.and_return(true)
           @victim.class.logger.info('lalalala').should be_true
           @victim.logger.info('lalalala').should be_true
         end
