@@ -10,7 +10,7 @@ spec = Gem::Specification.new do |s|
   s.version = '1.2.0'
   s.date    = '2012-01-23'
 
-  s.authors = ['Tony Spataro', 'Sergey Sergyenko', 'Ryan Williamson']
+  s.authors = ['Tony Spataro', 'Sergey Sergyenko', 'Ryan Williamson', 'Lee Kirchhoff']
   s.email   = 'support@rightscale.com'
   s.homepage= 'https://github.com/rightscale/right_support'
 
