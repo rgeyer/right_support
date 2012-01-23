@@ -21,10 +21,47 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 module RightSupport::Log
+  # A mixin that facilitates access to a logger for classes that want logging functionality.
+  #
+  # === Basic Usage
+  # Your class must opt into logging by including the mixin:
+  #   class AwesomenessProcessor
+  #     include RightSupport::Log::Mixin
+  #
+  # Having opted in, your class now has a #logger instance method, as well as a .logger
+  # class method, which allows logging from either instance or class methods:
+  #
+  #   def self.prepare_awesomeness_for_processing(input)
+  #     logger.info "Preparing a #{input.class.name} for additional awesomeness"
+  #   end
+  #
+  #   def process_awesomeness(input)
+  #     input = self.class.prepare_awesomeness(input)
+  #     logger.info "Processing #{input.size} units of awesomeness"
+  #   end
+  #
+  # === Controlling Where Log Messages Go
+  # By default, your class shares a Logger object with all other classes that include the mixin.
+  # This process-wide default logger can be set or retrieved using module-level accessors:
+  #
+  #   # default_logger starts out as a NullLogger; you probably want to set it to something different
+  #   puts "Current logger: "+ RightSupport::Log::Mixin.default_logger.class
+  #   RightSupport::Log::Mixin.default_logger = SyslogLogger.new('my program')
+  #
+  # It is good form to set the default logger; however, if your class needs additional or different
+  # logging functionality, you can override the logger on a per-class level:
+  #   AwesomenessProcessor.logger = Logger.new(File.open('awesomeness.log', 'w'))
+  #
+  # Finally, you can override the logger on a per-instance level for truly fine-grained control.
+  # This is generally useless, but just in case:
+  #   processor = AwesomenessProcessor.new
+  #   processor.logger = Logger.new(File.open("#{processor.object_id}.log", 'w'))
+  #
   module Mixin
+    # Class methods that become available to classes that include Mixin.
     module ClassMethods
       def logger
-        @logger ||= RightSupport::Log::NullLogger.new
+        @logger || RightSupport::Log::Mixin.default_logger
       end
 
       def logger=(logger)
@@ -32,6 +69,7 @@ module RightSupport::Log
       end
     end
 
+    # Instance methods that become available to classes that include Mixin.
     module InstanceMethods
       def logger
         @logger || self.class.logger
@@ -40,6 +78,14 @@ module RightSupport::Log
       def logger=(logger)
         @logger = logger
       end
+    end
+
+    def self.default_logger
+      @default_logger ||= RightSupport::Log::NullLogger.new
+    end
+
+    def self.default_logger=(logger)
+      @default_logger = logger
     end
 
     def self.included(base)
