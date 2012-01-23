@@ -1,10 +1,10 @@
 require 'spec_helper'
 
 class InnocentVictim
-  include RightSupport::Log::ClassLogging
+  include RightSupport::Log::Mixin
 end
 
-describe RightSupport::Log::ClassLogging do
+describe RightSupport::Log::Mixin do
   context 'when mixed into a base class' do
     before(:each) do
       @victim = InnocentVictim.new
@@ -20,7 +20,7 @@ describe RightSupport::Log::ClassLogging do
     end
 
     context :logger do
-      context 'when no logger is provided' do
+      context 'without a logger' do
         before(:each) do
           @victim.class.logger = nil
         end
@@ -31,16 +31,29 @@ describe RightSupport::Log::ClassLogging do
         end
       end
 
-      context 'when a logger is provided' do
+      context 'with class logger' do
         before(:each) do
           @logger = flexmock(Logger)
           @victim.class.logger = @logger
         end
 
-        it 'performs logging' do
+        it 'uses class logger' do
           @logger.should_receive(:info).and_return(true).twice
           @victim.class.logger.info('lalalala').should be_true
           @victim.logger.info('lalalala').should be_true
+        end
+
+        context 'with instance logger' do
+          before(:each) do
+            @instance_logger = flexmock(Logger)
+            @victim.logger = @instance_logger
+          end
+
+          it 'uses instance logger' do
+            @instance_logger.should_receive(:info).and_return(true).once
+            @logger.should_receive(:info).never
+            @victim.logger.info('lalalala').should be_true
+          end
         end
       end
     end

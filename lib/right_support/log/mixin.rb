@@ -21,24 +21,30 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 module RightSupport::Log
-  module ClassLogging
-
+  module Mixin
     module ClassMethods
       def logger
-        @@logger ||= RightSupport::Log::NullLogger.new
+        @logger ||= RightSupport::Log::NullLogger.new
       end
 
       def logger=(logger)
-        @@logger = logger
+        @logger = logger
+      end
+    end
+
+    module InstanceMethods
+      def logger
+        @logger || self.class.logger
+      end
+
+      def logger=(logger)
+        @logger = logger
       end
     end
 
     def self.included(base)
       base.extend(ClassMethods)
-    end
-
-    def logger
-      self.class.logger
+      base.__send__(:include, InstanceMethods)
     end
   end
 end

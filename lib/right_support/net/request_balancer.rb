@@ -22,6 +22,8 @@ module RightSupport::Net
   # default list of fatal exceptions and default logic for deciding whether a
   # given exception is fatal! There are some subtleties.
   class RequestBalancer
+    include RightSupport::Log::Mixin
+
     DEFAULT_RETRY_PROC = lambda do |ep, n|
       n < ep.size
     end
@@ -67,16 +69,6 @@ module RightSupport::Net
         :on_exception => nil,
         :health_check => DEFAULT_HEALTH_CHECK_PROC
     }
-
-    @@logger = nil
-    
-    def self.logger
-      @@logger
-    end
-
-    def self.logger=(logger)
-      @@logger = logger
-    end
 
     def self.request(endpoints, options={}, &block)
       new(endpoints, options).request(&block)
@@ -169,15 +161,15 @@ module RightSupport::Net
         if need_health_check
           begin
             unless @policy.health_check(endpoint)
-              log_error("RequestBalancer: health check failed to #{endpoint} because of non-true return value")
+              logger.error "RequestBalancer: health check failed to #{endpoint} because of non-true return value"
               next
             end
           rescue Exception => e
-            log_error("RequestBalancer: health check failed to #{endpoint} because of #{e.class.name}: #{e.message}")
+            logger.error "RequestBalancer: health check failed to #{endpoint} because of #{e.class.name}: #{e.message}"
             next
           end
 
-          log_info("RequestBalancer: health check succeeded to #{endpoint}")
+          logger.info "RequestBalancer: health check succeeded to #{endpoint}"
         end
 
         begin
@@ -200,7 +192,7 @@ module RightSupport::Net
 
       exceptions = exceptions.map { |e| e.class.name }.uniq.join(', ')
       msg = "No available endpoints from #{@endpoints.inspect}! Exceptions: #{exceptions}"
-      log_error("RequestBalancer: #{msg}")
+      logger.error "RequestBalancer: #{msg}"
       raise NoResult, msg
     end
 
@@ -247,7 +239,7 @@ module RightSupport::Net
       fatal = fatal.any?{ |c| e.is_a?(c) } if fatal.respond_to?(:any?)
       duration = sprintf('%.4f', Time.now - t0)
       msg = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} during request to #{endpoint}: #{e.message} after #{duration} seconds"
-      log_error msg
+      logger.error msg
       @options[:on_exception].call(fatal, e, endpoint) if @options[:on_exception]
 
       if fatal
@@ -269,19 +261,6 @@ module RightSupport::Net
       return true if optional && !callable.respond_to?(:call)
       return callable.respond_to?(:arity) && (callable.arity == arity)
     end
-
-    # Log an info message with the class logger, if provided.  Can't duck type because some loggers
-    # use fallback methods to perform their logging and don't respond_to?() :info or :error
-    def log_info(*args)
-      self.class.logger.__send__(:info, *args) unless self.class.logger.nil?
-    end
-
-    # Log an error message with the class logger, if provided. Can't duck type because some loggers
-    # use fallback methods to perform their logging and don't respond_to?() :info or :error
-    def log_error(*args)
-      self.class.logger.__send__(:error, *args) unless self.class.logger.nil?
-    end
-
   end # RequestBalancer
 
 end # RightScale
