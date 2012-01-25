@@ -129,3 +129,7 @@ def random_value(klass=nil, depth=0)
 
   result
 end
+
+def mock_logger
+  logger = flexmock(Logger.new(StringIO.new))
+end
