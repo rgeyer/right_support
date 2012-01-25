@@ -1,17 +1,20 @@
-describe RightSupport::Log::ExceptionLogging do
+require 'spec_helper'
+
+describe RightSupport::Log::ExceptionLogger do
   before(:all) do
-    @logger = Logger.new(StringIO.new)
+    @actual_logger = Logger.new(StringIO.new)
+    @logger = RightSupport::Log::ExceptionLogger.new(@actual_logger)
     @exception = Exception.new('message')
   end
 
-  context 'methods added to Logger' do
-    context :exception do
-      it 'logs an error with exception information' do
-        flexmock(@logger).should_receive(:error)
-        @logger.exception('desc', @exception)
-      end
+  context :exception do
+    it 'logs an error with exception information' do
+      flexmock(@actual_logger).should_receive(:fatal)
+      @logger.exception('desc', @exception)
     end
+  end
 
+  context 'class methods' do
     context :format_exception do
       it 'includes the description'
       it 'includes the exception message if present'
