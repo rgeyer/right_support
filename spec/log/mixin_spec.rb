@@ -34,7 +34,7 @@ describe RightSupport::Log::Mixin do
 
       context 'with class logger' do
         before(:each) do
-          @logger = flexmock(Logger)
+          @logger = mock_logger
           @victim.class.logger = @logger
         end
 
@@ -46,7 +46,7 @@ describe RightSupport::Log::Mixin do
 
         context 'with instance logger' do
           before(:each) do
-            @instance_logger = flexmock(Logger)
+            @instance_logger = mock_logger
             @victim.logger = @instance_logger
           end
 

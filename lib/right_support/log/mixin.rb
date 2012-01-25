@@ -58,6 +58,11 @@ module RightSupport::Log
   #   processor.logger = Logger.new(File.open("#{processor.object_id}.log", 'w'))
   #
   module Mixin
+    # A decorator class which will be wrapped around any logger that is
+    # provided to any of the setter methods. This ensures that ExceptionLogger's
+    # methods will always be available to anyone who uses this mixin for logging.
+    Decorator = RightSupport::Log::ExceptionLogger
+
     # Class methods that become available to classes that include Mixin.
     module ClassMethods
       def logger
@@ -65,6 +70,7 @@ module RightSupport::Log
       end
 
       def logger=(logger)
+        logger = Decorator.new(logger) unless logger.nil? || logger.is_a?(Decorator)
         @logger = logger
       end
     end
@@ -76,15 +82,17 @@ module RightSupport::Log
       end
 
       def logger=(logger)
+        logger = Decorator.new(logger) unless logger.nil? || logger.is_a?(Decorator)
         @logger = logger
       end
     end
 
     def self.default_logger
-      @default_logger ||= RightSupport::Log::NullLogger.new
+      @default_logger ||= Decorator.new(RightSupport::Log::NullLogger.new)
     end
 
     def self.default_logger=(logger)
+      logger = Decorator.new(logger) unless logger.nil? || logger.is_a?(Decorator)
       @default_logger = logger
     end
 
