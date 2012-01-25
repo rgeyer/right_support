@@ -58,9 +58,9 @@ module RightSupport::Log
           when :no_trace
             description += ")"
           when :caller
-            description += " in " + exception.backtrace[0] + ")"
+            description += " IN " + exception.backtrace[0] + ")"
           when :trace
-            description += " in\n  " + exception.backtrace.join("\n  ") + ")"
+            description += " IN\n  " + exception.backtrace.join("\n  ") + ")"
           else
             raise ArgumentError, "Unknown backtrace value #{backtrace.inspect}"
         end
@@ -69,7 +69,7 @@ module RightSupport::Log
       description
     end
 
-    # Log information about an exception. The information is logged with FATAL severity.
+    # Log information about an exception with ERROR severity.
     #
     # === Parameters
     # description(String):: Error description
@@ -80,7 +80,7 @@ module RightSupport::Log
     # === Return
     # Forwards the return value of its underlying logger's #error method
     def exception(description, exception = nil, backtrace = :caller)
-      fatal(self.class.format_exception(description, exception, backtrace))
+      error(self.class.format_exception(description, exception, backtrace))
     end
   end
 end

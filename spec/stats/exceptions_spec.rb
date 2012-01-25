@@ -108,9 +108,9 @@ describe RightSupport::Stats::Exceptions do
 
   it "should catch any exceptions raised internally and log them" do
     logger = flexmock("logger")
-    logger.should_receive(:exception).with(/Failed to track exception/, Exception, :trace).once
+    logger.should_receive(:error).with(/Failed to track exception 'Test error' \(Exception: bad IN/).once
     RightSupport::Log::Mixin.default_logger = logger
-    flexmock(@exception).should_receive(:backtrace).and_raise(Exception)
+    flexmock(@exception).should_receive(:backtrace).and_raise(Exception.new("bad"))
     @stats = RightSupport::Stats::Exceptions.new
     @stats.track("testing", @exception, "message")
     @stats.stats["testing"]["total"].should == 1
