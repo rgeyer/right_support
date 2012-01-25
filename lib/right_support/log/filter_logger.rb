@@ -27,7 +27,19 @@ module RightSupport::Log
   # before they are passed to the underlying Logger. Can be used to for various log-
   # processing tasks such as filtering sensitive data or tagging log lines with a
   # context marker.
+  #
+  # FilterLogger implements method_missing and respond_to? and proxies unknown
+  # method calls to its underlying logger; this allows it to be used as a
+  # decorator.
   class FilterLogger < Logger
+    SEVERITY_TO_METHOD = {
+        DEBUG => :debug,
+        INFO  => :info,
+        WARN  => :warn,
+        ERROR => :error,
+        FATAL => :fatal,
+    }
+
     # Initialize a new instance of this class.
     #
     # === Parameters
@@ -35,7 +47,70 @@ module RightSupport::Log
     #
     def initialize(actual_logger)
       @actual_logger = actual_logger
+    end
 
+    def method_missing(meth, *args)
+      return @actual_logger.__send__(meth, *args) if @actual_logger.respond_to?(meth)
+      super
+    end
+
+    def respond_to?(meth)
+      super(meth) || @actual_logger.respond_to?(meth)
+    end
+
+    # Log a message, filtering the severity and/or message and dispatching
+    # to the corresponding severity-method of the underlying logger.
+    #
+    # See #info for more information.
+    def debug(message = nil, &block)
+      severity, message = filter(DEBUG, message)
+      meth = SEVERITY_TO_METHOD[severity]
+      raise ArgumentError, "Filter emitted unknown severity #{severity.inspect}" unless meth
+      @actual_logger.__send__(meth, message, &block)
+    end
+
+    # Log a message, filtering the severity and/or message and dispatching
+    # to the corresponding severity-method of the underlying logger.
+    #
+    # See #info for more information.
+    def info(message = nil, &block)
+      severity, message = filter(INFO, message)
+      meth = SEVERITY_TO_METHOD[severity]
+      raise ArgumentError, "Filter emitted unknown severity #{severity.inspect}" unless meth
+      @actual_logger.__send__(meth, message, &block)
+    end
+
+    # Log a message, filtering the severity and/or message and dispatching
+    # to the corresponding severity-method of the underlying logger.
+    #
+    # See #info for more information.
+    def warn(message = nil, &block)
+      severity, message = filter(WARN, message)
+      meth = SEVERITY_TO_METHOD[severity]
+      raise ArgumentError, "Filter emitted unknown severity #{severity.inspect}" unless meth
+      @actual_logger.__send__(meth, message, &block)
+    end
+
+    # Log a message, filtering the severity and/or message and dispatching
+    # to the corresponding severity-method of the underlying logger.
+    #
+    # See #info for more information.
+    def error(message = nil, &block)
+      severity, message = filter(ERROR, message)
+      meth = SEVERITY_TO_METHOD[severity]
+      raise ArgumentError, "Filter emitted unknown severity #{severity.inspect}" unless meth
+      @actual_logger.__send__(meth, message, &block)
+    end
+
+    # Log a message, filtering the severity and/or message and dispatching
+    # to the corresponding severity-method of the underlying logger.
+    #
+    # See #info for more information.
+    def fatal(message = nil, &block)
+      severity, message = filter(FATAL, message)
+      meth = SEVERITY_TO_METHOD[severity]
+      raise ArgumentError, "Filter emitted unknown severity #{severity.inspect}" unless meth
+      @actual_logger.__send__(meth, message, &block)
     end
 
     # Add a log line, filtering the severity and message before calling through

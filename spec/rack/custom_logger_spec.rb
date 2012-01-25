@@ -6,7 +6,7 @@ describe RightSupport::Rack::CustomLogger do
   before(:all) do
     @app = flexmock('Rack app')
     @app.should_receive(:call).and_return([200, {}, 'body']).by_default
-    @logger = flexmock(Logger)
+    @logger = mock_logger
   end
 
   context :initialize do
