@@ -107,13 +107,17 @@ describe RightSupport::Stats::Exceptions do
   end
 
   it "should catch any exceptions raised internally and log them" do
-    logger = flexmock("logger")
-    logger.should_receive(:error).with(/Failed to track exception 'Test error' \(Exception: bad IN/).once
-    RightSupport::Log::Mixin.default_logger = logger
-    flexmock(@exception).should_receive(:backtrace).and_raise(Exception.new("bad"))
-    @stats = RightSupport::Stats::Exceptions.new
-    @stats.track("testing", @exception, "message")
-    @stats.stats["testing"]["total"].should == 1
+    begin
+      logger = flexmock("logger")
+      logger.should_receive(:error).with(/Failed to track exception 'Test error' \(Exception: bad IN/).once
+      RightSupport::Log::Mixin.default_logger = logger
+      flexmock(@exception).should_receive(:backtrace).and_raise(Exception.new("bad"))
+      @stats = RightSupport::Stats::Exceptions.new
+      @stats.track("testing", @exception, "message")
+      @stats.stats["testing"]["total"].should == 1
+    ensure
+      RightSupport::Log::Mixin.default_logger = nil
+    end
   end
 
 end # RightSupport::Stats::Exceptions
