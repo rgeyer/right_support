@@ -28,45 +28,55 @@ module RightSupport::Net::Balancing
     DEFAULT_YELLOW_STATES = 4
     DEFAULT_RESET_TIME    = 300
     
-    def initialize(endpoints, yellow_states=nil, reset_time=nil)
+    def initialize(endpoints, yellow_states=nil, reset_time=nil, on_health_change=nil)
       @endpoints = Hash.new
       @yellow_states = yellow_states || DEFAULT_YELLOW_STATES
       @reset_time = reset_time || DEFAULT_RESET_TIME
-      endpoints.each { |ep| @endpoints[ep] = {:n_level => 0,:timestamp => 0 }}
+      @on_health_change = on_health_change
+      @min_n_level = 0
+      endpoints.each { |ep| @endpoints[ep] = {:n_level => @min_n_level, :timestamp => 0} }
     end
     
     def sweep
-      @endpoints.each { |k,v| decrease_state(k,0,Time.now) if Float(Time.now - v[:timestamp]) > @reset_time }
+      @endpoints.each { |k,v| decrease_state(k, 0, Time.now) if Float(Time.now - v[:timestamp]) > @reset_time }
     end
     
     def sweep_and_return_yellow_and_green
       sweep
       @endpoints.select { |k,v| v[:n_level] < @yellow_states }
     end
-    
-    def decrease_state(endpoint,t0,t1)
-      unless @endpoints[endpoint][:n_level] == 0
-        @endpoints[endpoint][:n_level]    -= 1
-        @endpoints[endpoint][:timestamp]  = t1
+
+    def decrease_state(endpoint, t0, t1)
+      update_state(endpoint, -1, t1) unless @endpoints[endpoint][:n_level] == 0
+    end
+
+    def increase_state(endpoint, t0, t1)
+      update_state(endpoint, 1, t1) unless @endpoints[endpoint][:n_level] == @yellow_states
+    end
+
+    def update_state(endpoint, change, t1)
+      @endpoints[endpoint][:timestamp] = t1
+      n_level = @endpoints[endpoint][:n_level] += change
+      if @on_health_change &&
+         (n_level < @min_n_level ||
+         (n_level > @min_n_level && n_level == @endpoints.map { |(k, v)| v[:n_level] }.min))
+        @min_n_level = n_level
+        @on_health_change.call(state_color(n_level))
       end
     end
-    
-    def increase_state(endpoint,t0,t1)
-      unless @endpoints[endpoint][:n_level] == @yellow_states
-        @endpoints[endpoint][:n_level]    += 1
-        @endpoints[endpoint][:timestamp]  = t1
-      end
+
+    def state_color(n_level)
+      color = 'green' if n_level == 0
+      color = 'red' if n_level == @yellow_states
+      color = "yellow-#{n_level}" if n_level > 0 && n_level < @yellow_states
+      color
     end
 
     # Returns a hash of endpoints and their colored health status
     # Useful for logging and debugging
     def get_stats
       stats = {}
-      @endpoints.each do |k, v|
-        stats[k] = 'green' if v[:n_level] == 0
-        stats[k] = 'red' if v[:n_level] == @yellow_states
-        stats[k] = "yellow-#{v[:n_level]}" if v[:n_level] > 0 && v[:n_level] < @yellow_states
-      end
+      @endpoints.each { |k, v| stats[k] = state_color(v[:n_level]) }
       stats
     end
     
@@ -87,16 +97,23 @@ module RightSupport::Net::Balancing
   #      retain yellow state and improve it's health
   #    * on failure: change state to red if it's health was sickest (@yellow_states), else
   #      retain yellow state and decrease it's health
+  # A callback option is provided to receive notification of changes in the overall
+  # health of the endpoints. The overall health starts out green. When the last
+  # endpoint transitions from green to yellow, a callback is made to report the overall
+  # health as yellow (or level of yellow). When the last endpoint transitions from yellow
+  # to red, a callback is made to report the transition to red. Similarly transitions are
+  # reported on the way back down, e.g., yellow is reported as soon as the first endpoint
+  # transitions from red to yellow, and so on.
 
   class HealthCheck
     
-    def initialize(endpoints,options = {})
+    def initialize(endpoints, options = {})
       yellow_states = options[:yellow_states]
       reset_time = options[:reset_time]
 
       @health_check = options.delete(:health_check)
 
-      @stack = EndpointsStack.new(endpoints,yellow_states,reset_time)
+      @stack = EndpointsStack.new(endpoints, yellow_states, reset_time, options[:on_health_change])
       @counter = rand(0xffff) % endpoints.size
       @last_size = endpoints.size
     end
@@ -117,11 +134,11 @@ module RightSupport::Net::Balancing
     end
 
     def good(endpoint, t0, t1)
-      @stack.decrease_state(endpoint,t0,t1)
+      @stack.decrease_state(endpoint, t0, t1)
     end
 
     def bad(endpoint, t0, t1)
-      @stack.increase_state(endpoint,t0,t1)
+      @stack.increase_state(endpoint, t0, t1)
     end
     
     def health_check(endpoint)

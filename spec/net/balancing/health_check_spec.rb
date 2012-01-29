@@ -51,6 +51,40 @@ describe RightSupport::Net::Balancing::HealthCheck do
         pending
       end
     end
+
+    context 'given a mixture of servers and callback enabled' do
+      before(:each) do
+        @yellow_states = 3
+        @health_updates = []
+        @policy = RightSupport::Net::Balancing::HealthCheck.new(@endpoints, {
+                    :yellow_states => @yellow_states, :reset_time => @reset_time,
+                    :on_health_change => lambda { |health| @health_updates << health }})
+      end
+
+      it "notifies of overall improving health only at transition points" do
+        endpoints = @endpoints.shuffle
+        endpoints.shuffle.each { |ep| @policy.bad(ep, 0, Time.now) }
+        endpoints.shuffle.each { |ep| @policy.bad(ep, 0, Time.now) }
+        endpoints.shuffle.each { |ep| @policy.bad(ep, 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red']
+        @policy.good(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2']
+        endpoints[1..-1].each { |ep| @policy.good(ep, 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2']
+        @policy.good(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2', 'yellow-1']
+        @policy.bad(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2', 'yellow-1', 'yellow-2']
+        @policy.good(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2', 'yellow-1', 'yellow-2', 'yellow-1']
+        2.times { @policy.good(endpoints[1], 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2', 'yellow-1', 'yellow-2', 'yellow-1', 'green']
+        endpoints.each { |ep| @policy.good(ep, 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2', 'yellow-1', 'yellow-2', 'yellow-1', 'green']
+        endpoints.each { |ep| @policy.good(ep, 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red', 'yellow-2', 'yellow-1', 'yellow-2', 'yellow-1', 'green']
+      end
+    end
   end
 
   context :bad do
@@ -95,6 +129,32 @@ describe RightSupport::Net::Balancing::HealthCheck do
         
         @policy.bad(@red, 0, Time.now)
         @policy.should have_red_endpoint(@red)
+      end
+    end
+
+    context 'given a mixture of servers and callback enabled' do
+      before(:each) do
+        @yellow_states = 3
+        @health_updates = []
+        @policy = RightSupport::Net::Balancing::HealthCheck.new(@endpoints, {
+                    :yellow_states => @yellow_states, :reset_time => @reset_time,
+                    :on_health_change => lambda { |health| @health_updates << health }})
+      end
+
+      it "notifies of overall worsening health only at transition points" do
+        endpoints = @endpoints.shuffle
+        endpoints[1..-1].each { |ep| @policy.bad(ep, 0, Time.now) }
+        @health_updates.should == []
+        @policy.bad(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1']
+        endpoints.each { |ep| @policy.bad(ep, 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2']
+        endpoints[1..-1].each { |ep| @policy.bad(ep, 0, Time.now) }
+        @health_updates.should == ['yellow-1', 'yellow-2']
+        @policy.bad(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red']
+        @policy.bad(endpoints[0], 0, Time.now)
+        @health_updates.should == ['yellow-1', 'yellow-2', 'red']
       end
     end
   end
