@@ -84,8 +84,12 @@ module RightSupport::Net
     # === Options
     # retry:: a Class, array of Class or decision Proc to determine whether to keep retrying; default is to try all endpoints
     # fatal:: a Class, array of Class, or decision Proc to determine whether an exception is fatal and should not be retried
-    # on_exception(Proc):: notification hook that accepts three arguments: whether the exception is fatal, the exception itself, and the endpoint for which the exception happened
-    # health_check(Proc):: callback that allows balancer to check an endpoint health; should raise an exception if the endpoint is not healthy
+    # on_exception(Proc):: notification hook that accepts three arguments: whether the exception is fatal, the exception itself,
+    #   and the endpoint for which the exception happened
+    # health_check(Proc):: callback that allows balancer to check an endpoint health; should raise an exception if the endpoint
+    #   is not healthy
+    # on_health_change(Proc):: callback that is made when the overall health of the endpoints transition to a different level;
+    #   its single argument contains the new minimum health level
     #
     def initialize(endpoints, options={})
       @options = DEFAULT_OPTIONS.merge(options)
@@ -96,7 +100,7 @@ module RightSupport::Net
 
       @options[:policy] ||= RightSupport::Net::Balancing::RoundRobin
       @policy = @options[:policy]
-      @policy = @policy.new(endpoints,options) if @policy.is_a?(Class)
+      @policy = @policy.new(endpoints, options) if @policy.is_a?(Class)
       unless test_policy_duck_type(@policy)
         raise ArgumentError, ":policy must be a class/object that responds to :next, :good and :bad"
       end
@@ -114,7 +118,11 @@ module RightSupport::Net
       end
 
       unless test_callable_arity(options[:health_check], 1, false)
-        raise ArgumentError, ":health_check callback must accept one parameters"
+        raise ArgumentError, ":health_check callback must accept one parameter"
+      end
+
+      unless test_callable_arity(options[:on_health_change], 1, false)
+        raise ArgumentError, ":on_health_change callback must accept one parameter"
       end
 
       @endpoints = endpoints

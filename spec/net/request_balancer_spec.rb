@@ -251,6 +251,20 @@ describe RightSupport::Net::RequestBalancer do
         @options[:health_check].call(1).should be_true
       end
     end
+
+    context 'with :on_health_change option' do
+
+      before(:each) do
+        @health_updates = []
+        @on_health_change = Proc.new {|health| @health_updates << health }
+      end
+
+      it 'accepts a block' do
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :on_health_change => @on_health_change)
+        }.should_not raise_error
+      end
+    end
   end
 
   context :request do
