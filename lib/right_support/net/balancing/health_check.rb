@@ -30,7 +30,7 @@ module RightSupport::Net::Balancing
   class EndpointsStack
     DEFAULT_YELLOW_STATES = 4
     DEFAULT_RESET_TIME    = 300
-    
+
     def initialize(endpoints, yellow_states=nil, reset_time=nil, on_health_change=nil)
       @endpoints = Hash.new
       @yellow_states = yellow_states || DEFAULT_YELLOW_STATES
@@ -39,11 +39,11 @@ module RightSupport::Net::Balancing
       @min_n_level = 0
       endpoints.each { |ep| @endpoints[ep] = {:n_level => @min_n_level, :timestamp => 0} }
     end
-    
+
     def sweep
       @endpoints.each { |k,v| decrease_state(k, 0, Time.now) if Float(Time.now - v[:timestamp]) > @reset_time }
     end
-    
+
     def sweep_and_return_yellow_and_green
       sweep
       @endpoints.select { |k,v| v[:n_level] < @yellow_states }
@@ -82,9 +82,9 @@ module RightSupport::Net::Balancing
       @endpoints.each { |k, v| stats[k] = state_color(v[:n_level]) }
       stats
     end
-    
+
   end
-  
+
   # Implementation concepts: endpoints have three states, red, yellow and green.  Yellow
   # has several levels (@yellow_states) to determine the health of the endpoint. The
   # balancer works by avoiding "red" endpoints and retrying them after awhile.  Here is a
@@ -109,7 +109,7 @@ module RightSupport::Net::Balancing
   # transitions from red to yellow, and so on.
 
   class HealthCheck
-    
+
     def initialize(endpoints, options = {})
       yellow_states = options[:yellow_states]
       reset_time = options[:reset_time]
@@ -126,7 +126,7 @@ module RightSupport::Net::Balancing
       # following structure: [ [EP1, {:n_level => ..., :timestamp => ... }], [EP2, ... ] ]
       endpoints = @stack.sweep_and_return_yellow_and_green
       return nil if endpoints.empty?
-      
+
       # Selection of the next endpoint using RoundRobin
       @counter += 1 unless endpoints.size < @last_size
       @counter = 0 if @counter == endpoints.size
@@ -151,7 +151,7 @@ module RightSupport::Net::Balancing
     def bad(endpoint, t0, t1)
       @stack.increase_state(endpoint, t0, t1)
     end
-    
+
     def health_check(endpoint)
       t0 = Time.now
       result = @health_check.call(endpoint)
@@ -173,6 +173,6 @@ module RightSupport::Net::Balancing
     def get_stats
       @stack.get_stats
     end
-    
+
   end
 end
