@@ -24,11 +24,22 @@ or where the log entries go.
   my_logger = MyAwesomeLogger.new
   use RightSupport::Rack::CustomLogger, Logger::INFO, my_logger
 
+== String Manipulation
+
+StringExtensions contains String#camelize, which is only defined if the
+ActiveSupport gem cannot be loaded. It also has some RightScale-specific
+methods:
+* String#snake_case
+* String#to_const
+* String#to_const_path
+
+Net::StringEncoder applies and removes URL-escape, base64 and other encodings.
+
 == Input Validation
 
-The Validation module contains several format-checkers that can be used to validate
-your web app's models before saving, check for preconditions in your controllers, and
-so forth.
+Validation  contains several format-checkers that can be used to validate your
+web app's models before saving, check for preconditions in your controllers,
+and so forth.
 
 You can use it as a mixin by including the appropriate child module of
 RightSupport::Validation.
@@ -48,10 +59,10 @@ but does not pollute the dispatch table of your application classes.
   the_key = STDIN.read
   raise ArgumentError unless RightSupport::Validation.ssh_public_key?(the_key)
 
-== Request Balancing
+== Client-Side Load Balancer
 
-The RequestBalancer class will randomly choose endpoints for a network request,
-which lets you perform easy client-side load balancing:
+RequestBalancer randomly chooses endpoints for a network request, which lets
+you perform easy client-side load balancing:
 
   include RightSupport::Net
 
@@ -61,19 +72,17 @@ which lets you perform easy client-side load balancing:
   end
 
 The balancer will keep trying requests until one of them succeeds without throwing
-any exceptions. (NB: a nil return value counts as success!!) If you specify that a
-certain class of exception is "fatal," then that exception will cause REST to re-
-raise immediately
+any exceptions. (NB: a nil return value counts as success!!)
 
-== HTTPClient
+== HTTP Client
 
 We provide a very thin wrapper around the rest-client gem that enables simple but
 robust rest requests with a timeout, headers, etc.
 
-The HTTPClient is interface-compatible with the RestClient
-module, but allows an optional timeout to be specified as an extra parameter.
+HTTPClient is interface-compatible with the RestClient module, but allows an
+optional timeout to be specified as an extra parameter.
    
-   # Create a wrapper's object
+   # Create a wrapper object
    @client = RightSupport::Net::HTTPClient.new
    
    # Default timeout is 5 seconds
@@ -82,3 +91,7 @@ module, but allows an optional timeout to be specified as an extra parameter.
    # Make sure the HTTPClient request fails after 1 second so we can report an error
    # and move on!
    @client.get('http://localhost', {:headers => {'X-Hello'=>'hi!'}, :timeout => 1)}
+
+== Statistics Gathering
+
+Profile your compute-heavy and network activities using a Stats::Activity counter.

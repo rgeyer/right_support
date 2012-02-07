@@ -1,15 +1,15 @@
+require 'digest/sha1'
+
 module RightSupport::Crypto
   class SignedHash
 
-    if_require_succeeds('yajl') do
+    if require_succeeds?('yajl')
       DefaultEncoding = ::Yajl
-    end
-
-    if_require_succeeds('json') do
+    elsif require_succeeds?('json')
       DefaultEncoding = ::JSON
+    else
+      DefaultEncoding = nil
     end unless defined?(DefaultEncoding)
-
-    DefaultEncoding = nil unless defined?(DefaultEncoding)
 
     DEFAULT_OPTIONS = {
       :digest   => Digest::SHA1,

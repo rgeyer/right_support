@@ -1,5 +1,22 @@
 module RightSupport::Ruby
   module ObjectExtensions
+    # Attempt to require one or more source files.
+    #
+    # This method is useful to conditionally define code depending on the availability
+    # of gems or standard-library source files.
+    #
+    # === Parameters
+    # Forwards all parameters transparently through to Kernel#require.
+    #
+    # === Return
+    # Returns true or false
+    def require_succeeds?(*args)
+      require(*args)
+      return true
+    rescue LoadError => e
+      return false
+    end
+
     # Attempt to require one or more source files; if the require succeeds (or
     # if the files have already been successfully required), yield to the block.
     #
@@ -7,8 +24,7 @@ module RightSupport::Ruby
     # of gems or standard-library source files. 
     #
     # === Parameters
-    # Uses a parameters glob to pass all of its parameters transparently through to
-    # Kernel#require.
+    # Forwards all parameters transparently through to Kernel#require.
     #
     # === Block
     # The block will be called if the require succeeds (if it does not raise LoadError).
