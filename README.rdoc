@@ -24,7 +24,7 @@ or where the log entries go.
   my_logger = MyAwesomeLogger.new
   use RightSupport::Rack::CustomLogger, Logger::INFO, my_logger
 
-== String Manipulation
+=== String Manipulation
 
 StringExtensions contains String#camelize, which is only defined if the
 ActiveSupport gem cannot be loaded. It also has some RightScale-specific
@@ -35,7 +35,7 @@ methods:
 
 Net::StringEncoder applies and removes URL-escape, base64 and other encodings.
 
-== Input Validation
+=== Input Validation
 
 Validation  contains several format-checkers that can be used to validate your
 web app's models before saving, check for preconditions in your controllers,
@@ -59,7 +59,7 @@ but does not pollute the dispatch table of your application classes.
   the_key = STDIN.read
   raise ArgumentError unless RightSupport::Validation.ssh_public_key?(the_key)
 
-== Client-Side Load Balancer
+=== Client-Side Load Balancer
 
 RequestBalancer randomly chooses endpoints for a network request, which lets
 you perform easy client-side load balancing:
@@ -74,7 +74,7 @@ you perform easy client-side load balancing:
 The balancer will keep trying requests until one of them succeeds without throwing
 any exceptions. (NB: a nil return value counts as success!!)
 
-== HTTP Client
+=== HTTP Client
 
 We provide a very thin wrapper around the rest-client gem that enables simple but
 robust rest requests with a timeout, headers, etc.
@@ -92,6 +92,17 @@ optional timeout to be specified as an extra parameter.
    # and move on!
    @client.get('http://localhost', {:headers => {'X-Hello'=>'hi!'}, :timeout => 1)}
 
-== Statistics Gathering
+=== Statistics Gathering
 
 Profile your compute-heavy and network activities using a Stats::Activity counter.
+
+  stats = RightSupport::Stats::Activity.new
+
+  puts 'enter 5 lines:'
+  5.times do
+    stats.update(:read_input)
+    line = STDIN.readline
+    stats.finish
+  end
+
+  puts "Only %.1f lines/sec? You are a slow typist!" % [stats.avg_rate]
