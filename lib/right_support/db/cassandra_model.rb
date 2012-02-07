@@ -23,10 +23,10 @@
 begin
   require 'cassandra/0.8'
 
-  # Monkey patch Cassandra gem so that it accepts list of columns when doing indexed slice
-  # otherwise not able to get specific columns using secondary index lookup
   class Cassandra
     module Protocol
+      # Monkey patch _get_indexed_slices so that it accepts list of columns when doing indexed
+      # slice, otherwise not able to get specific columns using secondary index lookup
       def _get_indexed_slices(column_family, index_clause, columns, count, start, finish, reversed, consistency)
         column_parent = CassandraThrift::ColumnParent.new(:column_family => column_family)
         if columns
@@ -42,7 +42,30 @@ begin
         client.get_indexed_slices(column_parent, index_clause, predicate, consistency)
       end
     end
+
+    # Monkey patch get_indexed_slices so that it returns OrderedHash, otherwise cannot determine
+    # next start key when getting in chunks
+    def get_indexed_slices(column_family, index_clause, *columns_and_options)
+      return false if Cassandra.VERSION.to_f < 0.7
+
+      column_family, columns, _, options =
+        extract_and_validate_params(column_family, [], columns_and_options, READ_DEFAULTS.merge(:key_count => 100, :key_start => ""))
+
+      if index_clause.class != CassandraThrift::IndexClause
+        index_expressions = index_clause.collect do |expression|
+          create_index_expression(expression[:column_name], expression[:value], expression[:comparison])
+        end
+
+        index_clause = create_index_clause(index_expressions, options[:key_start], options[:key_count])
+      end
+
+      key_slices = _get_indexed_slices(column_family, index_clause, columns, options[:count], options[:start],
+        options[:finish], options[:reversed], options[:consistency])
+
+      key_slices.inject(OrderedHash.new){|h, key_slice| h[key_slice.key] = key_slice.columns; h}
+    end
   end
+
 rescue LoadError => e
   # Make sure we're dealing with a legitimate missing-file LoadError
   raise e unless e.message =~ /^no such file to load/
@@ -58,6 +81,9 @@ module RightSupport::DB
 
     # Default timeout for client connection to Cassandra server
     DEFAULT_TIMEOUT = 10
+
+    # Default maximum number of rows to retrieve in one chunk
+    DEFAULT_COUNT = 1000
 
     # Wrappers for Cassandra client
     class << self
@@ -103,11 +129,12 @@ module RightSupport::DB
       end
 
       # Get row(s) for specified key(s)
+      # Unless :count is specified, a maximum of 100 columns are retrieved
       #
       # === Parameters
       # k(String|Array):: Individual primary key or list of keys on which to match
-      # opt(Hash):: Request options such as :consistency, and when getting
-      #   multiple rows also :count, :start, :finish, :reversed
+      # opt(Hash):: Request options including :consistency and for column level
+      #   control :count, :start, :finish, :reversed
       #
       # === Return
       # (Object|nil):: Individual row, or nil if not found, or ordered hash of rows
@@ -116,10 +143,12 @@ module RightSupport::DB
       end
       
       # Get row for specified primary key and convert into object of given class
+      # Unless :count is specified, a maximum of 100 columns are retrieved
       #
       # === Parameters
       # key(String):: Primary key on which to match
-      # opt(Hash):: Request options such as :consistency
+      # opt(Hash):: Request options including :consistency and for column level
+      #   control :count, :start, :finish, :reversed
       #
       # === Return
       # (CassandraModel|nil):: Instantiated object of given class, or nil if not found
@@ -132,14 +161,15 @@ module RightSupport::DB
       end
 
       # Get raw row(s) for specified primary key(s)
+      # Unless :count is specified, a maximum of 100 columns are retrieved
       #
       # === Parameters
       # k(String|Array):: Individual primary key or list of keys on which to match
-      # opt(Hash):: Request options such as :consistency, and when getting
-      #   multiple rows also :count, :start, :finish, :reversed
+      # opt(Hash):: Request options including :consistency and for column level
+      #   control :count, :start, :finish, :reversed
       #
       # === Return
-      # (Object|nil):: Individual row, or nil if not found, or ordered hash of rows
+      # (Cassandra::OrderedHash):: Individual row or OrderedHash of rows
       def real_get(k, opt = {})
         if k.is_a?(Array)
           do_op(:multi_get, column_family, k, opt)
@@ -148,13 +178,13 @@ module RightSupport::DB
         end
       end
 
-      # Get rows for specified secondary key
+      # Get all rows for specified secondary key
       #
       # === Parameters
       # index(String):: Name of secondary index
       # key(String):: Index value that each selected row is required to match
       # columns(Array|nil):: Names of columns to be retrieved, defaults to all
-      # opt(Hash):: Request options such as :consistency
+      # opt(Hash):: Request options with only :consistency used
       #
       # === Return
       # (Array):: Rows retrieved with each member being an instantiated object of the
@@ -170,23 +200,37 @@ module RightSupport::DB
         end
       end
 
-      # Get raw rows for specified secondary key
+      # Get all raw rows for specified secondary key
       #
       # === Parameters
       # index(String):: Name of secondary index
       # key(String):: Index value that each selected row is required to match
       # columns(Array|nil):: Names of columns to be retrieved, defaults to all
-      # opt(Hash):: Request options such as :consistency
+      # opt(Hash):: Request options with only :consistency used
       #
       # === Return
-      # (Array):: List of rows retrieved with each member being a CassandraThrift::KeySlice
-      #   and with attributes keys :key and :columns and with the :columns attribute being
-      #   an array of CassandraThrift::ColumnOrSuperColumn with attributes :name, :timestamp,
+      # (Hash):: Rows retrieved with primary key as key and value being an array
+      #   of CassandraThrift::ColumnOrSuperColumn with attributes :name, :timestamp,
       #   and :value
       def real_get_indexed(index, key, columns = nil, opt = {})
+        rows = {}
+        start = ""
+        count = DEFAULT_COUNT
         expr = do_op(:create_idx_expr, index, key, "EQ")
-        clause = do_op(:create_idx_clause, [expr])
-        do_op(:get_indexed_slices, column_family, clause, columns, opt)
+        opt = opt[:consistency] ? {:consistency => opt[:consistency]} : {}
+        while true
+          clause = do_op(:create_idx_clause, [expr], start, count)
+          chunk = do_op(:get_indexed_slices, column_family, clause, columns, opt)
+          rows.merge!(chunk)
+          if chunk.size == count
+            # Assume there are more chunks, use last key as start of next get
+            start = chunk.keys.last
+          else
+            # This must be the last chunk
+            break
+          end
+        end
+        rows
       end
 
       # Get specific columns in row with specified key
