@@ -29,6 +29,4 @@ module RightSupport
   end
 end
 
-Dir[File.expand_path('../db/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+require 'right_support/db/cassandra_model'

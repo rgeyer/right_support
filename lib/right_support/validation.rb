@@ -34,10 +34,8 @@ module RightSupport
 
   end
 end
-
-Dir[File.expand_path('../validation/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+require 'right_support/validation/openssl'
+require 'right_support/validation/ssh'
 
 RightSupport::Validation.constants.each do |const|
   const = RightSupport::Validation.const_get(const) #string to constant

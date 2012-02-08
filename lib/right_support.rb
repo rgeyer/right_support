@@ -1,4 +1,3 @@
-# Namespaces for RightSupport
 require 'right_support/ruby'
 require 'right_support/crypto'
 require 'right_support/db'
