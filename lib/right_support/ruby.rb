@@ -30,6 +30,6 @@ module RightSupport
 end
 
 # object_extensions must be first
-require File.expand_path(File.join(File.dirname(__FILE__), 'ruby', 'object_extensions'))
-require File.expand_path(File.join(File.dirname(__FILE__), 'ruby', 'string_extensions'))
-require File.expand_path(File.join(File.dirname(__FILE__), 'ruby', 'easy_singleton'))
+require 'right_support/ruby/object_extensions'
+require 'right_support/ruby/string_extensions'
+require 'right_support/ruby/easy_singleton'
