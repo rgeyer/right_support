@@ -7,7 +7,8 @@ describe RightSupport::Net::Balancing::StickyPolicy do
 
   before(:each) do
     @endpoints = [1,2,3,4,5]
-    @policy = RightSupport::Net::Balancing::StickyPolicy.new(@endpoints, {})
+    @policy = RightSupport::Net::Balancing::StickyPolicy.new({})
+    @policy.set_endpoints(@endpoints)
     @trials = 2500
   end
 

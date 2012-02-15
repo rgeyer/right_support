@@ -35,5 +35,6 @@ require 'right_support/net/string_encoder'
 require 'right_support/net/balancing'
 require 'right_support/net/request_balancer'
 require 'right_support/net/ssl'
+require 'right_support/net/dns'
 
 RightSupport::Net.extend(RightSupport::Net::AddressHelper)

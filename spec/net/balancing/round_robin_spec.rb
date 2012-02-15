@@ -4,7 +4,7 @@ describe RightSupport::Net::Balancing::RoundRobin do
   before(:each) do
     @endpoints = [1,2,3,4,5]
     @policy = RightSupport::Net::Balancing::RoundRobin.new()
-    @policy.remember(@endpoints)
+    @policy.set_endpoints(@endpoints)
   end
 
   it 'chooses fairly' do

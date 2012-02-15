@@ -74,13 +74,13 @@ module RightSupport::Net
       new(endpoints, options).request(&block)
     end
 
-    def self.resolve(endpoints)
+    def resolve(endpoints)
       endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
       @resolved_at = Time.now
       endpoints
     end
 
-    def self.expired?
+    def expired?
       @options[:resolve] && Time.now - @resolved_at > @options[:resolve]
     end
 
@@ -141,7 +141,7 @@ module RightSupport::Net
       if @options[:resolve]
         @resolved_at = 0
       else
-        @policy.remember(@endpoints)
+        @policy.set_endpoints(@endpoints)
       end
     end
 
@@ -161,7 +161,7 @@ module RightSupport::Net
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
 
-      @policy.remeber(resolve(@endpoints)) if expired?
+      @policy.set_endpoints(self.resolve(@endpoints)) if self.expired?
 
       exceptions = []
       result     = nil
@@ -178,7 +178,6 @@ module RightSupport::Net
         end
 
         endpoint, need_health_check  = @policy.next
-
         raise NoResult, "No endpoints are available" unless endpoint
         n += 1
         t0 = Time.now

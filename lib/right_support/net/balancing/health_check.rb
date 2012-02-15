@@ -83,13 +83,14 @@ module RightSupport::Net::Balancing
       stats
     end
 
-  end
+    def update!(endpoints)
+      @endpoints.each { |k,v| endpoints.include?(k) ? endpoints.delete(k) : @endpoints.delete(k) }
+      endpoints.each  { |ep| @endpoints[ep] = {:n_level => @min_n_level, :timestamp => 0} }
+    end
 
-  # Implementation concepts: endpoints have three states, red, yellow and green.  Yellow
+  end
   # has several levels (@yellow_states) to determine the health of the endpoint. The
   # balancer works by avoiding "red" endpoints and retrying them after awhile.  Here is a
-  # brief description of the state transitions:
-  # * green: last request was successful.
   #    * on success: remain green
   #    * on failure: change state to yellow and set it's health to healthiest (1)
   # * red: skip this server
@@ -110,15 +111,19 @@ module RightSupport::Net::Balancing
 
   class HealthCheck
 
-    def initialize(endpoints, options = {})
-      yellow_states = options[:yellow_states]
-      reset_time = options[:reset_time]
+    def initialize(options = {})
+      @options = options
+    end
 
-      @health_check = options.delete(:health_check)
-
-      @stack = EndpointsStack.new(endpoints, yellow_states, reset_time, options[:on_health_change])
-      @counter = rand(0xffff) % endpoints.size
-      @last_size = endpoints.size
+    def set_endpoints(endpoints)
+      if @stack
+        @stack.update!(endpoints)
+      else
+        @health_check = @options.delete(:health_check)
+        @counter = rand(0xffff) % endpoints.size
+        @last_size = endpoints.size
+        @stack = EndpointsStack.new(endpoints, @options[:yellow_states], @options[:reset_time], @options[:on_health_change])
+      end
     end
 
     def next

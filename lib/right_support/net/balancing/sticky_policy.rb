@@ -32,14 +32,26 @@ module RightSupport::Net::Balancing
 
   class StickyPolicy
 
-    def initialize(endpoints, options = {})
+    def initialize(options = {})
       @health_check = options.delete(:health_check)
-      @endpoints = endpoints
+      @endpoints = []
       @counter = rand(0xffff)
     end
 
+    def set_endpoints(endpoints)
+      unless @endpoints.empty?
+        last_chosen = self.next.first
+        @endpoints = []
+        if endpoints.include?(last_chosen)
+          @endpoints << last_chosen
+          @counter = 0
+        end
+      end
+      @endpoints |= endpoints
+    end
+
     def next
-      [ @endpoints[@counter % @endpoints.size], true ]
+      [ @endpoints[@counter % @endpoints.size], true ] unless @endpoints.empty?
     end
 
     def good(endpoint, t0, t1)

@@ -28,13 +28,13 @@ module RightSupport::Net::Balancing
       @counter = rand(0xffff)
     end
 
-    def remember(endpoints)
+    def set_endpoints(endpoints)
       @endpoints = endpoints
     end
 
     def next
       @counter += 1
-      [ @endpoints[@counter % @endpoints.size], false ]
+      [ @endpoints[@counter % @endpoints.size], false ] unless @endpoints.empty?
     end
 
     def good(endpoint, t0, t1)
