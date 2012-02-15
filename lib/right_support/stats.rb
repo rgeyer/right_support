@@ -29,6 +29,6 @@ module RightSupport
   end
 end
 
-Dir[File.expand_path('../stats/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+require 'right_support/stats/exceptions'
+require 'right_support/stats/helpers'
+require 'right_support/stats/activity'

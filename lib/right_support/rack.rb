@@ -29,6 +29,5 @@ module RightSupport
   end
 end
 
-Dir[File.expand_path('../rack/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+require 'right_support/rack/custom_logger'
+require 'right_support/rack/request_logger'

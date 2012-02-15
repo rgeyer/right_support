@@ -24,6 +24,11 @@ require 'rbconfig'
 
 module RightSupport::Ruby
   module StringExtensions
+    if require_succeeds?('active_support')
+      ACTIVE_SUPPORT_WORKALIKES = false
+    else
+      ACTIVE_SUPPORT_WORKALIKES = true
+    end
 
     # Convert to snake case.
     #
@@ -80,7 +85,7 @@ module RightSupport::Ruby
     # @return [String] Camelized string
     #
     # @api public
-    if !String.public_method_defined?(:camelize)
+    if !String.public_method_defined?(:camelize) && ACTIVE_SUPPORT_WORKALIKES
       def camelize(first_letter = :upper)
         case first_letter
           when :upper then gsub(/\/(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }

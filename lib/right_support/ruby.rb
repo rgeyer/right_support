@@ -29,6 +29,7 @@ module RightSupport
   end
 end
 
-Dir[File.expand_path('../ruby/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+# object_extensions must be first
+require 'right_support/ruby/object_extensions'
+require 'right_support/ruby/string_extensions'
+require 'right_support/ruby/easy_singleton'
