@@ -3,7 +3,8 @@ require 'spec_helper'
 describe RightSupport::Net::Balancing::RoundRobin do
   before(:each) do
     @endpoints = [1,2,3,4,5]
-    @policy = RightSupport::Net::Balancing::RoundRobin.new(@endpoints)
+    @policy = RightSupport::Net::Balancing::RoundRobin.new()
+    @policy.remember(@endpoints)
   end
 
   it 'chooses fairly' do

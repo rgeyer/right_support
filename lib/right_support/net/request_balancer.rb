@@ -2,7 +2,7 @@ module RightSupport::Net
   # Raised to indicate the (uncommon) error condition where a RequestBalancer rotated
   # through EVERY URL in a list without getting a non-nil, non-timeout response. 
   class NoResult < Exception; end
-  
+
   # Utility class that allows network requests to be randomly distributed across
   # a set of network endpoints. Generally used for REST requests by passing an
   # Array of HTTP service endpoint URLs.
@@ -74,6 +74,16 @@ module RightSupport::Net
       new(endpoints, options).request(&block)
     end
 
+    def self.resolve(endpoints)
+      endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
+      @resolved_at = Time.now
+      endpoints
+    end
+
+    def self.expired?
+      @options[:resolve] && Time.now - @resolved_at > @options[:resolve]
+    end
+
     # Constructor. Accepts a sequence of request endpoints which it shuffles randomly at
     # creation time; however, the ordering of the endpoints does not change thereafter
     # and the sequence is tried from the beginning for every request.
@@ -100,7 +110,8 @@ module RightSupport::Net
 
       @options[:policy] ||= RightSupport::Net::Balancing::RoundRobin
       @policy = @options[:policy]
-      @policy = @policy.new(endpoints, options) if @policy.is_a?(Class)
+      @policy = @policy.new(options) if @policy.is_a?(Class)
+
       unless test_policy_duck_type(@policy)
         raise ArgumentError, ":policy must be a class/object that responds to :next, :good and :bad"
       end
@@ -126,6 +137,12 @@ module RightSupport::Net
       end
 
       @endpoints = endpoints
+
+      if @options[:resolve]
+        @resolved_at = 0
+      else
+        @policy.remember(@endpoints)
+      end
     end
 
     # Perform a request.
@@ -143,6 +160,8 @@ module RightSupport::Net
     # Return the first non-nil value provided by the block.
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
+
+      @policy.remeber(resolve(@endpoints)) if expired?
 
       exceptions = []
       result     = nil
