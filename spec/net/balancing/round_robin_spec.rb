@@ -8,7 +8,7 @@ describe RightSupport::Net::Balancing::RoundRobin do
   end
 
   it 'chooses fairly' do
-    test_random_distribution do 
+    test_random_distribution do
       @policy.next
     end
   end

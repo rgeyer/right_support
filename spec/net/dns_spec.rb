@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe RightSupport::Net::RequestBalancer do
+describe RightSupport::Net::DNS do
   context :resolve_all_ip_addresses do
     before(:all) do
       @hostnames = ['1.1.1.1','2.2.2.2','3.3.3.3']

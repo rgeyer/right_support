@@ -239,7 +239,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
         @policy.should have_yellow_endpoint(@red, @yellow_states-1)
       end
     end
-    
+
     context 'when @reset_time has passed since a server became yellow' do
       it 'decreases the yellow level to N-1' do
         @yellow = @endpoints.first
@@ -249,7 +249,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
         @policy.next
         @policy.should have_yellow_endpoint(@yellow, n-1)
       end
-      
+
       it 'changes to green if N == 0' do
         @yellow = @endpoints.first
         @policy.bad(@yellow, 0, Time.now - 300)
@@ -257,7 +257,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
         @policy.next
         @policy.should have_green_endpoint(@yellow)
       end
-      
+
     end
   end
 
@@ -266,7 +266,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
       it 'reports all endpoints as green' do
         expected_stats = {}
         @endpoints.each { |ep| expected_stats[ep] = 'green' }
-        
+
         @policy.get_stats.should_not be_nil
         @policy.get_stats.should == expected_stats
       end
@@ -301,4 +301,39 @@ describe RightSupport::Net::Balancing::HealthCheck do
       end
     end
   end
+
+  context :set_endpoints do
+    context 'given endpoints stack does not exist' do
+      before(:each) do
+        @policy = RightSupport::Net::Balancing::HealthCheck.new({
+                    :yellow_states => @yellow_states, :reset_time => @reset_time})
+      end
+
+      it 'acts as initializer' do
+        lambda { @policy.get_stats }.should raise_error
+        @policy.set_endpoints(@endpoints)
+        @endpoints.include?(@policy.next.first).should be_true
+      end
+    end
+
+    context 'given an existing endpoints stack' do
+
+      it 'updates composition and saves previous statuses of endpoints' do
+        expected_stats = {}
+        @endpoints.each { |ep| expected_stats[ep] = "yellow-#{@yellow_states - 1}" }
+
+        @endpoints.each do |endpoint|
+          @yellow_states.times { @policy.bad(endpoint, 0, Time.now) }
+          @policy.good(endpoint, 0, Time.now)
+        end
+
+        @new_endpoins = [6,7]
+        @new_endpoins.each { |ep| expected_stats[ep] = "green" }
+
+        @updated_endpoints = @endpoints + @new_endpoins
+        @policy.set_endpoints(@updated_endpoints)
+        @policy.get_stats.should eql(expected_stats)
+      end
+    end
+  end #:set_endpoints
 end

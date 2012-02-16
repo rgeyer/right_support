@@ -439,7 +439,7 @@ describe RightSupport::Net::RequestBalancer do
         end
       end
     end
-    
+
     context 'given a class health check policy' do
       it 'retries and health checks the correct number of times' do
         (1..10).to_a.each {|endpoint| test_bad_endpoint_requests(endpoint) }
@@ -459,7 +459,7 @@ describe RightSupport::Net::RequestBalancer do
         rb.get_stats.should == expected_hash
       end
     end
-    
+
     context 'using health check balancing profile' do
       it 'returns stats in an endpoint-keyed hash' do
         expected_hash = {}
