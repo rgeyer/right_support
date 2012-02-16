@@ -116,6 +116,7 @@ module RightSupport::DB
 
       # Client connected to Cassandra server
       # Create connection if does not already exist
+      # Use BinaryProtocolAccelerated if it available
       #
       # === Return
       # (Cassandra):: Client connected to server
@@ -123,7 +124,12 @@ module RightSupport::DB
         return @@conn if @@conn
 
         config = @@config[ENV["RACK_ENV"]]
-        @@conn = Cassandra.new(keyspace, config["server"],{:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT})
+
+        thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
+        thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
+          if defined? Thrift::BinaryProtocolAccelerated
+
+        @@conn = Cassandra.new(keyspace, config["server"], thrift_client_options)
         @@conn.disable_node_auto_discovery!
         @@conn
       end
@@ -312,12 +318,18 @@ module RightSupport::DB
       end
 
       # Reconnect to Cassandra server
+      # Use BinaryProtocolAccelerated if it available
       #
       # === Return
       # true:: Always return true
       def reconnect
         config = @@config[ENV["RACK_ENV"]]
-        @@conn = Cassandra.new(keyspace, config["server"], {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT})
+
+        thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
+        thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
+          if defined? Thrift::BinaryProtocolAccelerated
+
+        @@conn = Cassandra.new(keyspace, config["server"], thrift_client_options)
         @@conn.disable_node_auto_discovery!
         true
       end
