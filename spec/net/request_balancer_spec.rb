@@ -198,7 +198,7 @@ describe RightSupport::Net::RequestBalancer do
         end.should raise_error(ArgumentError)
       end
     end
-    
+
     context 'with :policy option' do
       it 'accepts a Class' do
         policy = RightSupport::Net::Balancing::RoundRobin
@@ -223,27 +223,27 @@ describe RightSupport::Net::RequestBalancer do
         }.should raise_error
       end
     end
-    
+
     context 'with :health_check option' do
-      
+
       before(:each) do
         @health_check = Proc.new {|endpoint| "HealthCheck passed for #{endpoint}!" }
       end
-      
+
       it 'accepts a block' do
         lambda {
           RightSupport::Net::RequestBalancer.new([1,2], :health_check => @health_check)
         }.should_not raise_error
       end
-      
+
       it 'calls specified block' do 
         @balancer = RightSupport::Net::RequestBalancer.new([1,2], :health_check => @health_check)
         @options = @balancer.instance_variable_get("@options")
         @options[:health_check].call(1).should be_eql("HealthCheck passed for 1!")
       end
-     
+
     end
-    
+
     context 'with default :health_check option' do
       it 'calls default block' do 
         @balancer = RightSupport::Net::RequestBalancer.new([1,2])
@@ -263,6 +263,23 @@ describe RightSupport::Net::RequestBalancer do
         lambda {
           RightSupport::Net::RequestBalancer.new([1,2], :on_health_change => @on_health_change)
         }.should_not raise_error
+      end
+    end
+
+    context 'with :resolve option' do
+
+      before(:each) do
+        @resolve = 15
+        @balancer = RightSupport::Net::RequestBalancer.new([1,2], :resolve => @resolve)
+      end
+
+      it 'initializes an empty balancing policy' do
+        @policy = @balancer.instance_variable_get("@policy")
+        @policy.next.should be_nil
+      end
+
+      it 'initializes timestamp as a TTL for resolver' do
+        @balancer.instance_variable_get("@resolved_at").should == 0
       end
     end
   end
@@ -443,6 +460,35 @@ describe RightSupport::Net::RequestBalancer do
     context 'given a class health check policy' do
       it 'retries and health checks the correct number of times' do
         (1..10).to_a.each {|endpoint| test_bad_endpoint_requests(endpoint) }
+      end
+    end
+
+    context 'with :resolve option' do
+      before(:each) do
+        @endpoints = [1,2,3,4]
+        @resolved_set_1 = ['1.1.1.1','2.2.2.2','3.3.3.3','4.4.4.4']
+        @resolved_set_2 = ['5.5.5.5','6.6.6.6','7.7.7.7','8.8.8.8']
+        @dns = flexmock(RightSupport::Net::DNS)
+        @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
+      end
+
+      it 'resolves ip addresses for specified list of endpoints' do
+        @dns.should_receive(:resolve_all_ip_addresses).with(@endpoints).once.and_return(@resolved_set_1)
+        @rb.request { true }
+        @policy = @rb.instance_variable_get("@policy")
+        @resolved_set_1.include?(@policy.next.first).should be_true
+      end
+
+      it 're-resolves list of ip addresses if TTL is expired' do
+        @dns.should_receive(:resolve_all_ip_addresses).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
+        @rb.request { true }
+        @policy = @rb.instance_variable_get("@policy")
+        @resolved_set_1.include?(@policy.next.first).should be_true
+
+        @rb.instance_variable_set("@resolved_at", Time.now.to_i - 16)
+        @rb.request { true }
+        @policy = @rb.instance_variable_get("@policy")
+        @resolved_set_2.include?(@policy.next.first).should be_true
       end
     end
   end

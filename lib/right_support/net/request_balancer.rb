@@ -76,12 +76,12 @@ module RightSupport::Net
 
     def resolve(endpoints)
       endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
-      @resolved_at = Time.now
+      @resolved_at = Time.now.to_i
       endpoints
     end
 
     def expired?
-      @options[:resolve] && Time.now - @resolved_at > @options[:resolve]
+      @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
     end
 
     # Constructor. Accepts a sequence of request endpoints which it shuffles randomly at
