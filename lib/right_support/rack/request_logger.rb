@@ -40,9 +40,21 @@ module RightSupport::Rack
     # logger(Logger):: (optional) the Logger object to use, defaults to a STDERR logger
     # level(Integer):: (optional) a Logger level-constant (INFO, ERROR) to set the logger to
     #
+    attr_reader :filter_parameters
+
+    def filter_parameters=(val)
+      @filter_parameters = case val
+                         when NilClass:  //
+                         when Regexp: val
+                         when Array: Regexp.new(val.join('|'), true)
+                         when String: Regexp.new(val, true)
+      end
+    end
+
     def initialize(app, options={})
       @app    = app
       @logger = options[:logger]
+      @filter_parameters = options[:filter_parameters]
     end
 
     # Add a logger to the Rack environment and call the next middleware.
@@ -73,34 +85,35 @@ module RightSupport::Rack
     end
 
     private
+    def disclose_query_params(request, keep_regex)
+      params_hash = {}
+      params_hash = request.params.merge(request.params){|k,v| k.match(keep_regex) ? v : '[FILTERED]' }\
+                          if request.get?
+      [params_hash, request.body.size ]
+    end
 
     # NON Logger functions below
     def log_request(logger, env, status, began_at)
       duration = Time.now - began_at
 
       # Assuming remote addresses are IPv4, make them all align to the same width
-      remote_addr = env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-"
+      remote_addr = env['HTTP_X_FORWARDED_FOR'] || env['REMOTE_ADDR'] || "-"
       remote_addr = remote_addr.ljust(15)
 
-      # Log the fact that a query string was present, but do not log its contents
-      # because it may have sensitive data.
-      if (query = env["QUERY_STRING"]) && !query.empty?
-        query_info = '?...'
-      else
-        query_info = ''
-      end
-
+      query_info_hash, request_body_size = disclose_query_params(req = Rack::Request.new(env), @filter_parameters)
+      query_info = '?' + Rack::Utils.unescape(Rack::Utils.build_query(query_info_hash)) unless query_info_hash.empty?
       params = [
         remote_addr,
         env["REQUEST_METHOD"],
         env["PATH_INFO"],
-        query_info,
+        query_info || '',
+        request_body_size,
         env["HTTP_VERSION"],
         status,
         duration
       ]
 
-      logger.info %Q{%s "%s %s%s %s" %d %0.3f} % params
+      logger.info %Q{%s "%s %s%s" %s %s %s %0.3f} % params
     end
 
     def log_exception(logger, e)
