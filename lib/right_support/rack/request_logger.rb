@@ -54,7 +54,7 @@ module RightSupport::Rack
     def initialize(app, options={})
       @app    = app
       @logger = options[:logger]
-      @filter_parameters = options[:filter_parameters]
+      self.filter_parameters = options[:filter_parameters]
     end
 
     # Add a logger to the Rack environment and call the next middleware.
