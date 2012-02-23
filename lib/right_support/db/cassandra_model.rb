@@ -73,6 +73,8 @@ rescue LoadError => e
 end
 
 module RightSupport::DB
+  # Exception that indicates database configuration info is missing.
+  class MissingConfiguration < Exception; end
 
   # Base class for a column family in a keyspace
   # Used to access data persisted in Cassandra
@@ -123,7 +125,9 @@ module RightSupport::DB
       def conn
         return @@conn if @@conn
 
+        #TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
         config = @@config[ENV["RACK_ENV"]]
+        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
 
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
@@ -324,6 +328,7 @@ module RightSupport::DB
       # true:: Always return true
       def reconnect
         config = @@config[ENV["RACK_ENV"]]
+        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
 
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\

@@ -36,7 +36,7 @@ describe RightSupport::DB::CassandraModel do
     @conn.should_receive(:multi_get).with(@column_family,[1,2],@opt).and_return(Hash.new)
   end
 
-  describe "instance\'s interface" do
+  describe "instance methods" do
      context :save do
       it 'saves the record' do
         @instance.save.should be_true
@@ -57,7 +57,7 @@ describe RightSupport::DB::CassandraModel do
     end
   end
 
-  describe "general interface" do
+  describe "class methods" do
     context :insert do
       it 'inserts a record by using the class method' do
         RightSupport::DB::CassandraModel.insert(@key, @attrs,@opt).should be_true
@@ -73,6 +73,22 @@ describe RightSupport::DB::CassandraModel do
     context :all do
       it 'returns all existing records for the specified array of keys' do
         RightSupport::DB::CassandraModel.all([1,2]).should be_a_kind_of(Hash)
+      end
+    end
+
+    context :conn do
+      it 'raises a meaningful exception when a config stanza is missing' do
+        old_rack_env = ENV['RACK_ENV']
+
+        begin
+          ENV['RACK_ENV'] = 'foobar_12345'
+          bad_proc = lambda { RightSupport::DB::CassandraModel.reconnect }
+          bad_proc.should raise_error(RightSupport::DB::MissingConfiguration)
+          bad_proc = lambda { RightSupport::DB::CassandraModel.conn }
+          bad_proc.should raise_error(RightSupport::DB::MissingConfiguration)
+        ensure
+          ENV['RACK_ENV'] = old_rack_env
+        end
       end
     end
   end
