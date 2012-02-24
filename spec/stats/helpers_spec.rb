@@ -429,4 +429,53 @@ describe RightSupport::Stats do
                      "              float_value       : 3.2\n"
   end
 
+  it "should sort stats using optional prefix" do
+    sub_stats = {"empty_hash" => {},
+                 "float_value" => 3.15}
+
+    stats = {"stat time" => @now,
+             "last reset time" => @now,
+             "service uptime" => 1000,
+             "hostname" => "localhost",
+             "identity" => "unit tester",
+             "stuff stats" => sub_stats,
+             "other stuff stats" => sub_stats,
+             "/data stats" => sub_stats}
+
+    result = @helpers.stats_str(stats, nil, 11)
+    result.should == "identity    : unit tester\n" +
+                     "hostname    : localhost\n" +
+                     "stat time   : Mon Jan 12 05:46:40\n" +
+                     "last reset  : Mon Jan 12 05:46:40\n" +
+                     "service up  : 16 min 40 sec\n" +
+                     "/data       : empty_hash  : none\n" +
+                     "              float_value : 3.2\n" +
+                     "other stuff : empty_hash  : none\n" +
+                     "              float_value : 3.2\n" +
+                     "stuff       : empty_hash  : none\n" +
+                     "              float_value : 3.2\n"
+
+    stats = {"stat time" => @now,
+             "last reset time" => @now,
+             "service uptime" => 1000,
+             "hostname" => "localhost",
+             "identity" => "unit tester",
+             "stuff 0stats" => sub_stats,
+             "other stuff 1stats" => sub_stats,
+             "/data stats" => sub_stats}
+
+    result = @helpers.stats_str(stats, 15)
+    result.should == "identity        : unit tester\n" +
+                     "hostname        : localhost\n" +
+                     "stat time       : Mon Jan 12 05:46:40\n" +
+                     "last reset      : Mon Jan 12 05:46:40\n" +
+                     "service up      : 16 min 40 sec\n" +
+                     "stuff           : empty_hash        : none\n" +
+                     "                  float_value       : 3.2\n" +
+                     "other stuff     : empty_hash        : none\n" +
+                     "                  float_value       : 3.2\n" +
+                     "/data           : empty_hash        : none\n" +
+                     "                  float_value       : 3.2\n"
+  end
+
 end # RightSupport::Stats
