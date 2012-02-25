@@ -22,14 +22,19 @@
 
 module RightSupport::Net::Balancing
   class RoundRobin
-    def initialize(endpoints,options ={})
-      @endpoints = endpoints
+
+    def initialize(options ={})
+      @endpoints = []
       @counter = rand(0xffff)
+    end
+
+    def set_endpoints(endpoints)
+      @endpoints = endpoints
     end
 
     def next
       @counter += 1
-      [ @endpoints[@counter % @endpoints.size], false ]
+      [ @endpoints[@counter % @endpoints.size], false ] unless @endpoints.empty?
     end
 
     def good(endpoint, t0, t1)

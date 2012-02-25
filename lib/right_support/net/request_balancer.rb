@@ -2,7 +2,7 @@ module RightSupport::Net
   # Raised to indicate the (uncommon) error condition where a RequestBalancer rotated
   # through EVERY URL in a list without getting a non-nil, non-timeout response. 
   class NoResult < Exception; end
-  
+
   # Utility class that allows network requests to be randomly distributed across
   # a set of network endpoints. Generally used for REST requests by passing an
   # Array of HTTP service endpoint URLs.
@@ -74,6 +74,16 @@ module RightSupport::Net
       new(endpoints, options).request(&block)
     end
 
+    def resolve(endpoints)
+      endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
+      @resolved_at = Time.now.to_i
+      endpoints
+    end
+
+    def expired?
+      @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
+    end
+
     # Constructor. Accepts a sequence of request endpoints which it shuffles randomly at
     # creation time; however, the ordering of the endpoints does not change thereafter
     # and the sequence is tried from the beginning for every request.
@@ -100,7 +110,8 @@ module RightSupport::Net
 
       @options[:policy] ||= RightSupport::Net::Balancing::RoundRobin
       @policy = @options[:policy]
-      @policy = @policy.new(endpoints, options) if @policy.is_a?(Class)
+      @policy = @policy.new(options) if @policy.is_a?(Class)
+
       unless test_policy_duck_type(@policy)
         raise ArgumentError, ":policy must be a class/object that responds to :next, :good and :bad"
       end
@@ -126,6 +137,12 @@ module RightSupport::Net
       end
 
       @endpoints = endpoints
+
+      if @options[:resolve]
+        @resolved_at = 0
+      else
+        @policy.set_endpoints(@endpoints)
+      end
     end
 
     # Perform a request.
@@ -144,6 +161,8 @@ module RightSupport::Net
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
 
+      @policy.set_endpoints(self.resolve(@endpoints)) if self.expired?
+
       exceptions = []
       result     = nil
       complete   = false
@@ -159,7 +178,6 @@ module RightSupport::Net
         end
 
         endpoint, need_health_check  = @policy.next
-
         raise NoResult, "No endpoints are available" unless endpoint
         n += 1
         t0 = Time.now
