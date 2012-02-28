@@ -72,6 +72,40 @@ rescue LoadError => e
   # Missing 'cassandra/0.8' indicates that the cassandra gem is not installed; we can ignore this
 end
 
+# monkey patch thrift to work with jruby
+if (RUBY_PLATFORM =~ /java/)
+  begin
+    require 'thrift'
+    module Thrift
+      class Socket
+        def open
+          begin
+            addrinfo = ::Socket::getaddrinfo(@host, @port).first
+            @handle = ::Socket.new(addrinfo[4], ::Socket::SOCK_STREAM, 0)
+            sockaddr = ::Socket.sockaddr_in(addrinfo[1], addrinfo[3])
+            begin
+              @handle.connect_nonblock(sockaddr)
+            rescue Errno::EINPROGRESS
+              resp = IO.select(nil, [ @handle ], nil, @timeout) # 3 lines removed here, 1 line added
+              begin
+                @handle.connect_nonblock(sockaddr)
+              rescue Errno::EISCONN
+              end
+            end
+            @handle
+          rescue StandardError => e
+            raise TransportException.new(TransportException::NOT_OPEN, "Could not connect to #{@desc}: #{e}")
+          end
+        end
+      end
+    end
+  rescue LoadError => e
+    # Make sure we're dealing with a legitimate missing-file LoadError
+    raise e unless e.message =~ /^no such file to load/
+  end
+end
+
+
 module RightSupport::DB
   # Exception that indicates database configuration info is missing.
   class MissingConfiguration < Exception; end
