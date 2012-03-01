@@ -159,7 +159,7 @@ module RightSupport::DB
       def conn
         return @@conn if @@conn
 
-        #TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
+        # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
         config = @@config[ENV["RACK_ENV"]]
         raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
 
@@ -206,6 +206,8 @@ module RightSupport::DB
 
       # Get raw row(s) for specified primary key(s)
       # Unless :count is specified, a maximum of 100 columns are retrieved
+      # except in the case of an individual primary key request, in which
+      # case all columns are retrieved
       #
       # === Parameters
       # k(String|Array):: Individual primary key or list of keys on which to match
@@ -217,8 +219,25 @@ module RightSupport::DB
       def real_get(k, opt = {})
         if k.is_a?(Array)
           do_op(:multi_get, column_family, k, opt)
-        else      
+        elsif opt[:count]
           do_op(:get, column_family, k, opt)
+        else
+          opt = opt.clone
+          opt[:start] ||= ""
+          opt[:count] = DEFAULT_COUNT
+          columns = Cassandra::OrderedHash.new
+          while true
+            chunk = do_op(:get, column_family, k, opt)
+            columns.merge!(chunk)
+            if chunk.size == opt[:count]
+              # Assume there are more chunks, use last key as start of next get
+              opt[:start] = chunk.keys.last
+            else
+              # This must be the last chunk
+              break
+            end
+          end
+          columns
         end
       end
 
@@ -380,7 +399,8 @@ module RightSupport::DB
       def ring
         conn.ring
       end
-    end
+
+    end # self
 
     attr_accessor :key, :attributes
 
