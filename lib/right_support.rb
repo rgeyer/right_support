@@ -1,3 +1,6 @@
+# Workaround for badly-coded gems such as active_support which fail to require this for themselves
+require 'thread'
+
 require 'right_support/ruby'
 require 'right_support/crypto'
 require 'right_support/db'
