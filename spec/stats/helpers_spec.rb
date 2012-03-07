@@ -181,7 +181,7 @@ describe RightSupport::Stats do
   end
 
   it "should convert broker status to multi-line display string" do
-    result = @helpers.brokers_str(@brokers, 10)
+    result = @helpers.brokers_str(@brokers, :name_width => 10)
     result.should == "brokers    : b0: rs-broker-localhost-5672 connected, disconnects: none, failures: none\n" +
                      "             b1: rs-broker-localhost-5673 disconnected, disconnects: 2 (16 min 40 sec ago), failures: none\n" +
                      "             b2: rs-broker-localhost-5674 failed, disconnects: none, failures: 3 (16 min 40 sec ago w/ 2 retries)\n" +
@@ -201,7 +201,7 @@ describe RightSupport::Stats do
     activity.update("no queue consumers")
     flexmock(Time).should_receive(:now).and_return(1000010)
     @brokers["returns"] = activity.all
-    result = @helpers.brokers_str(@brokers, 10)
+    result = @helpers.brokers_str(@brokers, :name_width => 10)
     result.should == "brokers    : b0: rs-broker-localhost-5672 connected, disconnects: none, failures: none\n" +
                      "             b1: rs-broker-localhost-5673 disconnected, disconnects: 2 (16 min 40 sec ago), failures: none\n" +
                      "             b2: rs-broker-localhost-5674 failed, disconnects: none, failures: 3 (16 min 40 sec ago w/ 2 retries)\n" +
@@ -315,7 +315,7 @@ describe RightSupport::Stats do
              "some hash" => {"dogs" => 2, "cats" => 3, "hippopotami" => 99, "bears" => 1,
                              "ants" => 100000000, "dragons" => nil, "leopards" => 25}}
 
-    result = @helpers.sub_stats_str("my sub-stats", stats, 13)
+    result = @helpers.sub_stats_str("my sub-stats", stats, :name_width => 13)
     result.should == "my sub-stats  : activity1 %       : none\n" +
                      "                activity1 last    : none\n" +
                      "                activity2 %       : more testing: 75%, testing: 25%, total: 4\n" +
@@ -427,6 +427,55 @@ describe RightSupport::Stats do
                      "stuff       : empty_hash        : none\n" +
                      "              exceptions        : none\n" +
                      "              float_value       : 3.2\n"
+  end
+
+  it "should sort stats using optional prefix" do
+    sub_stats = {"empty_hash" => {},
+                 "float_value" => 3.15}
+
+    stats = {"stat time" => @now,
+             "last reset time" => @now,
+             "service uptime" => 1000,
+             "hostname" => "localhost",
+             "identity" => "unit tester",
+             "stuff stats" => sub_stats,
+             "other stuff stats" => sub_stats,
+             "/data stats" => sub_stats}
+
+    result = @helpers.stats_str(stats, :sub_name_width => 11)
+    result.should == "identity    : unit tester\n" +
+                     "hostname    : localhost\n" +
+                     "stat time   : Mon Jan 12 05:46:40\n" +
+                     "last reset  : Mon Jan 12 05:46:40\n" +
+                     "service up  : 16 min 40 sec\n" +
+                     "/data       : empty_hash  : none\n" +
+                     "              float_value : 3.2\n" +
+                     "other stuff : empty_hash  : none\n" +
+                     "              float_value : 3.2\n" +
+                     "stuff       : empty_hash  : none\n" +
+                     "              float_value : 3.2\n"
+
+    stats = {"stat time" => @now,
+             "last reset time" => @now,
+             "service uptime" => 1000,
+             "hostname" => "localhost",
+             "identity" => "unit tester",
+             "stuff 0stats" => sub_stats,
+             "other stuff 1stats" => sub_stats,
+             "/data stats" => sub_stats}
+
+    result = @helpers.stats_str(stats, :name_width => 15)
+    result.should == "identity        : unit tester\n" +
+                     "hostname        : localhost\n" +
+                     "stat time       : Mon Jan 12 05:46:40\n" +
+                     "last reset      : Mon Jan 12 05:46:40\n" +
+                     "service up      : 16 min 40 sec\n" +
+                     "stuff           : empty_hash        : none\n" +
+                     "                  float_value       : 3.2\n" +
+                     "other stuff     : empty_hash        : none\n" +
+                     "                  float_value       : 3.2\n" +
+                     "/data           : empty_hash        : none\n" +
+                     "                  float_value       : 3.2\n"
   end
 
 end # RightSupport::Stats
