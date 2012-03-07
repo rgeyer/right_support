@@ -198,19 +198,16 @@ module RightSupport
     #   any other keys ending with "stats" have an associated hash value that is displayed in sorted
     #   key order, unless "stats" is preceded by a non-blank, in which case that character is prepended
     #   to the key to drive the sort order
-    # name_width(Integer):: Maximum characters in displayed stat name
-    # sub_name_width(Integer):: Maximum characters in displayed sub-stat name
-    # sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
-    # exception_message_width(Integer):: Maximum characters displayed for exception message
+    # options(Hash):: Formatting options
+    #   :name_width(Integer):: Maximum characters in displayed stat name
+    #   :sub_name_width(Integer):: Maximum characters in displayed sub-stat name
+    #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
+    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # (String):: Display string
-    def self.stats_str(stats, name_width = nil, sub_name_width = nil, sub_stat_value_width = nil,
-                       exception_message_width = nil)
-      name_width ||= MAX_STAT_NAME_WIDTH
-      sub_name_width ||= MAX_SUB_STAT_NAME_WIDTH
-      sub_stat_value_width ||= MAX_SUB_STAT_VALUE_WIDTH
-      exception_message_width ||= MAX_EXCEPTION_MESSAGE_WIDTH
+    def self.stats_str(stats, options = {})
+      name_width = options[:name_width] || MAX_STAT_NAME_WIDTH
 
       str = stats["name"] ? sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "name", stats["name"]) : ""
       str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "identity", stats["identity"]) +
@@ -228,12 +225,10 @@ module RightSupport
         str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "version", stats["version"].to_i)
       end
       if stats.has_key?("brokers")
-         str += brokers_str(stats["brokers"], name_width, sub_name_width, sub_stat_value_width, exception_message_width)
+         str += brokers_str(stats["brokers"], options)
       end
       stats.to_a.sort_by { |(k, v)| k.to_s =~ /(.)stats$/ ? ($1 == ' ' ? '~' : $1) + k : k }.each do |k, v|
-        if k.to_s =~ /stats$/
-          str += sub_stats_str(k[0..-7], v, name_width, sub_name_width, sub_stat_value_width, exception_message_width)
-        end
+        str += sub_stats_str(k[0..-7], v, options) if k.to_s =~ /stats$/
       end
       str
     end
@@ -257,19 +252,18 @@ module RightSupport
     #   "heartbeat"(Integer|nil):: Number of seconds between AMQP heartbeats, or nil if heartbeat disabled
     #   "returns"(Hash|nil):: Message return activity stats with keys "total", "percent", "last", and "rate"
     #     with percentage breakdown per request type, or nil if none
-    # name_width(Integer):: Fixed width for left-justified name display
-    # sub_name_width(Integer):: Maximum characters in displayed sub-stat name
-    # sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
-    # exception_message_width(Integer):: Maximum characters displayed for exception message
+    # options(Hash):: Formatting options
+    #   :name_width(Integer):: Fixed width for left-justified name display
+    #   :sub_name_width(Integer):: Maximum characters in displayed sub-stat name
+    #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
+    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # str(String):: Broker display with one line per broker plus exceptions
-    def self.brokers_str(brokers, name_width = nil, sub_name_width = nil, sub_stat_value_width = nil,
-                         exception_message_width = nil)
-      name_width ||= MAX_STAT_NAME_WIDTH
-      sub_name_width ||= MAX_SUB_STAT_NAME_WIDTH
-      sub_stat_value_width ||= MAX_SUB_STAT_VALUE_WIDTH
-      exception_message_width ||= MAX_EXCEPTION_MESSAGE_WIDTH
+    def self.brokers_str(brokers, options = {})
+      name_width = options[:name_width] || MAX_STAT_NAME_WIDTH
+      sub_name_width = options[:sub_name_width] || MAX_SUB_STAT_NAME_WIDTH
+      sub_stat_value_width = options[:sub_stat_value_width] || MAX_SUB_STAT_VALUE_WIDTH
 
       value_indent = " " * (name_width + SEPARATOR.size)
       sub_value_indent = " " * (name_width + sub_name_width + (SEPARATOR.size * 2))
@@ -294,7 +288,7 @@ module RightSupport
       str += if brokers["exceptions"].nil? || brokers["exceptions"].empty?
         "none\n"
       else
-        exceptions_str(brokers["exceptions"], sub_value_indent, exception_message_width) + "\n"
+        exceptions_str(brokers["exceptions"], sub_value_indent, options) + "\n"
       end
       str += value_indent
       str += sprintf("%-#{sub_name_width}s#{SEPARATOR}", "heartbeat")
@@ -327,19 +321,18 @@ module RightSupport
     # === Parameters
     # name(String):: Display name for the stat
     # value(Object):: Value of this stat
-    # name_width(Integer):: Fixed width for left-justified name display
-    # sub_name_width(Integer):: Maximum characters in displayed sub-stat name
-    # sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
-    # exception_message_width(Integer):: Maximum characters displayed for exception message
+    # options(Hash):: Formatting options
+    #   :name_width(Integer):: Fixed width for left-justified name display
+    #   :sub_name_width(Integer):: Maximum characters in displayed sub-stat name
+    #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
+    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # (String):: Single line display of stat
-    def self.sub_stats_str(name, value, name_width = nil, sub_name_width = nil, sub_stat_value_width = nil,
-                           exception_message_width = nil)
-      name_width ||= MAX_STAT_NAME_WIDTH
-      sub_name_width ||= MAX_SUB_STAT_NAME_WIDTH
-      sub_stat_value_width ||= MAX_SUB_STAT_VALUE_WIDTH
-      exception_message_width ||= MAX_EXCEPTION_MESSAGE_WIDTH
+    def self.sub_stats_str(name, value, options = {})
+      name_width = options[:name_width] || MAX_STAT_NAME_WIDTH
+      sub_name_width = options[:sub_name_width] || MAX_SUB_STAT_NAME_WIDTH
+      sub_stat_value_width = options[:sub_stat_value_width] || MAX_SUB_STAT_VALUE_WIDTH
 
       value_indent = " " * (name_width + SEPARATOR.size)
       sub_value_indent = " " * (name_width + sub_name_width + (SEPARATOR.size * 2))
@@ -360,7 +353,7 @@ module RightSupport
           elsif k =~ /last$/
             last_activity_str(v)
           elsif k == "exceptions"
-            exceptions_str(v, sub_value_indent, exception_message_width)
+            exceptions_str(v, sub_value_indent, options)
           else
             wrap(hash_str(v), sub_stat_value_width, sub_value_indent, ", ")
           end
@@ -433,12 +426,13 @@ module RightSupport
     #   "total"(Integer):: Total exceptions for this category
     #   "recent"(Array):: Most recent as a hash of "count", "type", "message", "when", and "where"
     # indent(String):: Indentation for each line
-    # exception_message_width(Integer):: Maximum characters displayed for exception message
+    # options(Hash):: Formatting options
+    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # (String):: Exceptions in displayable format with line separators
-    def self.exceptions_str(exceptions, indent, exception_message_width = nil)
-      exception_message_width ||= MAX_EXCEPTION_MESSAGE_WIDTH
+    def self.exceptions_str(exceptions, indent, options = {})
+      exception_message_width = options[:exception_message_width] || MAX_EXCEPTION_MESSAGE_WIDTH
       indent2 = indent + (" " * 4)
       exceptions.to_a.sort.map do |k, v|
         sprintf("%s total: %d, most recent:\n", k, v["total"]) + v["recent"].reverse.map do |e|
