@@ -1,6 +1,6 @@
 require 'spec_helper'
 
-describe RightSupport::Net::Balancing::HealthCheck do
+describe RightSupport::Net::LB::HealthCheck do
   context :initialize do
 
   end
@@ -9,7 +9,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
     @endpoints = [1,2,3,4,5]
     @yellow_states = 4
     @reset_time = 300
-    @policy = RightSupport::Net::Balancing::HealthCheck.new({
+    @policy = RightSupport::Net::LB::HealthCheck.new({
                 :yellow_states => @yellow_states, :reset_time => @reset_time})
     @policy.set_endpoints(@endpoints)
     @trials = 2500
@@ -57,7 +57,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
       before(:each) do
         @yellow_states = 3
         @health_updates = []
-        @policy = RightSupport::Net::Balancing::HealthCheck.new({
+        @policy = RightSupport::Net::LB::HealthCheck.new({
                     :yellow_states => @yellow_states, :reset_time => @reset_time,
                     :on_health_change => lambda { |health| @health_updates << health }})
         @policy.set_endpoints(@endpoints)
@@ -138,7 +138,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
       before(:each) do
         @yellow_states = 3
         @health_updates = []
-        @policy = RightSupport::Net::Balancing::HealthCheck.new({
+        @policy = RightSupport::Net::LB::HealthCheck.new({
                     :yellow_states => @yellow_states, :reset_time => @reset_time,
                     :on_health_change => lambda { |health| @health_updates << health }})
         @policy.set_endpoints(@endpoints)
@@ -217,7 +217,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
         expected = [3,4,1,2]
 
         endpoints = [1,2,3,4]
-        policy = RightSupport::Net::Balancing::HealthCheck.new(:yellow_states => 1)
+        policy = RightSupport::Net::LB::HealthCheck.new(:yellow_states => 1)
         policy.set_endpoints(endpoints)
         policy.instance_variable_set(:@counter, 1)
         endpoints.size.times do
@@ -305,7 +305,7 @@ describe RightSupport::Net::Balancing::HealthCheck do
   context :set_endpoints do
     context 'given endpoints stack does not exist' do
       before(:each) do
-        @policy = RightSupport::Net::Balancing::HealthCheck.new({
+        @policy = RightSupport::Net::LB::HealthCheck.new({
                     :yellow_states => @yellow_states, :reset_time => @reset_time})
       end
 

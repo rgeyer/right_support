@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe RightSupport::Net::Balancing::RoundRobin do
+describe RightSupport::Net::LB::RoundRobin do
   before(:each) do
     @endpoints = [1,2,3,4,5]
-    @policy = RightSupport::Net::Balancing::RoundRobin.new()
+    @policy = RightSupport::Net::LB::RoundRobin.new()
     @policy.set_endpoints(@endpoints)
   end
 

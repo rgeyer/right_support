@@ -24,7 +24,7 @@
 # A namespace to hold load-balancing policies to be used with RequestBalancer
 # and potentially other networking classes.
 #
-module RightSupport::Net::Balancing
+module RightSupport::Net::LB
 
 end
 

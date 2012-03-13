@@ -22,7 +22,7 @@
 
 require 'set'
 
-module RightSupport::Net::Balancing
+module RightSupport::Net::LB
 
   # TODO refactor this class. We store too much unstructured data about EPs; should have a simple
   # class representing EP state, and then perhaps move what logic remains into the HealthCheck class

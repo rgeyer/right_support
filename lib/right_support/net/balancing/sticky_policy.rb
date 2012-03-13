@@ -20,7 +20,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightSupport::Net::Balancing
+module RightSupport::Net::LB
 
   # Implementation concepts: Create a policy that selects an endpoint and sticks with it.
   #
@@ -30,7 +30,7 @@ module RightSupport::Net::Balancing
   # - re-iterate through each endpoint when it's endpoint loses validity;
   # - return an Exception if it performs a complete iteration though each endpoint and finds none valid;
 
-  class StickyPolicy
+  class Sticky
 
     def initialize(options = {})
       @health_check = options.delete(:health_check)

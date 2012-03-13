@@ -108,7 +108,7 @@ module RightSupport::Net
         raise ArgumentError, "Must specify at least one endpoint"
       end
 
-      @options[:policy] ||= RightSupport::Net::Balancing::RoundRobin
+      @options[:policy] ||= RightSupport::Net::LB::RoundRobin
       @policy = @options[:policy]
       @policy = @policy.new(options) if @policy.is_a?(Class)
 

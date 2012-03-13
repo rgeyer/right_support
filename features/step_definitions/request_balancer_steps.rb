@@ -20,7 +20,7 @@ Given /^(\w+) balancing policy$/ do |policy|
     end
   end
 
-  @options ||= { :policy => constantize("RightSupport::Net::Balancing::" + policy), :health_check => @health_check }
+  @options ||= { :policy => constantize("RightSupport::Net::LB::" + policy), :health_check => @health_check }
 end
 
 When /^a client makes a (buggy )?load-balanced request to '(.*)'$/ do |buggy, path|

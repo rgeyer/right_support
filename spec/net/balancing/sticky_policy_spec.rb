@@ -1,9 +1,9 @@
 require 'spec_helper'
 
-describe RightSupport::Net::Balancing::StickyPolicy do
+describe RightSupport::Net::LB::Sticky do
 
   before(:all) do
-    @policy = RightSupport::Net::Balancing::StickyPolicy.new({})
+    @policy = RightSupport::Net::LB::Sticky.new({})
     @endpoints = [1,2,3,4,5]
     @trials = 2500
   end
