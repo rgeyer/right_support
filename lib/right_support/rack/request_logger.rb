@@ -66,7 +66,14 @@ module RightSupport::Rack
 
     private
 
-    # NON Logger functions below
+    # Log beginning of request
+    #
+    # === Parameters
+    # logger(Object):: the Rack logger
+    # env(Hash):: the Rack environment
+    #
+    # === Return
+    # always returns true
     def log_request_begin(logger, env)
       # Assuming remote addresses are IPv4, make them all align to the same width
       remote_addr = env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-"
@@ -91,7 +98,17 @@ module RightSupport::Rack
 
       logger.info %Q{Begin: %s "%s %s%s %s" %s} % params
     end
-    
+
+    # Log end of request
+    #
+    # === Parameters
+    # logger(Object):: the Rack logger
+    # env(Hash):: the Rack environment
+    # status(Fixnum):: status of the Rack request
+    # began_at(Time):: time of the Rack request begging
+    #
+    # === Return
+    # always returns true
     def log_request_end(logger, env, status, began_at)
       duration = Time.now - began_at
       
@@ -103,6 +120,14 @@ module RightSupport::Rack
       logger.info %Q{End: %d %0.3f} % params
     end
 
+    # Log exception
+    #
+    # === Parameters
+    # logger(Object):: the Rack logger
+    # e(Exception):: Exception to be logged
+    #
+    # === Return
+    # always returns true
     def log_exception(logger, e)
       msg = ["#{e.class} - #{e.message}", *e.backtrace].join("\n")
       logger.error(msg)

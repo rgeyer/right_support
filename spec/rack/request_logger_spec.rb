@@ -14,18 +14,8 @@ describe RightSupport::Rack::RequestLogger do
       it 'uses rack.logger' do
         env = {'rack.logger' => @logger}
         middleware = RightSupport::Rack::RequestLogger.new(@app)
-
         @logger.should_receive(:info)
         middleware.call(env).should == [200, {}, 'body']
-      end
-    end
-
-    context 'with :logger option' do
-      it 'uses its own logger' do
-        middleware = RightSupport::Rack::RequestLogger.new(@app, :logger=>@logger)
-
-        @logger.should_receive(:info)
-        middleware.call({}).should == [200, {}, 'body']
       end
     end
   end
@@ -34,14 +24,14 @@ describe RightSupport::Rack::RequestLogger do
     context 'when the app raises an exception' do
       before(:each) do
         @app.should_receive(:call).and_raise(OhNoes)
-        @middleware = RightSupport::Rack::RequestLogger.new(@app, :logger=>@logger)
+        @middleware = RightSupport::Rack::RequestLogger.new(@app)
       end
 
       it 'should log the exception' do
         @logger.should_receive(:error)
         lambda {
           @middleware.call({})
-        }.should raise_error(OhNoes)
+        }.should raise_error
       end
     end
 
@@ -49,13 +39,12 @@ describe RightSupport::Rack::RequestLogger do
       before(:each) do
         @app.should_receive(:call).and_return([500, {}, 'body'])
         @env = {'sinatra.error' => OhNoes.new}
-        @middleware = RightSupport::Rack::RequestLogger.new(@app, :logger=>@logger)
+        @middleware = RightSupport::Rack::RequestLogger.new(@app)
       end
 
       it 'should log the exception' do
         @logger.should_receive(:info)
         @logger.should_receive(:error)
-        @middleware.call(@env)
       end
     end
   end
