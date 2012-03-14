@@ -223,7 +223,6 @@ module RightSupport::DB
           do_op(:get, column_family, k, opt)
         else
           opt = opt.clone
-          opt[:start] ||= ""
           opt[:count] = DEFAULT_COUNT
           columns = Cassandra::OrderedHash.new
           while true
