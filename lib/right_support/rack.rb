@@ -29,6 +29,5 @@ module RightSupport
   end
 end
 
-require 'right_support/rack/custom_logger'
 require 'right_support/rack/request_logger'
 require 'right_support/rack/log_setter'
