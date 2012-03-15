@@ -15,17 +15,17 @@ module RightSupport::Net
     module_function
 
     def expected_hostname
-      @expected_hostname
+      Thread.current[:right_support_net_ssl_expected_hostname]
     end
 
     def with_expected_hostname(hostname, &block)
-      @expected_hostname = hostname
+      Thread.current[:right_support_net_ssl_expected_hostname] = hostname
       block.call
     rescue Exception => e
-      @expected_hostname = nil
+      Thread.current[:right_support_net_ssl_expected_hostname] = nil
       raise e
     ensure
-      @expected_hostname = nil
+      Thread.current[:right_support_net_ssl_expected_hostname] = nil
     end
   end
 end
