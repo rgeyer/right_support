@@ -23,7 +23,7 @@
 require 'logger'
 
 module RightSupport::Log
-  if_require_succeeds('syslog') do
+  if require_succeeds?('syslog')
     # A logger that forwards log entries to the Unix syslog facility, but complies
     # with the interface of the Ruby Logger object and faithfully translates log
     # severities and other concepts. Provides optional cleanup/filtering in order

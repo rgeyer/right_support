@@ -1,12 +1,12 @@
 module RightSupport::Net
-  if_require_succeeds('right_http_connection') do
+  if require_succeeds?('right_http_connection')
     #nothing, nothing at all! just need to make sure
     #that RightHttpConnection gets loaded before
     #rest-client, so the Net::HTTP monkey patches
     #take effect.
   end
 
-  if_require_succeeds('restclient') do
+  if require_succeeds?('restclient')
     HAS_REST_CLIENT = true
   end
 

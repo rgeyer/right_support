@@ -24,7 +24,7 @@ require 'rbconfig'
 
 module RightSupport::Ruby
   module StringExtensions
-    if if_require_succeeds('active_support')
+    if require_succeeds?('active_support')
       ACTIVE_SUPPORT_WORKALIKES = false
     else
       ACTIVE_SUPPORT_WORKALIKES = true
