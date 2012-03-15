@@ -69,7 +69,7 @@ describe RightSupport::DB::CassandraModel do
       @offset         = 'bar'
       @attrs          = {@offset => @value}
       @opt            = {}
-      @get_opt        = {:count => RightSupport::DB::CassandraModel::DEFAULT_COUNT, :start => ""}
+      @get_opt        = {:count => RightSupport::DB::CassandraModel::DEFAULT_COUNT}
 
       @instance = RightSupport::DB::CassandraModel.new(@key, @attrs)
 
@@ -141,7 +141,7 @@ describe RightSupport::DB::CassandraModel do
             attrs1 = {@offset + '1' => @value, @offset + '2' => @value}
             attrs2 = {@offset + '3' => @value}
             attrs = attrs1.merge(attrs2)
-            get_opt1 = {:count => 2, :start => ""}
+            get_opt1 = {:count => 2}
             get_opt2 = {:count => 2, :start => @offset + '2'}
             @conn.should_receive(:get).with(@column_family, @key, get_opt1).and_return(attrs1).once
             @conn.should_receive(:get).with(@column_family, @key, get_opt2).and_return(attrs2).once
