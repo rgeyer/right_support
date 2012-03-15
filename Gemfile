@@ -7,6 +7,7 @@ gemspec
 group :optional do
   gem 'net-ssh', "~> 2.0"
   gem 'rest-client', "~> 1.6"
+  gem 'addressable', "~> 2.2.7"
 end
 
 # Gems used during test and development of RightSupport.

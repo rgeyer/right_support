@@ -6,6 +6,7 @@ PATH
 GEM
   remote: http://rubygems.org/
   specs:
+    addressable (2.2.7)
     archive-tar-minitar (0.5.2)
     builder (3.0.0)
     columnize (0.3.4)
@@ -54,6 +55,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  addressable (~> 2.2.7)
   cucumber (~> 0.8)
   flexmock (~> 0.8)
   net-ssh (~> 2.0)

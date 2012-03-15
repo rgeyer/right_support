@@ -38,6 +38,9 @@ module RightSupport::Net
   #
   #   # authentication and SSL
   #   @client.get 'https://user:password@example.com/private/resource'
+  #   
+  #   # for get you can specify :params, which will be added straight to query string
+  #   @client.get 'http://example.com', :params=>{:a=>{:b=>:c}}
   #
   #   # POST or PUT with a hash sends parameters as a urlencoded form body
   #   @client.post 'http://example.com/resource', {:param1 => 'one'}
@@ -70,6 +73,10 @@ module RightSupport::Net
     end
 
     def get(*args)
+      if args[1] && args[1].to_hash.include?(:params)
+        args[0] = process_url_params(args[0], args[1][:params])      
+        args[1].delete(:params)
+      end      
       request(:get, *args)
     end
 
@@ -113,8 +120,38 @@ module RightSupport::Net
       request_internal(options, &block)
     end
 
-    protected
+  # Process parameters and add them to url
+  #
+  # === Parameters
+  # url(String):: the URL to request, including any query-string parameters
+  # params(Hash):: the URL` params, that will be added to URL, Hash or String
+  #
+  # === Return
+  # Returns url with concated with parameters.  
+    def process_url_params(url='', parameters={})
+      url_params = ''
+
+      if parameters.kind_of?(String)
+        url_params = parameters.gsub(/^\?/, '')
+      elsif parameters.kind_of?(Hash)
+        if require_succeeds?('addressable/uri')
+          uri = Addressable::URI.new
+          uri.query_values = parameters
+          url_params = uri.query
+        else
+          url_params = parameters.collect { |k, v| "#{k.to_s}=#{CGI::escape(v.to_s)}" }.join('&')
+        end
+      else
+        raise ArgumentError.new("Parameter params should be String or Hash")
+      end
+      unless (url+url_params)[/\?/]
+        url_params = '?' + url_params unless url_params.empty?
+      end
+      
+      url + url_params
+    end
     
+    protected
     # Wrapper around RestClient::Request.execute -- see class documentation for details.
     def request_internal(options, &block)
       if HAS_REST_CLIENT

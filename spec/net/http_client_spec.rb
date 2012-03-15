@@ -14,6 +14,42 @@ describe RightSupport::Net::HTTPClient do
       @http_client = RightSupport::Net::HTTPClient.new(:open_timeout=>999, :timeout=>101010,
                                                   :headers=>{:moo=>:bah})
     end
+    
+    context :process_url_params do
+      it 'process nil url and params' do
+         @http_client.process_url_params.should == ''
+      end
+      it 'process empty String params' do
+        url = '/moo'
+        params = ''
+        @http_client.process_url_params(url, params).should == '/moo'
+      end
+      it 'process params just with question mark' do
+        url = '/moo'        
+        params = '?'
+        @http_client.process_url_params(url, params).should == '/moo'
+      end
+      it 'process String params with question mark in the begining' do
+        url = '/moo'
+        params = '?a=b'
+        @http_client.process_url_params(url, params).should == '/moo?a=b'
+      end
+      it 'process String params without question mark in the begining' do
+        url = '/moo'
+        params = 'a=b&c=d'
+        @http_client.process_url_params(url, params).should == '/moo?a=b&c=d'
+      end
+      it 'process raw Hash params' do
+        url = '/moo'
+        params = {:a=>:b}
+        @http_client.process_url_params(url, params).should == '/moo?a=b'
+      end
+      it 'process Hash params with hash inside' do
+        url = '/moo'  
+        params = {:a=>{:b=>:c}}
+        @http_client.process_url_params(url, params).should == '/moo?a[b]=c'
+      end
+    end
 
     context :request do
       it 'uses default options on every request' do
