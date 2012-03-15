@@ -39,7 +39,7 @@ describe RightSupport::Net::Balancing::StickyPolicy do
         seen = find_empirical_distribution(@trials,@endpoints) do
           @policy.next
         end
-        seen[[@ep1,true]].should eql(@trials)
+        seen[[@ep1,false]].should eql(@trials)
 
         @policy.bad(@chosen,0,0)
         @ep2 = @policy.next.first
@@ -47,8 +47,8 @@ describe RightSupport::Net::Balancing::StickyPolicy do
         seen = find_empirical_distribution(@trials,@endpoints) do
           @policy.next
         end
-        seen[[@ep1,true]].should be_nil
-        seen[[@ep2,true]].should eql(@trials)
+        seen[[@ep1,false]].should be_nil
+        seen[[@ep2,false]].should eql(@trials)
       end
     end
   end
