@@ -37,7 +37,7 @@ describe RightSupport::Rack::RequestLogger do
         @middleware = RightSupport::Rack::RequestLogger.new(@app, :logger=>@logger)
       end
 
-      it 'should log the exception' do
+      it 'logs the exception' do
         @logger.should_receive(:error)
         lambda {
           @middleware.call({})
@@ -52,7 +52,7 @@ describe RightSupport::Rack::RequestLogger do
         @middleware = RightSupport::Rack::RequestLogger.new(@app, :logger=>@logger)
       end
 
-      it 'should log the exception' do
+      it 'logs the exception' do
         @logger.should_receive(:info)
         @logger.should_receive(:error)
         @middleware.call(@env)

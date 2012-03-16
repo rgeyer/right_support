@@ -11,31 +11,31 @@ describe RightSupport::Rack::CustomLogger do
 
   context :initialize do
     context 'with 1 arg (app)' do
-      it 'should succeed' do
+      it 'succeeds' do
         RightSupport::Rack::CustomLogger.new(@app)
       end
     end
 
     context 'with 2 args (app, logger)' do
-      it 'should succeed' do
+      it 'succeeds' do
         RightSupport::Rack::CustomLogger.new(@app, @logger)
       end
     end
 
     context 'with 2 args (app, level)' do
-      it 'should succeed' do
+      it 'succeeds' do
         RightSupport::Rack::CustomLogger.new(@app, Logger::INFO)
       end
     end
 
     context 'with 3 args (app, logger, level)' do
-      it 'should succeed' do
+      it 'succeeds' do
         RightSupport::Rack::CustomLogger.new(@app, @logger, Logger::INFO)
       end
     end
 
     context 'with 3 args (app, level, logger)' do
-      it 'should succeed' do
+      it 'succeeds' do
         RightSupport::Rack::CustomLogger.new(@app, Logger::INFO, @logger)
       end
     end

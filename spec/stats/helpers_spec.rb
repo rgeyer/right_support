@@ -53,20 +53,20 @@ describe RightSupport::Stats do
                 "exceptions" => {}}
   end
 
-  it "should convert values to percentages" do
+  it "converts values to percentages" do
     stats = {"first" => 1, "second" => 4, "third" => 3}
     result = @helpers.percentage(stats)
     result.should == {"total" => 8, "percent" => {"first" => 12.5, "second" => 50.0, "third" => 37.5}}
   end
 
-  it "should convert 0 to nil" do
+  it "converts 0 to nil" do
     @helpers.nil_if_zero(0).should be_nil
     @helpers.nil_if_zero(0.0).should be_nil
     @helpers.nil_if_zero(1).should == 1
     @helpers.nil_if_zero(1.0).should == 1.0
   end
 
-  it "should convert elapsed time to displayable format" do
+  it "converts elapsed time to displayable format" do
     @helpers.elapsed(0).should == "0 sec"
     @helpers.elapsed(1).should == "1 sec"
     @helpers.elapsed(60).should == "60 sec"
@@ -89,7 +89,7 @@ describe RightSupport::Stats do
     @helpers.elapsed(125.5).should == "2 min 5 sec"
   end
 
-  it "should convert floating point values to decimal digit string with at least two digit precision" do
+  it "converts floating point values to decimal digit string with at least two digit precision" do
     @helpers.enough_precision(100.5).should == "101"
     @helpers.enough_precision(100.4).should == "100"
     @helpers.enough_precision(99.0).should == "99"
@@ -124,7 +124,7 @@ describe RightSupport::Stats do
                               [["a", "1000.0"], ["b", "0.10"], ["c", "0.0"], ["d", "0.00010"], ["e", "0.00001"], ["f", "0.00000"]]
   end
 
-  it "should wrap string by breaking it into lines at the specified separator" do
+  it "wraps string by breaking it into lines at the specified separator" do
     string = "Now is the time for all good men to come to the aid of their people."
     result = @helpers.wrap(string, 20, "    ", " ")
     result.should == "Now is the time for \n" +
@@ -138,7 +138,7 @@ describe RightSupport::Stats do
                      "--bears: 1, ants: 100000"
   end
 
-  it "should sort hash by key into array with integer conversion of keys if possible" do
+  it "sorts hash by key into array with integer conversion of keys if possible" do
     @helpers.sort_key({"c" => 3, "a" => 1, "b" => 2}).should == [["a", 1], ["b", 2], ["c", 3]]
     @helpers.sort_key({3 => "c", 1 => "a", 2 => "b"}).should == [[1, "a"], [2, "b"], [3, "c"]]
     @helpers.sort_key({11 => "c", 9 => "a", 10 => "b"}).should == [[9, "a"], [10, "b"], [11, "c"]]
@@ -159,7 +159,7 @@ describe RightSupport::Stats do
                        ["update_login_policy", 1.3], ["update_status", 4.4], ["update_tags", 3.2]]
   end
 
-  it "should sort hash by value into array" do
+  it "sorts hash by value into array" do
     @helpers.sort_value({"c" => 3, "a" => 2, "b" => 1}).should == [["b", 1], ["a", 2], ["c", 3]]
     @helpers.sort_value({"c" => 3.0, "a" => 2, "b" => 1.0}).should == [["b", 1.0], ["a", 2], ["c", 3.0]]
     @helpers.sort_value({"append_info" => 9.6, "create_new_section" => 8.5, "append_output" => 7.3, "record" => 4.7,
@@ -180,7 +180,7 @@ describe RightSupport::Stats do
                          ["declare", 39.2]]
   end
 
-  it "should convert broker status to multi-line display string" do
+  it "converts broker status to multi-line display string" do
     result = @helpers.brokers_str(@brokers, :name_width => 10)
     result.should == "brokers    : b0: rs-broker-localhost-5672 connected, disconnects: none, failures: none\n" +
                      "             b1: rs-broker-localhost-5673 disconnected, disconnects: 2 (16 min 40 sec ago), failures: none\n" +
@@ -190,7 +190,7 @@ describe RightSupport::Stats do
                      "             returns           : none\n"
   end
 
-  it "should display broker exceptions and returns" do
+  it "displays broker exceptions and returns" do
     @exceptions.track("testing", Exception.new("Test error"))
     @brokers["exceptions"] = @exceptions.stats
     @brokers["heartbeat"] = 60
@@ -213,7 +213,7 @@ describe RightSupport::Stats do
                      "                                 last: no queue consumers (10 sec ago), rate: 0/sec\n"
   end
 
-  it 'should convert activity stats to string' do
+  it 'converts activity stats to string' do
     activity = RightSupport::Stats::Activity.new
     activity.update("testing")
     activity.finish(@now - 10)
@@ -225,7 +225,7 @@ describe RightSupport::Stats do
                                                     "rate: 0/sec"
   end
 
-  it 'should convert last activity stats to string' do
+  it 'converts last activity stats to string' do
     activity = RightSupport::Stats::Activity.new
     activity.update("testing")
     activity.finish(@now - 10)
@@ -235,7 +235,7 @@ describe RightSupport::Stats do
     @helpers.last_activity_str(activity.last, single_item = true).should == "more testing (10 sec ago)"
   end
 
-  it "should convert exception stats to multi-line string" do
+  it "converts exception stats to multi-line string" do
     @exceptions.track("testing", Exception.new("This is a very long exception message that should be truncated " +
                                                "to a reasonable length"))
     flexmock(Time).should_receive(:now).and_return(1000010)
@@ -265,7 +265,7 @@ describe RightSupport::Stats do
                      "----    "
   end
 
-  it "should convert nested hash into string with keys sorted numerically if possible, else alphabetically" do
+  it "converts nested hash into string with keys sorted numerically if possible, else alphabetically" do
     hash = {"dogs" => 2, "cats" => 3, "hippopotami" => 99, "bears" => 1, "ants" => 100000000, "dragons" => nil,
             "food" => {"apples" => "bushels", "berries" => "lots", "meat" => {"fish" => 10.54, "beef" => nil}},
             "versions" => { "1" => 10, "5" => 50, "10" => 100} }
@@ -287,7 +287,7 @@ describe RightSupport::Stats do
                      "----5: 50, 10: 100 ]"
   end
 
-  it "should convert sub-stats to a display string" do
+  it "converts sub-stats to a display string" do
     @exceptions.track("testing", Exception.new("Test error"))
     activity1 = RightSupport::Stats::Activity.new
     activity2 = RightSupport::Stats::Activity.new
@@ -334,7 +334,7 @@ describe RightSupport::Stats do
                      "                some time         : 0.68 sec\n"
   end
 
-  it "should convert stats to a display string with special formatting for generic keys" do
+  it "converts stats to a display string with special formatting for generic keys" do
     @exceptions.track("testing", Exception.new("Test error"))
     activity = RightSupport::Stats::Activity.new
     activity.update("testing")
@@ -381,7 +381,7 @@ describe RightSupport::Stats do
                      "                                  leopards: 25\n"
   end
 
-  it "should treat broker status, version, and machine uptime as optional" do
+  it "treats broker status, version, and machine uptime as optional" do
     sub_stats = {"exceptions" => @exceptions.stats,
                  "empty_hash" => {},
                  "float_value" => 3.15}
@@ -404,7 +404,7 @@ describe RightSupport::Stats do
                      "              float_value       : 3.2\n"
   end
 
-  it "should display name if provided" do
+  it "displays name if provided" do
     sub_stats = {"exceptions" => @exceptions.stats,
                  "empty_hash" => {},
                  "float_value" => 3.15}
@@ -429,7 +429,7 @@ describe RightSupport::Stats do
                      "              float_value       : 3.2\n"
   end
 
-  it "should sort stats using optional prefix" do
+  it "sorts stats using optional prefix" do
     sub_stats = {"empty_hash" => {},
                  "float_value" => 3.15}
 

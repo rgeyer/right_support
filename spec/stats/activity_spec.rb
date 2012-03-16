@@ -41,7 +41,7 @@ describe RightSupport::Stats::Activity do
     @stats = RightSupport::Stats::Activity.new
   end
 
-  it "should initialize stats data" do
+  it "initializes stats data" do
     @stats.instance_variable_get(:@interval).should == 0.0
     @stats.instance_variable_get(:@last_start_time).should == @now
     @stats.instance_variable_get(:@avg_duration).should be_nil
@@ -49,7 +49,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {}
   end
 
-  it "should update count and interval information" do
+  it "updates count and interval information" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update
     @stats.instance_variable_get(:@interval).should == 1.0
@@ -59,10 +59,10 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {}
   end
 
-  it "should update weight the average interval toward recent activity" do
+  it "updates weight the average interval toward recent activity" do
   end
 
-  it "should update counts per type when type provided" do
+  it "updates counts per type when type provided" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update("test")
     @stats.instance_variable_get(:@interval).should == 1.0
@@ -72,7 +72,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {"test" => 1}
   end
 
-  it "should not update counts when type contains 'stats'" do
+  it "doesn't update counts when type contains 'stats'" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update("my stats")
     @stats.instance_variable_get(:@interval).should == 0.0
@@ -82,7 +82,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {}
   end
 
-  it "should limit length of type string when submitting update" do
+  it "limits length of type string when submitting update" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update("test 12345678901234567890123456789012345678901234567890123456789")
     @stats.instance_variable_get(:@total).should == 1
@@ -90,7 +90,7 @@ describe RightSupport::Stats::Activity do
             {"test 1234567890123456789012345678901234567890123456789012..." => 1}
   end
 
-  it "should not convert symbol or boolean to string when submitting update" do
+  it "doesn't convert symbol or boolean to string when submitting update" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update(:test)
     @stats.update(true)
@@ -99,7 +99,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {:test => 1, true => 1, false => 1}
   end
 
-  it "should convert arbitrary type value to limited-length string when submitting update" do
+  it "converts arbitrary type value to limited-length string when submitting update" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update({1 => 11, 2 => 22})
     @stats.update({1 => 11, 2 => 22, 3 => 12345678901234567890123456789012345678901234567890123456789})
@@ -108,7 +108,7 @@ describe RightSupport::Stats::Activity do
                                                               "{1=>11, 2=>22, 3=>123456789012345678901234567890123456789..." => 1}
   end
 
-  it "should not measure rate if disabled" do
+  it "doesn't measure rate if disabled" do
     @stats = RightSupport::Stats::Activity.new(false)
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update
@@ -120,7 +120,7 @@ describe RightSupport::Stats::Activity do
     @stats.all.should == {"last" => {"elapsed"=>0}, "total" => 1}
   end
 
-  it "should update duration when finish using internal start time by default" do
+  it "updates duration when finish using internal start time by default" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.finish
     @stats.instance_variable_get(:@interval).should == 0.0
@@ -130,7 +130,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {}
   end
 
-  it "should update duration when finish using specified start time" do
+  it "updates duration when finish using specified start time" do
     flexmock(Time).should_receive(:now).and_return(1000030)
     @stats.avg_duration.should be_nil
     @stats.finish(1000010)
@@ -141,7 +141,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@count_per_type).should == {}
   end
 
-  it "should convert interval to rate" do
+  it "converts interval to rate" do
     flexmock(Time).should_receive(:now).and_return(1000020)
     @stats.avg_rate.should be_nil
     @stats.update
@@ -149,20 +149,20 @@ describe RightSupport::Stats::Activity do
     @stats.avg_rate.should == 0.5
   end
 
-  it "should report number of seconds since last update or nil if no updates" do
+  it "reports number of seconds since last update or nil if no updates" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.last.should be_nil
     @stats.update
     @stats.last.should == {"elapsed" => 0}
   end
 
-  it "should report number of seconds since last update and last type" do
+  it "reports number of seconds since last update and last type" do
     @stats.update("test")
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.last.should == {"elapsed" => 10, "type" => "test"}
   end
 
-  it "should report whether last activity is still active" do
+  it "reports whether last activity is still active" do
     @stats.update("test", "token")
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.last.should == {"elapsed" => 10, "type" => "test", "active" => true}
@@ -171,7 +171,7 @@ describe RightSupport::Stats::Activity do
     @stats.instance_variable_get(:@avg_duration).should == 2.0
   end
 
-  it "should convert count per type to percentages" do
+  it "converts count per type to percentages" do
     flexmock(Time).should_receive(:now).and_return(1000010)
     @stats.update("foo")
     @stats.instance_variable_get(:@total).should == 1

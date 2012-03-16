@@ -45,7 +45,7 @@ describe RightSupport::Log::ExceptionLogger do
           end
         end
 
-        it 'should default to :caller trace' do
+        it 'defaults to :caller trace' do
           begin
             raise ArgumentError.new("err")
           rescue Exception => e

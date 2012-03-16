@@ -33,19 +33,19 @@ describe RightSupport::Stats::Exceptions do
     @exception = Exception.new("Test error")
   end
 
-  it "should initialize stats data" do
+  it "initializes stats data" do
     @stats.stats.should be_nil
     @stats.instance_variable_get(:@callback).should be_nil
   end
 
-  it "should track submitted exception information by category" do
+  it "tracks submitted exception information by category" do
     @stats.track("testing", @exception)
     @stats.stats.should == {"testing" => {"total" => 1,
                                           "recent" => [{"count" => 1, "type" => "Exception", "message" => "Test error",
                                                         "when" => @now, "where" => nil}]}}
   end
 
-  it "should recognize and count repeated exceptions" do
+  it "recognizes and counts repeated exceptions" do
     @stats.track("testing", @exception)
     @stats.stats.should == {"testing" => {"total" => 1,
                                           "recent" => [{"count" => 1, "type" => "Exception", "message" => "Test error",
@@ -75,7 +75,7 @@ describe RightSupport::Stats::Exceptions do
                                                         "when" => @now + 10, "where" => "there"}]}}
   end
 
-  it "should limit the number of exceptions stored by eliminating older exceptions" do
+  it "limits the number of exceptions stored by eliminating older exceptions" do
     (RightSupport::Stats::Exceptions::MAX_RECENT_EXCEPTIONS + 1).times do |i|
       begin
         raise ArgumentError, "badarg"
@@ -90,7 +90,7 @@ describe RightSupport::Stats::Exceptions do
     stats["testing"]["recent"][0]["where"].should == "1"
   end
 
-  it "should make callback if callback and message defined" do
+  it "makes callback if callback and message defined" do
     called = 0
     callback = lambda do |exception, message, server|
       called += 1
@@ -106,7 +106,7 @@ describe RightSupport::Stats::Exceptions do
     called.should == 1
   end
 
-  it "should catch any exceptions raised internally and log them" do
+  it "catches any exceptions raised internally and log them" do
     begin
       logger = flexmock("logger")
       logger.should_receive(:error).with(/Failed to track exception 'Test error' \(Exception: bad IN/).once
