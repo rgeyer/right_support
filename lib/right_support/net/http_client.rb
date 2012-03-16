@@ -72,8 +72,9 @@ module RightSupport::Net
       @defaults[:headers]      ||= {}
     end
 
-    def get(*args)
-      if args[1] && args[1].to_hash.include?(:params)
+    def get(*args)      
+      if args[1].respond_to?(:to_hash)\
+                                  && args[1].to_hash.include?(:params)
         args[0] = process_url_params(args[0], args[1][:params])      
         args[1].delete(:params)
       end      

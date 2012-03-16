@@ -15,14 +15,33 @@ merely being duck-type compatible). You use it as follows.
   @logger = SystemLogger.new('my_cool_app', :split=>true, :color=>false)
   @logger.info "Hello world\nThis will appear on separate lines\nand without \e[33;0mbeautiful colors" 
 
-CustomLogger is a Rack middleware that allows a Rack app to use any log sink it wishes. The
+RightSupport also provide Rack middleware that allows a Rack app to use any log sink it wishes. The
 stock Rack logger middleware is inflexible and gives the end user no control over which logger is used
-or where the log entries go.
+or where the log entries go. Example of usage on Sinatra based application:
 
-  require 'right_support/rack/custom_logger'
+  class MyApp < Sinatra::Base
+    ...
+    #specifying logger will be used as default logger
+    LOGGER =\
+      if ENV['RACK_ENV'].downcase == 'development'
+        Logger.new(STDOUT)
+      else
+        RightSupport::Log::SystemLogger.new("MyApp", {:facility => "local0"})
+      end    
 
-  my_logger = MyAwesomeLogger.new
-  use RightSupport::Rack::CustomLogger, Logger::INFO, my_logger
+    # use the RequestLogger via LogSetter to log requests for application
+    use RightSupport::Rack::LogSetter, {:logger => LOGGER}
+    use RightSupport::Rack::RequestLogger    
+
+    # set logger and mix Log::Mixin
+    RightSupport::Log::Mixin.default_logger = LOGGER
+    include RightSupport::Log::Mixin
+    ...
+  end
+
+After that all rack requests to MyApp will be logged, and since we mixed Log::Mixin we can use:
+
+  logger.info "Hello world\nThis will appear on separate lines\nand without \e[33;0mbeautiful colors"
 
 === String Manipulation
 
@@ -91,6 +110,10 @@ optional timeout to be specified as an extra parameter.
    # Make sure the HTTPClient request fails after 1 second so we can report an error
    # and move on!
    @client.get('http://localhost', {:headers => {'X-Hello'=>'hi!'}, :timeout => 1)}
+
+   # HTTPClient transforms String or Hash :params into query string for #get
+   @client.get('http://localhost/moo', {:params=>{:a=>{:b=>:c}}} )
+   # the url that would be requested is http://localhost/moo?a[b]=c
 
 === Statistics Gathering
 
