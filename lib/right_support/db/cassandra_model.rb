@@ -119,7 +119,7 @@ module RightSupport::DB
     DEFAULT_TIMEOUT = 10
 
     # Default maximum number of rows to retrieve in one chunk
-    DEFAULT_COUNT = 1000
+    DEFAULT_COUNT = 100
 
     # Wrappers for Cassandra client
     class << self
