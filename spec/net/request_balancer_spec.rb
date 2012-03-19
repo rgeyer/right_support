@@ -455,6 +455,22 @@ describe RightSupport::Net::RequestBalancer do
           }.should raise_error(RightSupport::Net::NoResult)
         end
       end
+      
+      context 'when the health of an endpoint changes' do
+        it 'logs the change' do
+          health_check = Proc.new do |endpoint|
+            false
+          end
+          flexmock(@logger).should_receive(:info).times(4)
+          
+          lambda {
+            balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::Balancing::HealthCheck, :health_check => health_check)
+            balancer.request do |ep|
+              raise "Bad Endpoint"
+            end
+          }.should raise_error(RightSupport::Net::NoResult)
+        end
+      end
     end
 
     context 'given a class health check policy' do

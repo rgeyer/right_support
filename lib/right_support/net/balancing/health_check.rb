@@ -28,6 +28,8 @@ module RightSupport::Net::Balancing
   # class representing EP state, and then perhaps move what logic remains into the HealthCheck class
   # instead of putting it here.
   class EndpointsStack
+    include RightSupport::Log::Mixin
+    
     DEFAULT_YELLOW_STATES = 4
     DEFAULT_RESET_TIME    = 300
 
@@ -60,6 +62,7 @@ module RightSupport::Net::Balancing
     def update_state(endpoint, change, t1)
       @endpoints[endpoint][:timestamp] = t1
       n_level = @endpoints[endpoint][:n_level] += change
+      logger.info("RequestBalancer: Health of endpoint '#{endpoint}' #{change < 0 ? 'improved' : 'declined'} to '#{state_color(n_level)}'")
       if @on_health_change &&
          (n_level < @min_n_level ||
          (n_level > @min_n_level && n_level == @endpoints.map { |(k, v)| v[:n_level] }.min))
@@ -110,6 +113,7 @@ module RightSupport::Net::Balancing
   # transitions from red to yellow, and so on.
 
   class HealthCheck
+    include RightSupport::Log::Mixin
 
     def initialize(options = {})
       @options = options
@@ -123,6 +127,7 @@ module RightSupport::Net::Balancing
         @counter = rand(0xffff) % endpoints.size
         @last_size = endpoints.size
         @stack = EndpointsStack.new(endpoints, @options[:yellow_states], @options[:reset_time], @options[:on_health_change])
+        @stack.logger = logger
       end
     end
 
