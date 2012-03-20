@@ -1,5 +1,5 @@
 require 'spec_helper'
 
-describe RightSupport::Log::TagLogger do
+describe RightSupport::Rack::LogSetter do
   it 'has test coverage'
 end

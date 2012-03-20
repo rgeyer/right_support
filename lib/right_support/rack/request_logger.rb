@@ -32,17 +32,13 @@ module RightSupport::Rack
   # RequestLogger can be used standalone to fulfill all logging needs, or combined
   # with Rack::Logger or another middleware that provides logging services.
   class RequestLogger
-    # Initialize an instance of the middleware. For backward compatibility, the order of the
-    # logger and level parameters can be switched.
+    # Initialize an instance of the middleware.
     #
     # === Parameters
     # app(Object):: the inner application or middleware layer; must respond to #call
-    # logger(Logger):: (optional) the Logger object to use, defaults to a STDERR logger
-    # level(Integer):: (optional) a Logger level-constant (INFO, ERROR) to set the logger to
     #
-    def initialize(app, options={})
-      @app    = app
-      @logger = options[:logger]
+    def initialize(app)
+      @app = app
     end
 
     # Add a logger to the Rack environment and call the next middleware.
@@ -53,17 +49,13 @@ module RightSupport::Rack
     # === Return
     # always returns whatever value is returned by the next layer of middleware
     def call(env)
-      if @logger
-        logger = @logger
-      elsif env['rack.logger']
-        logger = env['rack.logger']
-      end
-
-      env['rack.logger'] ||= logger
+      logger = env["rack.logger"]
 
       began_at = Time.now
+
+      log_request_begin(logger, env)
       status, header, body = @app.call(env)
-      log_request(logger, env, status, began_at)
+      log_request_end(logger, env, status, began_at)
       log_exception(logger, env['sinatra.error']) if env['sinatra.error']
 
       return [status, header, body]
@@ -74,10 +66,15 @@ module RightSupport::Rack
 
     private
 
-    # NON Logger functions below
-    def log_request(logger, env, status, began_at)
-      duration = Time.now - began_at
-
+    # Log beginning of request
+    #
+    # === Parameters
+    # logger(Object):: the Rack logger
+    # env(Hash):: the Rack environment
+    #
+    # === Return
+    # always returns true
+    def log_request_begin(logger, env)
       # Assuming remote addresses are IPv4, make them all align to the same width
       remote_addr = env['HTTP_X_FORWARDED_FOR'] || env["REMOTE_ADDR"] || "-"
       remote_addr = remote_addr.ljust(15)
@@ -96,13 +93,42 @@ module RightSupport::Rack
         env["PATH_INFO"],
         query_info,
         env["HTTP_VERSION"],
-        status,
-        duration
+        env["rack.request_uuid"] || ''
       ]
 
-      logger.info %Q{%s "%s %s%s %s" %d %0.3f} % params
+      logger.info %Q{Begin: %s "%s %s%s %s" %s} % params
     end
 
+    # Log end of request
+    #
+    # === Parameters
+    # logger(Object):: the Rack logger
+    # env(Hash):: the Rack environment
+    # status(Fixnum):: status of the Rack request
+    # began_at(Time):: time of the Rack request begging
+    #
+    # === Return
+    # always returns true
+    def log_request_end(logger, env, status, began_at)
+      duration = Time.now - began_at
+      
+      params = [
+        status,
+        duration,
+        env["rack.request_uuid"] || ''
+      ]
+
+      logger.info %Q{End: %d %0.3f %s} % params
+    end
+
+    # Log exception
+    #
+    # === Parameters
+    # logger(Object):: the Rack logger
+    # e(Exception):: Exception to be logged
+    #
+    # === Return
+    # always returns true
     def log_exception(logger, e)
       msg = ["#{e.class} - #{e.message}", *e.backtrace].join("\n")
       logger.error(msg)

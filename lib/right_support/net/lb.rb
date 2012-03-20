@@ -20,15 +20,14 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightSupport
-  #
-  # A namespace for Rack middleware and other enhancements.
-  #
-  module Rack
+#
+# A namespace to hold load-balancing policies to be used with RequestBalancer
+# and potentially other networking classes.
+#
+module RightSupport::Net::LB
 
-  end
 end
 
-require 'right_support/rack/log_setter'
-require 'right_support/rack/request_logger'
-require 'right_support/rack/request_tracker'
+require 'right_support/net/lb/health_check'
+require 'right_support/net/lb/round_robin'
+require 'right_support/net/lb/sticky'

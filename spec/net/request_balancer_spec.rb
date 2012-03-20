@@ -73,7 +73,7 @@ describe RightSupport::Net::RequestBalancer do
     expect = number_of_endpoints
     yellow_states = 4
     rb = RightSupport::Net::RequestBalancer.new((1..expect).to_a,
-                                                :policy => RightSupport::Net::Balancing::HealthCheck,
+                                                :policy => RightSupport::Net::LB::HealthCheck,
                                                 :health_check => test,
                                                 :yellow_states => yellow_states)
     @health_checks = 0
@@ -201,14 +201,14 @@ describe RightSupport::Net::RequestBalancer do
 
     context 'with :policy option' do
       it 'accepts a Class' do
-        policy = RightSupport::Net::Balancing::RoundRobin
+        policy = RightSupport::Net::LB::RoundRobin
         lambda {
           RightSupport::Net::RequestBalancer.new([1,2], :policy=>policy)
         }.should_not raise_error
       end
 
       it 'accepts an object' do
-        policy = RightSupport::Net::Balancing::RoundRobin.new([1,2])
+        policy = RightSupport::Net::LB::RoundRobin.new([1,2])
         lambda {
           RightSupport::Net::RequestBalancer.new([1,2], :policy=>policy)
         }.should_not raise_error
@@ -380,7 +380,7 @@ describe RightSupport::Net::RequestBalancer do
 
       context 'with default :retry option' do
         it 'does mark endpoints as bad if they encounter retryable errors' do
-          rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::Balancing::HealthCheck, :health_check => Proc.new {|endpoint| false})
+          rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
           expect = rb.get_stats
           codes = [401, 402, 403, 404, 405, 406, 407, 408, 409]
           codes.each do |code|
@@ -393,7 +393,7 @@ describe RightSupport::Net::RequestBalancer do
         end
 
         it 'does not mark endpoints as bad if they raise fatal errors' do
-          rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::Balancing::HealthCheck, :health_check => Proc.new {|endpoint| false})
+          rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
           expect = rb.get_stats
           codes = [401, 402, 403, 404, 405, 406, 407, 409]
           codes.each do |code|
@@ -528,7 +528,7 @@ describe RightSupport::Net::RequestBalancer do
         expected_hash = {}
         list = [1,2,3,4]
         rb = RightSupport::Net::RequestBalancer.new(list,
-                                                :policy => RightSupport::Net::Balancing::HealthCheck,
+                                                :policy => RightSupport::Net::LB::HealthCheck,
                                                 :health_check => Proc.new {|endpoint| "HealthCheck passed for #{endpoint}!"})
         rb.get_stats.should_not be_nil
         rb.get_stats.should_not == expected_hash

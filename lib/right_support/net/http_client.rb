@@ -1,12 +1,12 @@
 module RightSupport::Net
-  if_require_succeeds('right_http_connection') do
+  if require_succeeds?('right_http_connection')
     #nothing, nothing at all! just need to make sure
     #that RightHttpConnection gets loaded before
     #rest-client, so the Net::HTTP monkey patches
     #take effect.
   end
 
-  if_require_succeeds('restclient') do
+  if require_succeeds?('restclient')
     HAS_REST_CLIENT = true
   end
 
@@ -24,31 +24,74 @@ module RightSupport::Net
   #
   #
   # HTTPClient is a thin wrapper around the RestClient::Request class, with a few minor changes to its
-  # interface:
-  #  * initializer accepts some default request options that can be overridden per-request
-  #  * it has discrete methods for get/put/post/delete, instead of a single "request" method
+  # interface, namely:
+  #  * initializer accepts some default request options that can be overridden
+  #    per-request
+  #  * it has discrete methods for get/put/post/delete, instead of a single
+  #    "request" method
+  #  * it supports explicit :query and :payload options for query-string and
+  #    request-body, and understands the Rails convention for encoding a
+  #    nested Hash into request parameters.
   #
-  #   # create an instance ot HTTPClient with some default request options
+  # == Request Parameters
+  # You can include a query-string with your request by passing the :query
+  # option to any of the request methods. You can pass a Hash, which will
+  # be translated to a URL-encoded query string using the Rails convention
+  # for nesting. Or, you can pass a String which will be appended verbatim
+  # to the URL. (In this case, don't forget to CGI.escape your string!)
+  #
+  # To include a form with your request, pass the :payload option to any
+  # request method. You can pass a Hash, which will be translated to an
+  # x-www-form-urlencoded request body using the Rails convention for
+  # nesting. Or, you can pass a String which will be appended verbatim
+  # to the URL. You can even use a binary String combined with a
+  # suitable request-content-type header to pass binary data in the
+  # payload. (In this case, be very careful about String encoding under
+  # Ruby 1.9!)
+  #
+  # == Usage Examples
+  #
+  #   # Create an instance ot HTTPClient with some default request options
   #   @client = HTTPClient.new()
   #
-  #   # GET
+  #   # Simple GET
   #   xml = @client.get 'http://example.com/resource'
-  #   # and, with timeout of 5 seconds...
-  #   jpg = @client.get 'http://example.com/resource', {:accept => 'image/jpg', :timeout => 5}
   #
-  #   # authentication and SSL
+  #   # And, with timeout of 5 seconds...
+  #   jpg = @client.get 'http://example.com/resource',
+  #     {:accept => 'image/jpg', :timeout => 5}
+  #
+  #   # Doing some client authentication and SSL.
   #   @client.get 'https://user:password@example.com/private/resource'
+  #   
+  #   # The :query option will be encoded as a URL query-string using Rails
+  #   # nesting convention (e.g. "a[b]=c" for this case).
+  #   @client.get 'http://example.com', :query=>{:a=>{:b=>'c'}}
   #
-  #   # POST or PUT with a hash sends parameters as a urlencoded form body
-  #   @client.post 'http://example.com/resource', {:param1 => 'one'}
+  #   # The :payload option specifies the request body. You can specify a raw
+  #   # payload:
+  #   @client.post 'http://example.com/resource', :payload=>'hi hi hi lol lol'
   #
-  #   # nest hash parameters, add a timeout of 10 seconds (and specify "no extra headers")
-  #   @client.post 'http://example.com/resource', {:payload => {:nested => {:param1 => 'one'}}, :timeout => 10}
+  #   # Or, you can specify a Hash payload which will be translated to a
+  #   # x-www-form-urlencoded request body using the Rails nesting convention.
+  #   # (e.g. "a[b]=c" for this case)
+  #   @client.post 'http://example.com/resource', :payload=>{:d=>{:e=>'f'}}
+  #
+  #   # You can specify query and/or payload for any HTTP verb, even if it
+  #   # defies convention  (be careful!)
+  #   @client.post 'http://example.com/resource',
+  #     :query   => {:query_string_param=>'hi'}
+  #     :payload => {:form_param=>'hi'}, :timeout => 10
   #
   #   # POST and PUT with raw payloads
-  #   @client.post 'http://example.com/resource', {:payload => 'the post body', :headers => {:content_type => 'text/plain'}}
-  #   @client.post 'http://example.com/resource.xml', {:payload => xml_doc}
-  #   @client.put 'http://example.com/resource.pdf', {:payload => File.read('my.pdf'), :headers => {:content_type => 'application/pdf'}}
+  #   @client.post 'http://example.com/resource',
+  #     {:payload => 'the post body',
+  #      :headers => {:content_type => 'text/plain'}}
+  #   @client.post 'http://example.com/resource.xml',
+  #     {:payload => xml_doc}
+  #   @client.put 'http://example.com/resource.pdf',
+  #     {:payload => File.read('my.pdf'),
+  #      :headers => {:content_type => 'application/pdf'}}
   #
   #   # DELETE
   #   @client.delete 'http://example.com/resource'
@@ -58,18 +101,20 @@ module RightSupport::Net
   #   res.code                    # => 200
   #   res.headers[:content_type]  # => 'image/jpg'
   class HTTPClient
-    
-    DEFAULT_TIMEOUT       = 5
-    DEFAULT_OPEN_TIMEOUT  = 2
-    
+    # The default options for every request; can be overridden by options
+    # passed to #initialize or to the individual request methods (#get,
+    # #post, and so forth).
+    DEFAULT_OPTIONS = {
+      :timeout      => 5,
+      :open_timeout => 2,
+      :headers      => {}
+    }
+
     def initialize(defaults = {})
-      @defaults = defaults.clone
-      @defaults[:timeout]      ||= DEFAULT_TIMEOUT
-      @defaults[:open_timeout] ||= DEFAULT_OPEN_TIMEOUT
-      @defaults[:headers]      ||= {}
+      @defaults = DEFAULT_OPTIONS.merge(defaults)
     end
 
-    def get(*args)
+    def get(*args)      
       request(:get, *args)
     end
 
@@ -94,7 +139,8 @@ module RightSupport::Net
   # === Options
   # This method can accept any of the options that RestClient::Request can accept, since
   # all options are proxied through after merging in defaults, etc. Interesting options:
-  # * :payload - hash containing the request body (e.g. POST or PUT parameters)
+  # * :query - hash containing a query string (GET parameters) as a Hash or String
+  # * :payload - hash containing the request body (POST or PUT parameters) as a Hash or String
   # * :headers - hash containing additional HTTP request headers
   # * :cookies - will replace possible cookies in the :headers
   # * :user and :password - for basic auth, will be replaced by a user/password available in the url
@@ -108,13 +154,53 @@ module RightSupport::Net
   #
     def request(type, url, options={}, &block)
       options = @defaults.merge(options)
+
+      # Handle query-string option which is implemented by us, not by rest-client.
+      # (rest-client version of this, :headers={:params=>...}) but it
+      # is broken in many ways and not suitable for use!)
+      if query = options.delete(:query)
+        url = process_query_string(url, query)
+      end
+
       options.merge!(:method => type, :url => url)
 
       request_internal(options, &block)
     end
 
-    protected
-    
+    private
+
+    # Process a query-string option and append it to the URL as a properly
+    # encoded query string. The input must be either a String or Hash.
+    #
+    # === Parameters
+    # url(String):: the URL to request, including any query-string parameters
+    # query(Hash|String):: the URL params, that will be added to URL, Hash or String
+    #
+    # === Return
+    # Returns url with concated with parameters.
+    def process_query_string(url='', query={})
+      url_params = ''
+
+      if query.kind_of?(String)
+        url_params = query.gsub(/^\?/, '')
+      elsif query.kind_of?(Hash)
+        if require_succeeds?('addressable/uri')
+          uri = Addressable::URI.new
+          uri.query_values = query
+          url_params = uri.query
+        else
+          url_params = query.collect { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
+        end
+      else
+        raise ArgumentError.new("Parameter query should be String or Hash")
+      end
+      unless (url+url_params)[/\?/]
+        url_params = '?' + url_params unless url_params.empty?
+      end
+
+      url + url_params
+    end
+
     # Wrapper around RestClient::Request.execute -- see class documentation for details.
     def request_internal(options, &block)
       if HAS_REST_CLIENT

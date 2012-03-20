@@ -1,13 +1,13 @@
 require 'spec_helper'
 
 describe RightSupport::Ruby::ObjectExtensions do
-  context :if_require_succeeds do
+  context :require_succeeds? do
     it 'yields to its block when the require succeeds' do
       @canary = false
 
       # The 'set' source file ships with Ruby standard library and should
       # always be available
-      if_require_succeeds('set') do
+      if require_succeeds?('set')
         @canary = true
       end
 
@@ -17,7 +17,7 @@ describe RightSupport::Ruby::ObjectExtensions do
     it 'does not yield when require fails for any reason' do
       @canary = false
 
-      if_require_succeeds('a_source_file_with_a_wholly_improbable_name') do
+      if require_succeeds?('a_source_file_with_a_wholly_improbable_name')
         @canary = true
       end
 

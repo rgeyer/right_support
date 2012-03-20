@@ -20,14 +20,13 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#
-# A namespace to hold load-balancing policies to be used with RequestBalancer
-# and potentially other networking classes.
-#
-module RightSupport::Net::Balancing
+module RightSupport
+  #
+  # A namespace for data-processing tools.
+  #
+  module Data
 
+  end
 end
 
-Dir[File.expand_path('../balancing/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+require 'right_support/data/uuid'

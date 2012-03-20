@@ -20,7 +20,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-if_require_succeeds('net/ssh') do
+if require_succeeds?('net/ssh')
   module RightSupport::Validation
     # Validation methods pertaining to the Secure Shell (SSH) protocol.
     module SSH

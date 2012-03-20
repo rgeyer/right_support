@@ -31,7 +31,6 @@ end
 
 require 'right_support/log/system_logger'
 require 'right_support/log/filter_logger'
-require 'right_support/log/tag_logger'
 require 'right_support/log/null_logger'
 require 'right_support/log/multiplexer'
 require 'right_support/log/exception_logger'

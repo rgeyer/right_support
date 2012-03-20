@@ -20,15 +20,44 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightSupport
-  #
-  # A namespace for Rack middleware and other enhancements.
-  #
-  module Rack
+module RightSupport::Rack
+  # TODO docs
+  class RequestTracker
+    REQUEST_LINEAGE_UUID_HEADER = "HTTP_X_REQUEST_LINEAGE_UUID".freeze
+    REQUEST_UUID_HEADER         = "X-Request-Uuid".freeze
+    REQUEST_UUID_ENV_NAME       = "rack.request_uuid".freeze
+    UUID_SEPARATOR              = " ".freeze
 
+    # Make a new Request tracker.
+    #
+    # Tags the requset with a new request UUID
+    #
+    # === Parameters
+    # app(Rack client): application to run
+    def initialize(app)
+      @app = app
+    end
+
+    def call(env)
+      if env.has_key? REQUEST_LINEAGE_UUID_HEADER
+        request_uuid = env[REQUEST_LINEAGE_UUID_HEADER] + UUID_SEPARATOR +
+                       generate_request_uuid
+      else
+        request_uuid = generate_request_uuid
+      end
+
+      env[REQUEST_UUID_ENV_NAME] = request_uuid
+
+      status, headers, body = @app.call(env)
+
+      headers[REQUEST_UUID_HEADER] = request_uuid
+      [status, headers,body]
+    end
+
+
+    def generate_request_uuid
+      ::RightSupport::Data::UUID.generate
+    end
   end
-end
 
-require 'right_support/rack/log_setter'
-require 'right_support/rack/request_logger'
-require 'right_support/rack/request_tracker'
+end
