@@ -174,7 +174,7 @@ module RightSupport::Net
     #
     # === Parameters
     # url(String):: the URL to request, including any query-string parameters
-    # params(Hash|String):: the URL params, that will be added to URL, Hash or String
+    # query(Hash|String):: the URL params, that will be added to URL, Hash or String
     #
     # === Return
     # Returns url with concated with parameters.
@@ -192,7 +192,7 @@ module RightSupport::Net
           url_params = query.collect { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
         end
       else
-        raise ArgumentError.new("Parameter params should be String or Hash")
+        raise ArgumentError.new("Parameter query should be String or Hash")
       end
       unless (url+url_params)[/\?/]
         url_params = '?' + url_params unless url_params.empty?

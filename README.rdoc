@@ -111,8 +111,8 @@ optional timeout to be specified as an extra parameter.
    # and move on!
    @client.get('http://localhost', {:headers => {'X-Hello'=>'hi!'}, :timeout => 1)}
 
-   # HTTPClient transforms String or Hash :params into query string for #get
-   @client.get('http://localhost/moo', {:params=>{:a=>{:b=>:c}}} )
+   # HTTPClient transforms String or Hash :query into query string, for example;
+   @client.get('http://localhost/moo', {:query=>{:a=>{:b=>:c}}} )
    # the url that would be requested is http://localhost/moo?a[b]=c
 
 === Statistics Gathering
