@@ -1,12 +1,30 @@
+== 2.0
+
+=== Interface-breaking changes
+
+* Changed some of the more esoteric options of RequestBalancer
+* Removed TagLogger and CustomLogger middlwares
+* Renamed Balancing module to LB
+* Renamed StickyPolicy class to Sticky
+* Removed Object#if_require_succeeds(&block); too dangerous -- use
+  Object#require_succeeds instead!
+
+=== New functionality
+
+* Several new Rack middlewares for request logging & tracking
+* Statistics gathering, string extensions,
+* HTTPClient methods can accept query-strings (:query) and/or request body
+  (:payload)
+
 == 1.0
 
-Interface-breaking changes:
+=== Interface-breaking changes
 
 * Moved logging classes (FilterLogger, SystemLogger, TagLogger) into RightSupport::Log namespace
 * Moved CassandraModel into RightSupport::DB
 * Removed RightSupport::REST module entirely. Replaced by RightSupport::Net::HTTPClient class.
 
-New functionality:
+=== New functionality
 
 * RequestBalancer now capable of using multiple policies for endpoint selection.
   Default is RoundRobin (previously the only option); now you can choose HealthCheck

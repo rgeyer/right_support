@@ -9,19 +9,30 @@ SystemLogger is a rewrite of the seattle.rb SyslogLogger class that features the
 * Inherits from standard Ruby Logger class for guaranteed compatibility
 * Can be configured with options about how to handle newlines, ANSI escape codes, etc
 
-It is very similar to SystemLogger, with a few differences (e.g. it is a child class of Logger instead of
-merely being duck-type compatible). You use it as follows.
+We also provide Log::Mixin, a powerful tool that lets you sprinkle a logger
+into any object or class, and supports per-class or per-instance custom
+loggers!
 
-  @logger = SystemLogger.new('my_cool_app', :split=>true, :color=>false)
-  @logger.info "Hello world\nThis will appear on separate lines\nand without \e[33;0mbeautiful colors" 
+  class Jet < Aircraft
+    include RightSupport::Log.mixin
+  end
 
-RightSupport also provide Rack middleware that allows a Rack app to use any log sink it wishes. The
+  #most jets log to the syslog
+  Jet.logger = RightSupport::Log::SystemLogger.new('my ruby app',
+                 :facility=>'local0')
+
+  #but MY jet
+  @my_jet.logger = Logger.new(StringIO.new)
+
+==== Logging for Rack Applications
+
+RightSupport also provides Rack middleware that allows a Rack app to use any log sink it wishes. The
 stock Rack logger middleware is inflexible and gives the end user no control over which logger is used
 or where the log entries go. Example of usage on Sinatra based application:
 
   class MyApp < Sinatra::Base
     ...
-    #specifying logger will be used as default logger
+    # Specify which logger will be used as default logger
     LOGGER =\
       if ENV['RACK_ENV'].downcase == 'development'
         Logger.new(STDOUT)
@@ -43,16 +54,70 @@ After that all rack requests to MyApp will be logged, and since we mixed Log::Mi
 
   logger.info "Hello world\nThis will appear on separate lines\nand without \e[33;0mbeautiful colors"
 
-=== String Manipulation
+=== Networking Stuff
 
-StringExtensions contains String#camelize, which is only defined if the
-ActiveSupport gem cannot be loaded. It also has some RightScale-specific
-methods:
-* String#snake_case
-* String#to_const
-* String#to_const_path
+==== HTTP Client
 
-Net::StringEncoder applies and removes URL-escape, base64 and other encodings.
+We provide a very thin wrapper around the rest-client gem that enables simple but
+robust rest requests with a timeout, headers, etc.
+
+HTTPClient is interface-compatible with the RestClient module, but allows an
+optional timeout to be specified as an extra parameter.
+
+   # Create a wrapper object
+   @client = RightSupport::Net::HTTPClient.new
+
+   # Default timeout is 5 seconds
+   @client.get('http://localhost')
+
+   # Make sure the HTTPClient request fails after 1 second so we can report an error
+   # and move on!
+   @client.get('http://localhost', {:headers => {'X-Hello'=>'hi!'}, :timeout => 1)}
+
+   # HTTPClient transforms String or Hash :query into query string, for example;
+   @client.get('http://localhost/moo', {:query=>{:a=>{:b=>:c}}} )
+   # the url that would be requested is http://localhost/moo?a[b]=c
+
+==== Client-Side Load Balancer
+
+RequestBalancer randomly chooses endpoints for a network request, which lets
+you perform easy client-side load balancing:
+
+  include RightSupport::Net
+
+  urls = ['http://localhost', 'http://otherhost']
+  RequestBalancer.request(urls, :fatal=>RestClient::ResourceNotFound) do |url|
+    REST.get(url)
+  end
+
+The balancer will keep trying requests until one of them succeeds without
+throwing any exceptions. (NB: a nil return value counts as success!!)
+
+==== HTTP Request Tracking for Rack
+
+Correlate data flows across your entire architecture with the RequestTracker
+middleware, which uses custom HTTP headers to "tag" every Web request with
+a UUID, and works with RequestLogger to log "begin" and "end" lines containing
+the UUID.
+
+If your app consumes the UUID and passes it on to HTTP services that it
+invokes, the same request UUID will appear in all logs and you can grep for
+the "big picture" instead of wasting time paging between logs.
+
+=== Statistics Gathering
+
+Profile your compute-heavy and network activities using a Stats::Activity counter.
+
+  stats = RightSupport::Stats::Activity.new
+
+  puts 'enter 5 lines:'
+  5.times do
+    stats.update(:read_input)
+    line = STDIN.readline
+    stats.finish
+  end
+
+  puts "Only %.1f lines/sec? You are a slow typist!" % [stats.avg_rate]
 
 === Input Validation
 
@@ -78,54 +143,13 @@ but does not pollute the dispatch table of your application classes.
   the_key = STDIN.read
   raise ArgumentError unless RightSupport::Validation.ssh_public_key?(the_key)
 
-=== Client-Side Load Balancer
+=== String Manipulation
 
-RequestBalancer randomly chooses endpoints for a network request, which lets
-you perform easy client-side load balancing:
+StringExtensions contains String#camelize, which is only defined if the
+ActiveSupport gem cannot be loaded. It also has some RightScale-specific
+methods:
+* String#snake_case
+* String#to_const
+* String#to_const_path
 
-  include RightSupport::Net
-
-  urls = ['http://localhost', 'http://otherhost']
-  RequestBalancer.request(urls, :fatal=>RestClient::ResourceNotFound) do |url|
-    REST.get(url)
-  end
-
-The balancer will keep trying requests until one of them succeeds without throwing
-any exceptions. (NB: a nil return value counts as success!!)
-
-=== HTTP Client
-
-We provide a very thin wrapper around the rest-client gem that enables simple but
-robust rest requests with a timeout, headers, etc.
-
-HTTPClient is interface-compatible with the RestClient module, but allows an
-optional timeout to be specified as an extra parameter.
-   
-   # Create a wrapper object
-   @client = RightSupport::Net::HTTPClient.new
-   
-   # Default timeout is 5 seconds
-   @client.get('http://localhost')
-
-   # Make sure the HTTPClient request fails after 1 second so we can report an error
-   # and move on!
-   @client.get('http://localhost', {:headers => {'X-Hello'=>'hi!'}, :timeout => 1)}
-
-   # HTTPClient transforms String or Hash :query into query string, for example;
-   @client.get('http://localhost/moo', {:query=>{:a=>{:b=>:c}}} )
-   # the url that would be requested is http://localhost/moo?a[b]=c
-
-=== Statistics Gathering
-
-Profile your compute-heavy and network activities using a Stats::Activity counter.
-
-  stats = RightSupport::Stats::Activity.new
-
-  puts 'enter 5 lines:'
-  5.times do
-    stats.update(:read_input)
-    line = STDIN.readline
-    stats.finish
-  end
-
-  puts "Only %.1f lines/sec? You are a slow typist!" % [stats.avg_rate]
+Net::StringEncoder applies and removes URL-escape, base64 and other encodings.
