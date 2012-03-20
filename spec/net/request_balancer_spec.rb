@@ -433,10 +433,11 @@ describe RightSupport::Net::RequestBalancer do
       end
     end
 
-    context 'given a class logger' do
+    context 'given a class-level logger' do
       before(:all) do
         @logger = Logger.new(StringIO.new)
         RightSupport::Net::RequestBalancer.logger = @logger
+        RightSupport::Net::Balancing::HealthCheck.logger = @logger
       end
 
       after(:all) do
@@ -451,6 +452,22 @@ describe RightSupport::Net::RequestBalancer do
             balancer = RightSupport::Net::RequestBalancer.new([1,2,3])
             balancer.request do |ep|
               raise NoBigDeal, "Too many cows on the moon"
+            end
+          }.should raise_error(RightSupport::Net::NoResult)
+        end
+      end
+      
+      context 'when the health of an endpoint changes' do
+        it 'logs the change' do
+          health_check = Proc.new do |endpoint|
+            false
+          end
+          flexmock(@logger).should_receive(:info).times(4)
+          
+          lambda {
+            balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::Balancing::HealthCheck, :health_check => health_check)
+            balancer.request do |ep|
+              raise "Bad Endpoint"
             end
           }.should raise_error(RightSupport::Net::NoResult)
         end

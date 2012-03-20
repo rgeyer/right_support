@@ -9,3 +9,5 @@ tmp/*
 pkg/*
 .DS_Store
 nbproject/*
+.loadpath
+.project
