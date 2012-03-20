@@ -8,6 +8,9 @@ group :optional do
   gem 'net-ssh', "~> 2.0"
   gem 'rest-client', "~> 1.6"
   gem 'addressable', "~> 2.2.7"
+  gem 'uuidtools', "~> 2.0", :require=>nil
+  gem 'simple_uuid', "~> 0.2", :require=>nil
+  gem 'uuid', "~> 2.3", :require=>nil
 end
 
 # Gems used during test and development of RightSupport.
