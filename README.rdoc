@@ -106,7 +106,7 @@ the "big picture" instead of wasting time paging between logs.
 
 To use this functionality you need:
 
-  use RightSupport::Rack::RequestTracker.
+  use RightSupport::Rack::RequestTracker
 
 === Statistics Gathering
 
