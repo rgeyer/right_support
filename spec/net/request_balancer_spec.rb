@@ -437,7 +437,7 @@ describe RightSupport::Net::RequestBalancer do
       before(:all) do
         @logger = Logger.new(StringIO.new)
         RightSupport::Net::RequestBalancer.logger = @logger
-        RightSupport::Net::Balancing::HealthCheck.logger = @logger
+        RightSupport::Net::LB::HealthCheck.logger = @logger
       end
 
       after(:all) do
@@ -465,7 +465,7 @@ describe RightSupport::Net::RequestBalancer do
           flexmock(@logger).should_receive(:info).times(4)
           
           lambda {
-            balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::Balancing::HealthCheck, :health_check => health_check)
+            balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::LB::HealthCheck, :health_check => health_check)
             balancer.request do |ep|
               raise "Bad Endpoint"
             end
