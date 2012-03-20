@@ -28,12 +28,11 @@ module RightSupport::Net::Balancing
   # class representing EP state, and then perhaps move what logic remains into the HealthCheck class
   # instead of putting it here.
   class EndpointsStack
-    include RightSupport::Log::Mixin
-    
     DEFAULT_YELLOW_STATES = 4
     DEFAULT_RESET_TIME    = 300
 
-    def initialize(endpoints, yellow_states=nil, reset_time=nil, on_health_change=nil)
+    def initialize(policy, endpoints, yellow_states=nil, reset_time=nil, on_health_change=nil)
+      @policy = policy
       @endpoints = Hash.new
       @yellow_states = yellow_states || DEFAULT_YELLOW_STATES
       @reset_time = reset_time || DEFAULT_RESET_TIME
@@ -62,7 +61,7 @@ module RightSupport::Net::Balancing
     def update_state(endpoint, change, t1)
       @endpoints[endpoint][:timestamp] = t1
       n_level = @endpoints[endpoint][:n_level] += change
-      logger.info("RequestBalancer: Health of endpoint '#{endpoint}' #{change < 0 ? 'improved' : 'declined'} to '#{state_color(n_level)}'")
+      logger.info("RequestBalancer: Health of endpoint '#{endpoint}' #{change < 0 ? 'improved' : 'worsened'} to '#{state_color(n_level)}'")
       if @on_health_change &&
          (n_level < @min_n_level ||
          (n_level > @min_n_level && n_level == @endpoints.map { |(k, v)| v[:n_level] }.min))
@@ -91,6 +90,10 @@ module RightSupport::Net::Balancing
       endpoints.each  { |ep| @endpoints[ep] = {:n_level => @min_n_level, :timestamp => 0} }
     end
 
+    # Return the logger that our surrounding policy uses
+    def logger
+      @policy.logger
+    end
   end
   # has several levels (@yellow_states) to determine the health of the endpoint. The
   # balancer works by avoiding "red" endpoints and retrying them after awhile.  Here is a
@@ -126,8 +129,7 @@ module RightSupport::Net::Balancing
         @health_check = @options.delete(:health_check)
         @counter = rand(0xffff) % endpoints.size
         @last_size = endpoints.size
-        @stack = EndpointsStack.new(endpoints, @options[:yellow_states], @options[:reset_time], @options[:on_health_change])
-        @stack.logger = logger
+        @stack = EndpointsStack.new(self, endpoints, @options[:yellow_states], @options[:reset_time], @options[:on_health_change])
       end
     end
 

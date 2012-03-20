@@ -111,7 +111,6 @@ module RightSupport::Net
       @options[:policy] ||= RightSupport::Net::Balancing::RoundRobin
       @policy = @options[:policy]
       @policy = @policy.new(options) if @policy.is_a?(Class)
-      @policy.logger = logger
 
       unless test_policy_duck_type(@policy)
         raise ArgumentError, ":policy must be a class/object that responds to :next, :good and :bad"

@@ -433,10 +433,11 @@ describe RightSupport::Net::RequestBalancer do
       end
     end
 
-    context 'given a class logger' do
+    context 'given a class-level logger' do
       before(:all) do
         @logger = Logger.new(StringIO.new)
         RightSupport::Net::RequestBalancer.logger = @logger
+        RightSupport::Net::Balancing::HealthCheck.logger = @logger
       end
 
       after(:all) do
