@@ -24,8 +24,8 @@ Given /^(\w+) balancing policy$/ do |policy|
 end
 
 When /^a client makes a (buggy )?load-balanced request to '(.*)'$/ do |buggy, path|
-  t = RightSupport::Net::HTTPClient::DEFAULT_TIMEOUT
-  o = RightSupport::Net::HTTPClient::DEFAULT_OPEN_TIMEOUT
+  t = RightSupport::Net::HTTPClient::DEFAULT_OPTIONS[:timeout]
+  o = RightSupport::Net::HTTPClient::DEFAULT_OPTIONS[:open_timeout]
   When "a client makes a #{buggy}load-balanced request to '#{path}' with timeout #{t} and open_timeout #{o}"
 end
 
