@@ -93,7 +93,7 @@ module RightSupport::Rack
         env["PATH_INFO"],
         query_info,
         env["HTTP_VERSION"],
-        env["rack.request_uuid"] || "N/A"
+        env["rack.request_uuid"] || ''
       ]
 
       logger.info %Q{Begin: %s "%s %s%s %s" %s} % params
@@ -114,10 +114,11 @@ module RightSupport::Rack
       
       params = [
         status,
-        duration
+        duration,
+        env["rack.request_uuid"] || ''
       ]
 
-      logger.info %Q{End: %d %0.3f} % params
+      logger.info %Q{End: %d %0.3f %s} % params
     end
 
     # Log exception
