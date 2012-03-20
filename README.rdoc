@@ -14,11 +14,11 @@ into any object or class, and supports per-class or per-instance custom
 loggers!
 
   class Jet < Aircraft
-    include RightSupport::Log.mixin
+    include RightSupport::Log.Mixin
   end
 
   #most jets log to the syslog
-  Jet.logger = RightSupport::Log::SystemLogger.new('my ruby app',
+  Jet.logger = RightSupport::Log::SystemLogger.new('black box',
                  :facility=>'local0')
 
   #but MY jet
@@ -103,6 +103,10 @@ the UUID.
 If your app consumes the UUID and passes it on to HTTP services that it
 invokes, the same request UUID will appear in all logs and you can grep for
 the "big picture" instead of wasting time paging between logs.
+
+To use this functionality you need:
+
+  use RightSupport::Rack::RequestTracker.
 
 === Statistics Gathering
 
