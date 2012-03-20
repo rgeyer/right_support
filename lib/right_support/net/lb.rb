@@ -28,6 +28,6 @@ module RightSupport::Net::LB
 
 end
 
-Dir[File.expand_path('../balancing/*.rb', __FILE__)].each do |filename|
-  require filename
-end
+require 'right_support/net/lb/health_check'
+require 'right_support/net/lb/round_robin'
+require 'right_support/net/lb/sticky'

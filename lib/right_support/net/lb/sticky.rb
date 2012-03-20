@@ -21,7 +21,6 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 module RightSupport::Net::LB
-
   # Implementation concepts: Create a policy that selects an endpoint and sticks with it.
   #
   # The policy should:

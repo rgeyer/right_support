@@ -32,7 +32,7 @@ end
 require 'right_support/net/address_helper'
 require 'right_support/net/http_client'
 require 'right_support/net/string_encoder'
-require 'right_support/net/balancing'
+require 'right_support/net/lb'
 require 'right_support/net/request_balancer'
 require 'right_support/net/ssl'
 require 'right_support/net/dns'
