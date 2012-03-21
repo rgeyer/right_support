@@ -50,7 +50,7 @@ module RightSupport::Net::LB
     end
 
     def next
-      [ @endpoints[@counter % @endpoints.size], true ] unless @endpoints.empty?
+      [ @endpoints[@counter % @endpoints.size], false ] unless @endpoints.empty?
     end
 
     def good(endpoint, t0, t1)

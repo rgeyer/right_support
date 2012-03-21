@@ -160,8 +160,10 @@ module RightSupport::Net
     # Return the first non-nil value provided by the block.
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
-
-      @policy.set_endpoints(self.resolve(@endpoints)) if self.expired?
+      if self.expired?
+        @ips = self.resolve(@endpoints)
+        @policy.set_endpoints(@ips)
+      end
 
       exceptions = []
       result     = nil
@@ -173,7 +175,7 @@ module RightSupport::Net
           break
         else
           do_retry = @options[:retry] || DEFAULT_RETRY_PROC
-          do_retry = do_retry.call(@endpoints, n) if do_retry.respond_to?(:call)
+          do_retry = do_retry.call(@ips || @endpoints, n) if do_retry.respond_to?(:call)
           break if (do_retry.is_a?(Integer) && n >= do_retry) || [nil, false].include?(do_retry)
         end
 
@@ -217,7 +219,7 @@ module RightSupport::Net
       return result if complete
 
       exceptions = exceptions.map { |e| e.class.name }.uniq.join(', ')
-      msg = "No available endpoints from #{@endpoints.inspect}! Exceptions: #{exceptions}"
+      msg = "No available endpoints from #{(@ips || @endpoints).inspect}! Exceptions: #{exceptions}"
       logger.error "RequestBalancer: #{msg}"
       raise NoResult, msg
     end
