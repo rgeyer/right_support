@@ -24,10 +24,14 @@ require 'yaml'
 module RightSupport::Config
   class YAMLConfig
     class << self
-      def read(file_name)
+      def read(something)
         return_value = false               
         begin
-          return_value = YAML.load_file(file_name)
+          if File.exists? something
+            return_value = YAML.load_file(something)
+          else
+            return_value = YAML.load(something)
+          end  
         rescue
         end
         return_value

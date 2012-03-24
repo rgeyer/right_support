@@ -5,12 +5,7 @@ describe RightSupport::Config::FeaturesAdmitter do
   
   class SweetestClass
     include RightSupport::Config::FeaturesAdmitter
-    self.config_file_name =\
-    if RUBY_PLATFORM[/mswin/]
-      'c://features_config.yml'
-    else
-      '/tmp/features_config.yml'
-    end
+    self.yaml_config = ''
   end
   
   module HashHelper
@@ -35,10 +30,8 @@ describe RightSupport::Config::FeaturesAdmitter do
     config_hash['eat']['khlav kalash'] = 'NO!'
     config_hash.send(:extend, HashHelper)
     config_string = config_hash.deep_stringify_keys.to_yaml
-    output = config_string.gsub('!ruby/symbol ', ':').sub('---','').split('\n').map(&:rstrip).join('\n').strip
-    File.open(SweetestClass.config_file_name, 'w+') do |f|
-      f.write(output)
-    end    
+    yaml_config = config_string.gsub('!ruby/symbol ', ':').sub('---','').split('\n').map(&:rstrip).join('\n').strip
+    SweetestClass.yaml_config = yaml_config
   end
   
   before(:each) do 

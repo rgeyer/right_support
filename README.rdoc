@@ -174,13 +174,10 @@ Then, if you would mix RightSupport::Config::FeaturesAdmitter in you class, like
 
   class SweetestClass
     include RightSupport::Config::FeaturesAdmitter
-    self.config_file_name =\
-      if RUBY_PLATFORM[/mswin/]
-        'c://features_config.yml'
-      else
-        '/tmp/features_config.yml'
-      end
+    self.yaml_config = '/tmp/features_config.yml'      
   end
+
+* SweetestClass.yaml_config could be file path, io or string.
 
 You will have access now to methods, like:
 

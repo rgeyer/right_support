@@ -30,25 +30,25 @@ module RightSupport::Config
       end    
     end
     
-    def self.config_file_name
-      @config_file_name ||= File.expand_path('../config/features.yml', __FILE__)
+    def self.yaml_config
+      @yaml_config ||= File.expand_path('../config/features.yml', __FILE__)
     end
     
-    def self.config_file_name=(file_name)
-      @config_file_name = file_name
+    def self.yaml_config=(src)
+      @yaml_config = src
     end
 
     module ClassMethods
-      def config_file_name
-        @@cfg_file_name ||= RightSupport::Config::FeaturesAdmitter.config_file_name
+      def yaml_config
+        @@yaml_config ||= RightSupport::Config::FeaturesAdmitter.source
       end
 
-      def config_file_name=(file_name)
-        @@cfg_file_name = file_name
+      def yaml_config=(src)
+        @@yaml_config = src
       end
       
       def features_config
-        @@cfg ||= RightSupport::Config::YAMLConfig.read(self.config_file_name)
+        @@cfg ||= RightSupport::Config::YAMLConfig.read(self.yaml_config)
       end
       
       def get_config_for_feature(feature_group, feature)
