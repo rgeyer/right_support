@@ -30,7 +30,7 @@ module RightSupport::Log
     # to keep the syslog from having weird characters or being susceptible to log
     # forgery.
     class SystemLogger < Logger
-      LOGGER_LEVELS = {
+      SEVERITY_MAP = {
         UNKNOWN => :alert,
         FATAL   => :err,
         ERROR   => :warning,
@@ -39,10 +39,38 @@ module RightSupport::Log
         DEBUG   => :debug
       }
 
-      SYSLOG_LEVELS = LOGGER_LEVELS.invert
-      DEFAULT_SYSLOG_LEVEL = :alert
+      # Translation table that maps human-readable syslog facility names to
+      # integer constants used by the Syslog module. Compiled from the
+      # Linux header file 'sys/syslog.h'
+      # (see http://linux.die.net/include/sys/syslog.h)
+      FACILITY_MAP = {
+        'kern'     => (0<<3),
+        'user'     => (1<<3),
+        'mail'     => (2<<3),
+        'daemon'   => (3<<3),
+        'auth'     => (4<<3),
+        'syslog'   => (5<<3),
+        'lpr'      => (6<<3),
+        'news'     => (7<<3),
+        'uucp'     => (8<<3),
+        'cron'     => (9<<3),
+        'authpriv' => (10<<3),
+        'ftp'      => (11<<3),
+        'local0'   => (16<<3),
+        'local1'   => (17<<3),
+        'local2'   => (18<<3),
+        'local3'   => (19<<3),
+        'local4'   => (20<<3),
+        'local5'   => (21<<3),
+        'local6'   => (22<<3),
+        'local7'   => (23<<3),
+      }
 
-      DEFAULT_OPTIONS = {:split=>false, :color=>false}
+      DEFAULT_OPTIONS = {
+        :split=>false,
+        :color=>false,
+        :facility=>'local0'
+      }
 
       @@syslog = nil
 
@@ -58,15 +86,18 @@ module RightSupport::Log
       # split(true|false):: if true, splits multi-line messages into separate syslog entries
       # color(true|false):: if true, passes ANSI escape sequences through to syslog
       #
+      # === Raise
+      # ArgumentError:: if an invalid facility is given
       def initialize(program_name='ruby', options={})
         @options = DEFAULT_OPTIONS.merge(options)
-        @level = Logger::DEBUG
+        @level   = Logger::DEBUG
 
-        facility = options[:facility] || 'local0'
-        fac_map = {'user'=>8}
-        (0..7).each { |i| fac_map['local'+i.to_s] = 128+8*i }
+        facility = FACILITY_MAP[@options[:facility].to_s]
+        if facility.nil?
+          raise ArgumentError, "Invalid facility '#{@options[:facility]}'"
+        end
 
-        @@syslog ||= Syslog.open(program_name, nil, fac_map[facility.to_s])
+        @@syslog ||= Syslog.open(program_name, nil, facility)
       end
 
       # Log a message if the given severity is high enough.  This is the generic
@@ -139,8 +170,8 @@ module RightSupport::Log
       # === Return
       # true:: always returns true
       def emit_syslog(severity, message)
-        level = SYSLOG_LEVELS[severity] || DEFAULT_SYSLOG_LEVEL
-        @@syslog.send(level, message)
+        level = SEVERITY_MAP[severity] || SEVERITY_MAP[UNKNOWN]
+        @@syslog.__send__(level, message)
         return true
       end
 
