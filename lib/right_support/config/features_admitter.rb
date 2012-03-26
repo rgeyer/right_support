@@ -24,31 +24,31 @@ module RightSupport::Config
   module FeaturesAdmitter
 
     def self.included(base)
-      unless defined? self.features_config
+      unless defined? base.features_config
         base.send(:include, InstanceMethods)
         base.extend(ClassMethods)
       end    
     end
     
     def self.yaml_config
-      @yaml_config ||= File.expand_path('../config/features.yml', __FILE__)
+      @@yml_cnfg ||= File.expand_path('../config/features.yml', __FILE__)
     end
     
     def self.yaml_config=(src)
-      @yaml_config = src
+      @@yml_cnfg = src
     end
 
     module ClassMethods
       def yaml_config
-        @@yaml_config ||= RightSupport::Config::FeaturesAdmitter.source
+        @yml_cfg ||= RightSupport::Config::FeaturesAdmitter.yaml_config        
       end
 
-      def yaml_config=(src)
-        @@yaml_config = src
+      def yaml_config=(src)        
+        @yml_cfg = src
       end
       
       def features_config
-        @@cfg ||= RightSupport::Config::YAMLConfig.read(self.yaml_config)
+        @cfg ||= RightSupport::Config::YAMLConfig.read(self.yaml_config)
       end
       
       def get_config_for_feature(feature_group, feature)

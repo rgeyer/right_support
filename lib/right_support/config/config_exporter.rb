@@ -20,15 +20,21 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightSupport
-  #
-  # A namespace for configuration tools.
-  #
-  module Config
+module RightSupport::Config
 
+  class ConfigExporter
+    include RightSupport::Config::FeaturesAdmitter
+
+    def self.export_to_bash
+      return_value = ''
+      self.features_config.each do |group_feature, features|
+        features.each do |feature|
+          feature_value = (feature[1] == true)
+          return_value << "export IS_#{group_feature.gsub(' ', '_').upcase}_#{feature[0].gsub(' ', '_').upcase}=#{feature_value};"
+        end
+      end
+       
+      return_value    
+    end
   end
 end
-
-require 'right_support/config/yaml_config'
-require 'right_support/config/features_admitter'
-require 'right_support/config/config_exporter'

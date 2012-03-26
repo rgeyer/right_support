@@ -5,7 +5,6 @@ describe RightSupport::Config::FeaturesAdmitter do
   
   class SweetestClass
     include RightSupport::Config::FeaturesAdmitter
-    self.yaml_config = ''
   end
   
   module HashHelper
