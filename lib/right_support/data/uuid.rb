@@ -53,6 +53,8 @@ module RightSupport::Data
             #must not be available!
           end
         end
+
+        avail
       end
 
       # Determine the default UUID implementation in this Ruby VM.
