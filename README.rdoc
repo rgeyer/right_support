@@ -165,7 +165,7 @@ to use human-readable yaml configuration files. For example, you have following 
 file '/tmp/features_config.yml', with content:
 
   eat: 
-    khlav kalash: NO!
+    khlav kalash: YES!
   speak: 
     klingonese: false
     belarusian: true
@@ -183,4 +183,4 @@ Now you can call CONFIG['feature_group']['feature'], like:
 * SweetestClass::CONFIG['eat']['khlav kalash']
 * SweetestClass::CONFIG['speak']['belarusian']
 
-Consider it evaluates everything that is not true as false.
+Consider it evaluates not boolean values as true.

@@ -25,7 +25,7 @@ describe RightSupport::Config::FeatureConfig do
     config_hash['speak']['belarusian'] = true
     config_hash['speak']['klingonese'] = false
     config_hash['eat'] = {}
-    config_hash['eat']['khlav kalash'] = 'NO!'    
+    config_hash['eat']['khlav kalash'] = 'YES!'    
     config_hash.send(:extend, HashHelper)
     config_string = config_hash.deep_stringify_keys.to_yaml
     yaml_config = config_string.gsub('!ruby/symbol ', ':').sub('---','').split('\n').map(&:rstrip).join('\n').strip
