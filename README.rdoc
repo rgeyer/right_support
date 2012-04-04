@@ -182,5 +182,3 @@ Now you can call CONFIG['feature_group']['feature'], like:
 
 * SweetestClass::CONFIG['eat']['khlav kalash']
 * SweetestClass::CONFIG['speak']['belarusian']
-
-Consider it evaluates not boolean values as true.
