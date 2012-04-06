@@ -21,44 +21,67 @@
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 module RightSupport::Config
-   
-  def self.read(something)
-    return_value = nil
-    if (yaml = YAMLConfig.read(something))
-      return_value = FeatureConfig.new(yaml)
-      return_value.configuration_source = something
-    else 
-      raise ArgumentError, "Can`t load yaml configuration."
-    end
-    return_value
+
+  # Returns new instance of Feature class,
+  # with loaded from config_source configuration
+  #
+  # === Parameters
+  # config_source(IO|String):: File` path, IO or raw yaml.
+  #
+  # === Return
+  # (Feature):: new instance of Feature class
+  def self.features(config_source)
+    return Feature.new(config_source)
   end  
-
-  class FeatureConfig
-
-    def initialize(yaml)
-      @configuration = yaml
+  
+  class Feature
+    
+    attr_accessor :configuration_source
+    attr_accessor :configuration
+    
+    # Create features configuration object
+    #
+    # === Parameters
+    # cfg_source(IO|String):: File` path, IO or raw yaml.  
+    def initialize(cfg_source)
+      @configuration = load(cfg_source)
     end
 
-    attr_accessor :configuration_source
-    attr_writer  :configuration
-    
-    def configuration
-      @configuration = YAMLConfig.read(configuration_source) unless @configuration
-      @configuration  
-    end    
-  
+    # Returns configuration value
+    #
+    # === Parameters
+    # feature_group(String):: Feature` group name
+    # feature(String|nil):: Feature` name
+    #
+    # === Return
+    # (String|Boolean):: Configuration value
     def [](feature_group, feature=nil)
-      return_value = true      
-      if self.configuration[feature_group]
+      return_value = true
+      if @configuration[feature_group]
         if feature == nil
-          return_value = self.configuration[feature_group]
-        else         
-          return_value = self.configuration[feature_group][feature]
+          return_value = @configuration[feature_group]
+        else
+          return_value = @configuration[feature_group][feature]
         end
-      end      
-      if return_value.kind_of?(String) || return_value == nil
-        return_value = true
       end
+      return_value = true if return_value == nil            
+      return_value
+    end
+
+    # Load configuration source
+    #
+    # === Parameters
+    # something(IO|String):: File` path, IO or raw yaml
+    #
+    # === Return
+    # (Hash|nil):: Loaded yaml file 
+    #
+    # === Raise
+    # (ArgumentError):: If configuration source can`t be loaded
+    def load(something)
+      return_value = nil
+      @configuration_source = something
+      raise ArgumentError, 'Can`t load yaml configuration.' unless (return_value = YAMLConfig.read(something))             
       return_value
     end
 

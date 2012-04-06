@@ -22,8 +22,18 @@
 require 'yaml'
 
 module RightSupport::Config
+
   class YAMLConfig
+
     class << self
+
+      # Load yaml source
+      #
+      # === Parameters
+      # something(IO|String):: File` path, IO or raw yaml
+      #
+      # === Returns
+      # (Boolean|Hash):: Loaded yaml file or false if fail
       def read(something)
         return_value = false               
         begin
@@ -36,7 +46,10 @@ module RightSupport::Config
         end
         return_value
       end
+
     end
+
   end  
+
 end
 

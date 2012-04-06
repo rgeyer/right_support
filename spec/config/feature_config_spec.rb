@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'yaml'
 
-describe RightSupport::Config::FeatureConfig do
+describe RightSupport::Config::Feature do
   
   class SweetestClass
     attr_accessor :config
@@ -31,7 +31,7 @@ describe RightSupport::Config::FeatureConfig do
     yaml_config = config_string.gsub('!ruby/symbol ', ':').sub('---','').split('\n').map(&:rstrip).join('\n').strip
 
     @test_class = SweetestClass.new
-    @test_class.instance_eval{ @config = RightSupport::Config.read(yaml_config) }
+    @test_class.instance_eval{ @config = RightSupport::Config.features(yaml_config) }
   end
   
   context 'features config works correctly' do
@@ -48,8 +48,8 @@ describe RightSupport::Config::FeatureConfig do
       @test_class.config['speak', 'klingonese'].should_not be_true
     end
  
-    it 'evaluates anything not boolean as true' do
-      @test_class.config['eat']['khlav kalash'].should be_true
+    it 'evaluates string as string' do
+      @test_class.config['eat']['khlav kalash'].should == 'YES!'
     end   
 
     it 'supports [][] calling' do 

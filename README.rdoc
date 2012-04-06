@@ -160,7 +160,7 @@ Net::StringEncoder applies and removes URL-escape, base64 and other encodings.
 
 === Configuration
 
-RightSupport::Config contains class functionality, which provides possibility 
+RightSupport::Config contains functionality, which provides possibility 
 to use human-readable yaml configuration files. For example, you have following yaml 
 file '/tmp/features_config.yml', with content:
 
@@ -173,12 +173,12 @@ file '/tmp/features_config.yml', with content:
 Then, if you would add configuration in you class, like:
 
   class SweetestClass    
-    CONFIG = RightSupport::Config.read('/tmp/features_config.yml')
+    CONFIG = RightSupport::Config.features('/tmp/features_config.yml')
   end
 
-* RightSupport::Config.read receives file` path, io or string.
+* RightSupport::Config.features receives file` path, io or string.
 
 Now you can call CONFIG['feature_group']['feature'], like:
 
-* SweetestClass::CONFIG['eat']['khlav kalash']
-* SweetestClass::CONFIG['speak']['belarusian']
+* SweetestClass::CONFIG['eat']['khlav kalash'] would return 'YES!'
+* SweetestClass::CONFIG['speak']['belarusian'] would return true
