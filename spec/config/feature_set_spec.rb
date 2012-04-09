@@ -1,7 +1,7 @@
 require 'spec_helper'
 require 'yaml'
 
-describe RightSupport::Config::Feature do
+describe RightSupport::Config::FeatureSet do
   
   class SweetestClass
     attr_accessor :config

@@ -23,21 +23,26 @@ require 'yaml'
 
 module RightSupport::Config
 
-  class YAMLConfig
+  # Helper that encapsulates logic for loading YAML configuration hashes from various sources
+  # which can include strings, IO objects, or already-loaded YAML in the form of a Hash.
+  module YAMLConfig
 
     class << self
 
       # Load yaml source
       #
       # === Parameters
-      # something(IO|String):: File` path, IO or raw yaml
+      # something(IO|String|Hash):: File path, IO, raw YAML string, or a pre-loaded Hash
       #
       # === Returns
-      # (Boolean|Hash):: Loaded yaml file or false if fail
+      # (Boolean|Hash):: Loaded yaml file or false if a RuntimeError occurred while loading
       def read(something)
-        return_value = false               
+        return_value = false
+
         begin
-          if File.exists? something
+          if something.is_a?(Hash)
+            return_value = something
+          elsif File.exists? something
             return_value = YAML.load_file(something)
           else
             return_value = YAML.load(something)
@@ -46,6 +51,7 @@ module RightSupport::Config
         rescue
           return_value = false
         end
+
         return_value
       end
 
