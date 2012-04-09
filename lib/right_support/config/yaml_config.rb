@@ -41,8 +41,10 @@ module RightSupport::Config
             return_value = YAML.load_file(something)
           else
             return_value = YAML.load(something)
-          end  
+          end 
+          raise unless return_value.kind_of?(Hash)
         rescue
+          return_value = false
         end
         return_value
       end

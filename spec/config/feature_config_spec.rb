@@ -55,6 +55,12 @@ describe RightSupport::Config::Feature do
     it 'supports [][] calling' do 
       @test_class.config['speak']['klingonese'].should_not be_true      
     end
-
+   
+    it 'raise error on wrong yaml' do
+      wrong_yaml_config = {:a=>:b}.to_yaml + "::\n\na"
+      lambda do
+        @test_class.instance_eval{ @wrong_config = RightSupport::Config.features(wrong_yaml_config)}
+      end.should raise_error(ArgumentError)
+    end
   end    
 end
