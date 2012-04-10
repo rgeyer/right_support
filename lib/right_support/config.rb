@@ -29,6 +29,6 @@ module RightSupport
   end
 end
 
-require 'right_support/config/feature_config'
+require 'right_support/config/feature_set'
 require 'right_support/config/yaml_config'
 

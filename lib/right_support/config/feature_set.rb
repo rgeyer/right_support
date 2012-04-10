@@ -22,19 +22,19 @@
 
 module RightSupport::Config
 
-  # Returns new instance of Feature class,
+  # Returns new instance of FeatureSet class,
   # with loaded from config_source configuration
   #
   # === Parameters
   # config_source(IO|String):: File` path, IO or raw yaml.
   #
   # === Return
-  # (Feature):: new instance of Feature class
+  # (FeatureSet):: new instance of FeatureSet class
   def self.features(config_source)
-    return Feature.new(config_source)
+    return FeatureSet.new(config_source)
   end  
   
-  class Feature
+  class FeatureSet
     
     attr_accessor :configuration_source
     attr_accessor :configuration
@@ -42,7 +42,7 @@ module RightSupport::Config
     # Create features configuration object
     #
     # === Parameters
-    # cfg_source(IO|String):: File` path, IO or raw yaml.  
+    # cfg_source(IO|String):: File path, IO or raw yaml.
     def initialize(cfg_source)
       @configuration = load(cfg_source)
     end
@@ -50,8 +50,8 @@ module RightSupport::Config
     # Returns configuration value
     #
     # === Parameters
-    # feature_group(String):: Feature` group name
-    # feature(String|nil):: Feature` name
+    # feature_group(String):: Feature group name
+    # feature(String|nil):: Feature name
     #
     # === Return
     # (String|Boolean):: Configuration value
@@ -71,7 +71,7 @@ module RightSupport::Config
     # Load configuration source
     #
     # === Parameters
-    # something(IO|String):: File` path, IO or raw yaml
+    # something(IO|String|Hash):: File path, IO, raw YAML string, or a pre-loaded Hash
     #
     # === Return
     # (Hash|nil):: Loaded yaml file 
@@ -81,10 +81,13 @@ module RightSupport::Config
     def load(something)
       return_value = nil
       @configuration_source = something
-      raise ArgumentError, 'Can`t load yaml configuration.' unless (return_value = YAMLConfig.read(something))             
+      raise ArgumentError, "Can't coerce #{something} into YAML/Hash" unless (return_value = YAMLConfig.read(something))
       return_value
     end
 
   end
+
+  # Temporary alias for FeatureSet class, to avoid disrupting downstream development
+  Feature = FeatureSet
   
 end
