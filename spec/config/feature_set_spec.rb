@@ -34,7 +34,7 @@ describe RightSupport::Config::FeatureSet do
     @test_class.instance_eval{ @config = RightSupport::Config.features(yaml_config) }
   end
   
-  context 'features config works correctly' do
+  context 'features set config works correctly' do
 
     it 'evaluates non existed feature as true' do
       @test_class.config['I saw Tom Collins'].should be_true
@@ -55,12 +55,20 @@ describe RightSupport::Config::FeatureSet do
     it 'supports [][] calling' do 
       @test_class.config['speak']['klingonese'].should_not be_true      
     end
-   
+    
+    it 'load hash as config source' do
+      hash_config = {:'tom collins'=>{:invisible=>'sure!'}}
+      @test_class.instance_eval{ @config = RightSupport::Config.features(hash_config)}
+      @test_class.config[:'tom collins'][:invisible].should == 'sure!'
+    end
+  
     it 'raise error on wrong yaml' do
       wrong_yaml_config = {:a=>:b}.to_yaml + "::\n\na"
       lambda do
-        @test_class.instance_eval{ @wrong_config = RightSupport::Config.features(wrong_yaml_config)}
+        @test_class.instance_eval{ @config = RightSupport::Config.features(wrong_yaml_config)}
       end.should raise_error(ArgumentError)
     end
-  end    
+
+  end
+
 end

@@ -40,9 +40,9 @@ module RightSupport::Config
         return_value = false
 
         begin
-          if something.is_a?(Hash)
+          if something.kind_of?(Hash)
             return_value = something
-          elsif File.exists? something
+          elsif File.exists?(something)
             return_value = YAML.load_file(something)
           else
             return_value = YAML.load(something)
