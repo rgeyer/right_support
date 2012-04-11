@@ -3,6 +3,7 @@ require 'thread'
 
 require 'right_support/ruby'
 require 'right_support/crypto'
+require 'right_support/config'
 require 'right_support/db'
 require 'right_support/log'
 require 'right_support/net'

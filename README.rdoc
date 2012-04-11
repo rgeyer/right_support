@@ -106,3 +106,28 @@ Profile your compute-heavy and network activities using a Stats::Activity counte
   end
 
   puts "Only %.1f lines/sec? You are a slow typist!" % [stats.avg_rate]
+
+=== Configuration
+
+RightSupport::Config contains functionality, which provides possibility 
+to use human-readable yaml configuration files. For example, you have following yaml 
+file '/tmp/features_config.yml', with content:
+
+  eat: 
+    khlav kalash: YES!
+  speak: 
+    klingonese: false
+    belarusian: true
+
+Then, if you would add configuration in you class, like:
+
+  class SweetestClass    
+    CONFIG = RightSupport::Config.features('/tmp/features_config.yml')
+  end
+
+* RightSupport::Config.features receives file` path, io or string.
+
+Now you can call CONFIG['feature_group']['feature'], like:
+
+* SweetestClass::CONFIG['eat']['khlav kalash'] would return 'YES!'
+* SweetestClass::CONFIG['speak']['belarusian'] would return true
