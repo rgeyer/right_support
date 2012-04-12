@@ -26,7 +26,7 @@ module RightSupport::Config
   # To use, just do: true1 = RecTrueClass.new
   # now you can do true1['a'], true1['a']['b'], ...
   # and it will return
-  class RecTrueClass
+  class RecursiveTrueClass
     
     def initialize
       @value = true    

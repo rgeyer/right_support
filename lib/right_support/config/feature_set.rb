@@ -64,7 +64,7 @@ module RightSupport::Config
           return_value = @configuration[feature_group][feature]
         end
       else
-        return_value = RecTrueClass.new
+        return_value = RecursiveTrueClass.new
       end
       return_value = true if return_value == nil            
       return_value
