@@ -20,15 +20,44 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightSupport
-  #
-  # A namespace for configuration tools.
-  #
-  module Config
+module RightSupport::Config
+  
+  # Recursive(according to []) implementation of TrueClass.
+  # To use, just do: true1 = RecTrueClass.new
+  # now you can do true1['a'], true1['a']['b'], ...
+  # and it will return
+  class RecursiveTrueClass
+    
+    def initialize
+      @value = true    
+    end
+     
+    def [](something)
+      self
+    end
+ 
+    # supporting standart boolean 
+    # opeimplementation 
+    def ==(other)
+      @value==other
+    end
+
+    def &(other)
+      @value & other
+    end
+
+    def ^(other)
+      @value ^ other
+    end
+
+    def to_s
+      @value.to_s
+    end
+
+    def |(other)
+      @value | other
+    end
 
   end
-end
 
-require 'right_support/config/feature_set'
-require 'right_support/config/yaml_config'
-require 'right_support/config/recursive_true_class'
+end
