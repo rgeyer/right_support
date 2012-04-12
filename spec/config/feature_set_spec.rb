@@ -40,6 +40,10 @@ describe RightSupport::Config::FeatureSet do
       @test_class.config['I saw Tom Collins'].should be_true
     end
     
+    it 'evaluates not existed feature as true recursively' do
+      @test_class.config['I']['saw']['Tom']['Collins'].should be_true
+    end
+
     it 'evaluates true correctly' do
       @test_class.config['speak', 'belarusian'].should be_true
     end
@@ -67,6 +71,11 @@ describe RightSupport::Config::FeatureSet do
       lambda do
         @test_class.instance_eval{ @config = RightSupport::Config.features(wrong_yaml_config)}
       end.should raise_error(ArgumentError)
+    end
+    
+    it 'works correctly with empty source' do
+      @test_class.instance_eval{ @config = RightSupport::Config.features({}) }
+      @test_class.config['I']['saw']['Tom']['Collins']['really'].should be_true
     end
 
   end
