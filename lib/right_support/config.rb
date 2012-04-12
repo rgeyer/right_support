@@ -31,3 +31,4 @@ end
 
 require 'right_support/config/feature_set'
 require 'right_support/config/yaml_config'
+require 'right_support/config/rec_true_class'
