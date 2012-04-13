@@ -88,7 +88,13 @@ module RightSupport::Log
       severity, message = filter(WARN, message)
       meth = SEVERITY_TO_METHOD[severity]
       raise ArgumentError, "Filter emitted unknown severity #{severity.inspect}" unless meth
-      @actual_logger.__send__(meth, message, &block)
+      if @actual_logger.respond_to?(meth)
+        @actual_logger.__send__(meth, message, &block)
+      elsif @actual_logger.respond_to?(:instance) && @actual_logger.instance.respond_to?(meth)
+        @actual_logger.instance.__send__(meth, message, &block)
+      else
+        raise Exception, "No :warn method available in logger"
+      end
     end
 
     # Log a message, filtering the severity and/or message and dispatching
