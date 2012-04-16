@@ -132,9 +132,27 @@ module RightSupport::DB
       # attr_writer :keyspace
       @@keyspaces = {}      
       
+      def keyspaces
+        @@keyspaces
+      end
+
       @@default_keyspace = nil
       
+      def default_keyspace
+        if @@default_keyspace.nil? && @@keyspaces.size>0
+          first_no_nil_keyspaces = @@keyspaces.detect{|kyspc, conn| !conn.nil?}
+          if first_no_nil_keyspaces.nil?
+            @@default_keyspace = @@keyspaces.clone.shift[0]
+          else
+            @@default_keyspace = first_no_nil_keyspaces[0]
+          end
+        end
+
+        @@default_keyspace
+      end
+
       def default_keyspace=(new_default_kyspc)
+        @@default_keyspace = new_default_kyspc if @@keyspaces.has_value?(new_default_kyspc)
       end
 
       def config
@@ -155,8 +173,8 @@ module RightSupport::DB
 
       def keyspace
         return_value = nil
-        if @@default_keyspace
-          return_value = @@keyspaces[@@default_keyspace] + "_" + (ENV['RACK_ENV'] || 'development')
+        if self.default_keyspace
+          return_value = self.default_keyspace + "_" + (ENV['RACK_ENV'] || 'development')
         end
         return_value
       end
@@ -165,12 +183,12 @@ module RightSupport::DB
         filtered_keyspaces = []
         if new_keyspace.kind_of?(String)
           filtered_keyspaces.push(new_keyspace)
-        elsif new_keyspace.kind_of(Array)
-           filtered_keyspaces = new_keyspaces.select{|kyspc| !@@keyspaces.has_key?(kyspc.intern) }
+        elsif new_keyspace.kind_of?(Array)
+           filtered_keyspaces = new_keyspace.select{|kyspc| !@@keyspaces.has_key?(kyspc) }
         else
           raise ArgumentError, "You can specify String or Array as keyspaces."
         end
-        filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc.intern] = nil}
+        filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc] = nil}
         if @@default_keyspace.nil? && @@keyspaces.size>0
           first_no_nil_keyspace = @@keyspaces.detect{|kyspc, conn| !conn.nil?}
           @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?

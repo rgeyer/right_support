@@ -17,16 +17,16 @@ describe RightSupport::DB::CassandraModel do
     RightSupport::DB::CassandraModel.config = {"test" => {"server" => server}}
   end
 
-  describe "initialization" do
+  describe "initialization with unique keyspace" do
 
     before(:each) do
-      @keyspace       = "TestAppService"
+      RightSupport::DB::CassandraModel.keyspace   = "TestAppService"
       @server         = "localhost:9160"
       @env            = "test"
       @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
 
       @conn = flexmock(:conn)
-      flexmock(Cassandra).should_receive(:new).with(@keyspace + "_" + @env, @server, @timeout).and_return(@conn)
+      flexmock(Cassandra).should_receive(:new).with(RightSupport::DB::CassandraModel.keyspace + "_" + @env, @server, @timeout).and_return(@conn)
       @conn.should_receive(:disable_node_auto_discovery!).and_return(true)
     end
 
@@ -53,11 +53,33 @@ describe RightSupport::DB::CassandraModel do
     end
   end
 
+  describe "initialization with multiple keyspace" do
+
+    before(:each) do
+      RightSupport::DB::CassandraModel.keyspace      = ["TestAppService1", "TestAppService2", "TestAppService3"]
+      @server         = "localhost:9160"
+      @env            = "test"
+      @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
+
+      @conn = flexmock(:conn)
+      flexmock(Cassandra).should_receive(:new).with(RightSupport::DB::CassandraModel.keyspace + "_" + @env, @server, @timeout).and_return(@conn)
+      @conn.should_receive(:disable_node_auto_discovery!).and_return(true)
+    end
+
+    context :conn do
+      it 'creates connection and reuses it' do
+        RightSupport::DB::CassandraModel.conn.should == @conn
+        RightSupport::DB::CassandraModel.conn.should == @conn
+      end
+    end
+  end
+
+
   describe "use" do
 
     before(:each) do
       @column_family  = "TestApp"
-      @keyspace       = "TestAppService"
+      @keyspace       = "TestAppService1"
       @server         = "localhost:9160"
       @env            = "test"
       @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
