@@ -125,10 +125,17 @@ module RightSupport::DB
     class << self
 
       @@logger = nil
-      @@conn = nil
+      #@@conn = nil
       
       attr_accessor :column_family
-      attr_writer :keyspace
+
+      # attr_writer :keyspace
+      @@keyspaces = {}      
+      
+      @@default_keyspace = nil
+      
+      def default_keyspace=(new_default_kyspc)
+      end
 
       def config
         @@config
@@ -137,7 +144,7 @@ module RightSupport::DB
       def config=(value)
         @@config = value
       end
-      
+ 
       def logger=(l)
         @@logger = l
       end
@@ -147,29 +154,69 @@ module RightSupport::DB
       end
 
       def keyspace
-        @keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+        return_value = nil
+        if @@default_keyspace
+          return_value = @@keyspaces[@@default_keyspace] + "_" + (ENV['RACK_ENV'] || 'development')
+        end
+        return_value
       end
 
+      def keyspace=(new_keyspace)
+        filtered_keyspaces = []
+        if new_keyspace.kind_of?(String)
+          filtered_keyspaces.push(new_keyspace)
+        elsif new_keyspace.kind_of(Array)
+           filtered_keyspaces = new_keyspaces.select{|kyspc| !@@keyspaces.has_key?(kyspc.intern) }
+        else
+          raise ArgumentError, "You can specify String or Array as keyspaces."
+        end
+        filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc.intern] = nil}
+        if @@default_keyspace.nil? && @@keyspaces.size>0
+          first_no_nil_keyspace = @@keyspaces.detect{|kyspc, conn| !conn.nil?}
+          @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?
+        end
+      end
+      
       # Client connected to Cassandra server
       # Create connection if does not already exist
       # Use BinaryProtocolAccelerated if it available
       #
       # === Return
       # (Cassandra):: Client connected to server
-      def conn
-        return @@conn if @@conn
+      def conn(kyspc=nil)
+        return_value = nil
 
-        # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
-        config = @@config[ENV["RACK_ENV"]]
-        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
+        if kyspc.nil?
+          if !@@default_keyspace.nil?
+            kyspc = @@default_keyspace
+          else
+            if @@keyspaces.size>0
+              kyspc = @@keyspaces.shift[0]
+            else
+              #probably raise exception
+              return nil
+            end
+          end
+        end
 
-        thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
-        thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
-          if defined? Thrift::BinaryProtocolAccelerated
+        if !@@keyspaces[kyspc].nil?
+          return_value = @@keyspaces[kyspc]
+        else
+          # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
+          config = @@config[ENV["RACK_ENV"]]
+          raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
 
-        @@conn = Cassandra.new(keyspace, config["server"], thrift_client_options)
-        @@conn.disable_node_auto_discovery!
-        @@conn
+          thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
+          thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
+            if defined? Thrift::BinaryProtocolAccelerated
+
+          conn = Cassandra.new(kyspc, config["server"], thrift_client_options)
+          conn.disable_node_auto_discovery!
+          @@keyspaces[kyspc] = conn
+          return_value = conn
+        end
+
+        return_value
       end
 
       # Get row(s) for specified key(s)
@@ -367,7 +414,9 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)
-        conn.send(meth, *args, &block)
+        if args.size>0 && args[args.size-1].kind_of?(Hash)
+          conn(args[args.size-1][:keyspace]).send(meth, *args, &block)
+        end
       rescue IOError
         reconnect
         retry
@@ -379,6 +428,9 @@ module RightSupport::DB
       # === Return
       # true:: Always return true
       def reconnect
+        #probably raise exception
+        return false unless @@default_keyspace.nil?
+
         config = @@config[ENV["RACK_ENV"]]
         raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
 
@@ -386,17 +438,21 @@ module RightSupport::DB
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
           if defined? Thrift::BinaryProtocolAccelerated
 
-        @@conn = Cassandra.new(keyspace, config["server"], thrift_client_options)
-        @@conn.disable_node_auto_discovery!
+        conn = Cassandra.new(@@default_keyspace, config["server"], thrift_client_options)
+        conn.disable_node_auto_discovery!
+        @@keyspaces[@@default_keyspace] = conn
         true
       end
 
       # Cassandra ring for given keyspace
       #
+      # === Parameters
+      # String:: keyspace
+      #
       # === Return
       # (Array):: Members of ring
-      def ring
-        conn.ring
+      def ring(kyspc=nil)
+        conn(kyspc).ring
       end
 
     end # self
