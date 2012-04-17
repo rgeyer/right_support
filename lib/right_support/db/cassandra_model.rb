@@ -238,7 +238,7 @@ module RightSupport::DB
         end
 
         if !@@keyspaces[kyspc].nil?
-          return_value = @@keyspaces[kyspc]
+          connection = @@keyspaces[kyspc]
         elsif @@keyspaces.has_key?(kyspc)
           # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
           config = @@config[ENV["RACK_ENV"]]
