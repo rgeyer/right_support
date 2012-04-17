@@ -511,7 +511,7 @@ module RightSupport::DB
 
         connection = Cassandra.new(@@default_keyspace, config["server"], thrift_client_options)
         connection.disable_node_auto_discovery!
-        @@keyspaces[@@default_keyspace] = connecton
+        @@keyspaces[@@default_keyspace] = connection
         true
       end
 
