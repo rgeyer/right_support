@@ -132,12 +132,20 @@ module RightSupport::DB
       # attr_writer :keyspace
       @@keyspaces = {}      
       
-      def keyspaces
-        @@keyspaces
-      end
-
       @@default_keyspace = nil
       
+      # Return current keyspaces
+      #
+      # === Return
+      # (Hash):: hash like {"keyspace"=>connection}
+      def keyspaces
+        @@keyspaces.clone
+      end
+     
+      # Return default_keyspace for current keyspaces
+      #
+      # === Return
+      # (String):: default keyspaces for current keyspaces
       def default_keyspace
         if @@default_keyspace.nil? && @@keyspaces.size>0
           first_no_nil_keyspaces = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
@@ -147,10 +155,13 @@ module RightSupport::DB
             @@default_keyspace = first_no_nil_keyspaces[0]
           end
         end
-
         @@default_keyspace
       end
-
+      
+      # Set new default keyspace for current set of keyspaces
+      #
+      # === Parameters
+      # new_default_kyspc(String):: should exists as key in hashes of keyspaces
       def default_keyspace=(new_default_kyspc)
         @@default_keyspace = new_default_kyspc if @@keyspaces.has_key?(new_default_kyspc)
         # if not - probably raise exception
@@ -171,7 +182,8 @@ module RightSupport::DB
       def logger
         @@logger 
       end
-
+      
+      # Alias for .default_keyspace method
       def keyspace
         return_value = nil
         if self.default_keyspace
@@ -179,7 +191,12 @@ module RightSupport::DB
         end
         return_value
       end
-
+      
+      # Add new keyspace(s) to set of current keyspaces
+      # if there is not default_keyspace set it
+      #
+      # === Parameters
+      # new_keyspace(String | Array):: String or Array of new keyspaces that should be added
       def keyspace=(new_keyspace)
         filtered_keyspaces = []
         if new_keyspace.kind_of?(String)
@@ -262,7 +279,7 @@ module RightSupport::DB
         return_value
       end
       
-      # Disconnect all keyspaces from Cassandra server
+      # Disconnect from all keyspaces of Cassandra
       #
       # === Return
       # (Cassandra):: Client connected to server
@@ -477,7 +494,7 @@ module RightSupport::DB
         retry
       end
 
-      # Reconnect to Cassandra server
+      # Reconnect to Cassandra server with default_keyspace
       # Use BinaryProtocolAccelerated if it available
       #
       # === Return
@@ -501,7 +518,7 @@ module RightSupport::DB
       # Cassandra ring for given keyspace
       #
       # === Parameters
-      # String:: keyspace
+      # kyspc(String):: keyspace
       #
       # === Return
       # (Array):: Members of ring

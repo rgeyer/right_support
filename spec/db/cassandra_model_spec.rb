@@ -122,6 +122,11 @@ describe RightSupport::DB::CassandraModel do
           RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace_1)
           RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount
         end
+        
+        it 'raise exception for incorrect keyspace' do
+          bad_keyspace = lambda{ RightSupport::DB::CassandraModel.keyspace = Class.new }
+          bad_keyspace.should raise_error(ArgumentError)
+        end
       end
 
      context :default_keyspace do
