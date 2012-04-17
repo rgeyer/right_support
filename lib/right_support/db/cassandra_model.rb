@@ -125,11 +125,9 @@ module RightSupport::DB
     class << self
 
       @@logger = nil
-      #@@conn = nil
       
       attr_accessor :column_family
 
-      # attr_writer :keyspace
       @@keyspaces = {}      
       
       @@default_keyspace = nil
@@ -209,15 +207,14 @@ module RightSupport::DB
         filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc + "_" + (ENV['RACK_ENV'] || 'development')] = nil}
         @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))\
                           if filtered_keyspaces.size > 0
-        #elsif @@default_keyspace.nil? && @@keyspaces.size>0
-        #  first_no_nil_keyspace = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
-        #  @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?
-        #end
       end
       
       # Client connected to Cassandra server
       # Create connection if does not already exist
       # Use BinaryProtocolAccelerated if it available
+      #
+      # === Parameters
+      # kyspc(String):: keyspace, if not specified default_keyspace will be used
       #
       # === Return
       # (Cassandra):: Client connected to server
