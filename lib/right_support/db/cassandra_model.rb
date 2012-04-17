@@ -140,7 +140,7 @@ module RightSupport::DB
       
       def default_keyspace
         if @@default_keyspace.nil? && @@keyspaces.size>0
-          first_no_nil_keyspaces = @@keyspaces.detect{|kyspc, conn| !conn.nil?}
+          first_no_nil_keyspaces = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
           if first_no_nil_keyspaces.nil?
             @@default_keyspace = @@keyspaces.clone.shift[0]
           else
@@ -175,23 +175,26 @@ module RightSupport::DB
       def keyspace
         return_value = nil
         if self.default_keyspace
-          return_value = self.default_keyspace#+ "_" + (ENV['RACK_ENV'] || 'development')
+          return_value = self.default_keyspace
         end
         return_value
       end
 
-      def keyspace=(new_keyspace)
+      def keyspace=(new_keyspace, is_new_default=true)
         filtered_keyspaces = []
         if new_keyspace.kind_of?(String)
           filtered_keyspaces.push(new_keyspace)
         elsif new_keyspace.kind_of?(Array)
-           filtered_keyspaces = new_keyspace.select{|kyspc| !@@keyspaces.has_key?(kyspc) }
+          filtered_keyspaces = new_keyspace.select{|kyspc| !@@keyspaces.has_key?(kyspc) }
         else
           raise ArgumentError, "You can specify String or Array as keyspaces."
         end
         filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc + "_" + (ENV['RACK_ENV'] || 'development')] = nil}
-        if @@default_keyspace.nil? && @@keyspaces.size>0
-          first_no_nil_keyspace = @@keyspaces.detect{|kyspc, conn| !conn.nil?}
+        if is_new_default
+          @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))\
+                          if filtered_keyspaces.size > 0
+        elsif @@default_keyspace.nil? && @@keyspaces.size>0
+          first_no_nil_keyspace = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
           @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?
         end
       end
@@ -203,7 +206,7 @@ module RightSupport::DB
       # === Return
       # (Cassandra):: Client connected to server
       def conn(kyspc=nil)
-        return_value = nil
+        connection  = nil
 
         if kyspc.nil?
           if !@@default_keyspace.nil?
@@ -229,13 +232,11 @@ module RightSupport::DB
           thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
             if defined? Thrift::BinaryProtocolAccelerated
 
-          conn = Cassandra.new(kyspc, config["server"], thrift_client_options)
-          conn.disable_node_auto_discovery!
-          @@keyspaces[kyspc] = conn
-          return_value = conn
+          connection = Cassandra.new(kyspc, config["server"], thrift_client_options)
+          connection.disable_node_auto_discovery!
+          @@keyspaces[kyspc] = connection
         end
-
-        return_value
+        connection        
       end
       
       # Disconnect given keyspace from Cassandra server
@@ -246,14 +247,17 @@ module RightSupport::DB
       # === Return
       # (Cassandra):: Client connected to server
       def disconnect!(disconnect_keyspace)
-        return_value = false
-        if @@keyspaces.has_key?(disconnect_keyspace) 
+        if @@keyspaces.has_key?(disconnect_keyspace)                    
           connection = @@keyspaces[disconnect_keyspace]
-          if disconnect_keyspace.nil?
+          if !connection.nil?
             connection.disconnect!
             connection = nil
-            @@keyspaces.delete(kyspc)            
-          end       
+          end
+          @@keyspaces.delete(disconnect_keyspace)
+          if disconnect_keyspace == @@default_keyspace
+            shifted_keyspace = @@keyspaces.keys           
+            @@default_keyspace = (shifted_keyspace.empty? ? nil : shifted_keyspace[0])
+          end
           return_value = true
         end
         return_value
@@ -480,19 +484,18 @@ module RightSupport::DB
       # === Return
       # true:: Always return true
       def reconnect
-        #probably raise exception
-        return false unless @@default_keyspace.nil?
-
         config = @@config[ENV["RACK_ENV"]]
         raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
-
+        
+        return false if @@default_keyspace.nil?
+    
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
           if defined? Thrift::BinaryProtocolAccelerated
 
-        conn = Cassandra.new(@@default_keyspace, config["server"], thrift_client_options)
-        conn.disable_node_auto_discovery!
-        @@keyspaces[@@default_keyspace] = conn
+        connection = Cassandra.new(@@default_keyspace, config["server"], thrift_client_options)
+        connection.disable_node_auto_discovery!
+        @@keyspaces[@@default_keyspace] = connecton
         true
       end
 

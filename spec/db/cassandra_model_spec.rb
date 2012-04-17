@@ -14,7 +14,7 @@ describe RightSupport::DB::CassandraModel do
     ENV["RACK_ENV"] = env
     RightSupport::DB::CassandraModel.column_family = column_family
     RightSupport::DB::CassandraModel.keyspace = keyspace
-    RightSupport::DB::CassandraModel.config = {"test" => {"server" => server}}
+    RightSupport::DB::CassandraModel.config = {"#{env}" => {"server" => server}}
   end
 
   describe "initialization with unique keyspace" do
@@ -25,8 +25,8 @@ describe RightSupport::DB::CassandraModel do
       @env            = "test"
       @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
 
-      @conn = flexmock(:conn)
-      flexmock(Cassandra).should_receive(:new).with(RightSupport::DB::CassandraModel.keyspace + "_" + @env, @server, @timeout).and_return(@conn)
+      @conn = flexmock(:connection)
+      flexmock(Cassandra).should_receive(:new).with(RightSupport::DB::CassandraModel.keyspace, @server, @timeout).and_return(@conn)
       @conn.should_receive(:disable_node_auto_discovery!).and_return(true)
     end
 
@@ -47,7 +47,7 @@ describe RightSupport::DB::CassandraModel do
       end
 
       it 'creates connection and reuses it' do
-        RightSupport::DB::CassandraModel.conn.should == @conn
+        @conn.should_not be_nil
         RightSupport::DB::CassandraModel.conn.should == @conn
       end
     end
@@ -57,12 +57,12 @@ describe RightSupport::DB::CassandraModel do
 
     before(:each) do
       @column_family  = "TestApp"
-      RightSupport::DB::CassandraModel.keyspace       = "TestAppService"
+      @keyspace       = "TestAppService"
       @server         = "localhost:9160"
       @env            = "test"
       @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
 
-      init_app_state(@column_family, RightSupport::DB::CassandraModel.keyspace, @server, @env)
+      init_app_state(@column_family, @keyspace, @server, @env)
 
       @key            = 'key'
       @value          = 'foo'
@@ -73,7 +73,7 @@ describe RightSupport::DB::CassandraModel do
 
       @instance = RightSupport::DB::CassandraModel.new(@key, @attrs)
 
-      @conn = flexmock(:conn)
+      @conn = flexmock(:connection)
       flexmock(RightSupport::DB::CassandraModel).should_receive(:conn).and_return(@conn)
       @conn.should_receive(:insert).with(@column_family, @key, @attrs,@opt).and_return(true)
       @conn.should_receive(:remove).with(@column_family, @key).and_return(true)
@@ -83,27 +83,29 @@ describe RightSupport::DB::CassandraModel do
     
     describe 'multiple keyspaces' do
       context :keyspace do
-        it 'add and remove new keyspace dynamically' do
+        it 'add and remove new keyspace dynamically' do          
           keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
           new_keyspace_basic_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
           RightSupport::DB::CassandraModel.keyspace = new_keyspace_basic_name
           RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount + 1	         
 
           just_created_keyspace = RightSupport::DB::CassandraModel.keyspaces.keys.detect{|x| x[new_keyspace_basic_name]}
-          puts "*" * 50
-          puts just_created_keyspace
           RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace)
-
           RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount
         end
       end
 
      context :default_keyspace do
         it 'change default keyspace properly' do
-          RightSupport::DB::CassandraModel.default_keyspace.should == "TestAppService_#{ENV['RACK_ENV']}"
-          RightSupport::DB::CassandraModel.default_keyspace = 'TestAppService2'
-          RightSupport::DB::CassandraModel.default_keyspace = 'CHACHACHA'
-          RightSupport::DB::CassandraModel.default_keyspace.should == 'TestAppService2_test'
+          RightSupport::DB::CassandraModel.keyspace.should == "TestAppService_#{@env}"
+          keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
+          new_keyspace_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
+          RightSupport::DB::CassandraModel.keyspace = new_keyspace_name         
+
+          RightSupport::DB::CassandraModel.keyspace.should == new_keyspace_name + "_#{@env}"
+          RightSupport::DB::CassandraModel.disconnect!(new_keyspace_name + "_#{@env}")
+          
+          RightSupport::DB::CassandraModel.keyspace.should == "TestAppService_#{@env}"
         end
       end
     end
