@@ -152,7 +152,8 @@ module RightSupport::DB
       end
 
       def default_keyspace=(new_default_kyspc)
-        @@default_keyspace = new_default_kyspc if @@keyspaces.has_value?(new_default_kyspc)
+        @@default_keyspace = new_default_kyspc if @@keyspaces.has_key?(new_default_kyspc)
+        # if not - probably raise exception
       end
 
       def config
@@ -174,7 +175,7 @@ module RightSupport::DB
       def keyspace
         return_value = nil
         if self.default_keyspace
-          return_value = self.default_keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+          return_value = self.default_keyspace#+ "_" + (ENV['RACK_ENV'] || 'development')
         end
         return_value
       end
@@ -188,7 +189,7 @@ module RightSupport::DB
         else
           raise ArgumentError, "You can specify String or Array as keyspaces."
         end
-        filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc] = nil}
+        filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc + "_" + (ENV['RACK_ENV'] || 'development')] = nil}
         if @@default_keyspace.nil? && @@keyspaces.size>0
           first_no_nil_keyspace = @@keyspaces.detect{|kyspc, conn| !conn.nil?}
           @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?

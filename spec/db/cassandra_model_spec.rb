@@ -79,12 +79,13 @@ describe RightSupport::DB::CassandraModel do
 
     before(:each) do
       @column_family  = "TestApp"
-      @keyspace       = "TestAppService1"
+      RightSupport::DB::CassandraModel.keyspace       = ["TestAppService1", "TestAppService2", "TestAppService3"]
+      RightSupport::DB::CassandraModel.default_keyspace = "TestAppService1"
       @server         = "localhost:9160"
       @env            = "test"
       @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
 
-      init_app_state(@column_family, @keyspace, @server, @env)
+      init_app_state(@column_family, RightSupport::DB::CassandraModel.keyspace, @server, @env)
 
       @key            = 'key'
       @value          = 'foo'
@@ -101,6 +102,24 @@ describe RightSupport::DB::CassandraModel do
       @conn.should_receive(:remove).with(@column_family, @key).and_return(true)
       @conn.should_receive(:get).with(@column_family, @key, @get_opt).and_return(@attrs).by_default
       @conn.should_receive(:multi_get).with(@column_family, [1,2], @opt).and_return(Hash.new)
+    end
+    
+    describe 'multiple keyspaces' do
+      context :default_keyspace do
+        it 'change default keyspace properly' do
+          RightSupport::DB::CassandraModel.default_keyspace.should == 'TestAppService1_test'
+          RightSupport::DB::CassandraModel.default_keyspace = 'TestAppService2'
+          RightSupport::DB::CassandraModel.default_keyspace = 'CHACHACHA'
+          RightSupport::DB::CassandraModel.default_keyspace.should == 'TestAppService2_test'
+        end
+      end
+      
+      context :keyspace do
+        it 'add new keyspace dynamically' do
+          RightSupport::DB::CassandraModel.keyspace = 'TestAppService4'
+          RightSupport::DB::CassandraModel.keyspaces.keys.size.should == 4
+        end
+      end
     end
 
     describe "instance methods" do
