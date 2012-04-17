@@ -180,7 +180,7 @@ module RightSupport::DB
         return_value
       end
 
-      def keyspace=(new_keyspace, is_new_default=true)
+      def keyspace=(new_keyspace)
         filtered_keyspaces = []
         if new_keyspace.kind_of?(String)
           filtered_keyspaces.push(new_keyspace)
@@ -190,13 +190,12 @@ module RightSupport::DB
           raise ArgumentError, "You can specify String or Array as keyspaces."
         end
         filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc + "_" + (ENV['RACK_ENV'] || 'development')] = nil}
-        if is_new_default
-          @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))\
+        @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))\
                           if filtered_keyspaces.size > 0
-        elsif @@default_keyspace.nil? && @@keyspaces.size>0
-          first_no_nil_keyspace = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
-          @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?
-        end
+        #elsif @@default_keyspace.nil? && @@keyspaces.size>0
+        #  first_no_nil_keyspace = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
+        #  @@default_keyspace = first_no_nil_keyspace[0] unless first_no_nil_keyspace.nil?
+        #end
       end
       
       # Client connected to Cassandra server
