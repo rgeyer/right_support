@@ -220,7 +220,7 @@ module RightSupport::DB
 
         if !@@keyspaces[kyspc].nil?
           return_value = @@keyspaces[kyspc]
-        else
+        elsif @@keyspaces.has_key?(kyspc)
           # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
           config = @@config[ENV["RACK_ENV"]]
           raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
@@ -236,6 +236,37 @@ module RightSupport::DB
         end
 
         return_value
+      end
+      
+      # Disconnect given keyspace from Cassandra server
+      #
+      # === Parameters
+      # disconnect_keyspace(String):: keyspace name to be disconnected
+      #
+      # === Return
+      # (Cassandra):: Client connected to server
+      def disconnect!(disconnect_keyspace)
+        return_value = false
+        if @@keyspaces.has_key?(disconnect_keyspace) 
+          connection = @@keyspaces[disconnect_keyspace]
+          if disconnect_keyspace.nil?
+            connection.disconnect!
+            connection = nil
+            @@keyspaces.delete(kyspc)            
+          end       
+          return_value = true
+        end
+        return_value
+      end
+      
+      # Disconnect all keyspaces from Cassandra server
+      #
+      # === Return
+      # (Cassandra):: Client connected to server
+      def disconnect_all!
+        @@keyspaces.each do |kyspc, conn|
+          disconnect(kyspc)
+        end
       end
 
       # Get row(s) for specified key(s)
@@ -432,9 +463,11 @@ module RightSupport::DB
       #
       # === Return
       # (Object):: Value returned by executed method
-      def do_op(meth, *args, &block)
-        if args.size>0 && args[args.size-1].kind_of?(Hash)
+      def do_op(meth, *args, &block)        
+        if args.size>0 && args[args.size-1].kind_of?(Hash)         
           conn(args[args.size-1][:keyspace]).send(meth, *args, &block)
+        else
+          conn.send(meth, *args, &block)  
         end
       rescue IOError
         reconnect

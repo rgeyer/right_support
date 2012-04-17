@@ -53,34 +53,11 @@ describe RightSupport::DB::CassandraModel do
     end
   end
 
-  describe "initialization with multiple keyspace" do
-
-    before(:each) do
-      RightSupport::DB::CassandraModel.keyspace      = ["TestAppService1", "TestAppService2", "TestAppService3"]
-      @server         = "localhost:9160"
-      @env            = "test"
-      @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
-
-      @conn = flexmock(:conn)
-      flexmock(Cassandra).should_receive(:new).with(RightSupport::DB::CassandraModel.keyspace + "_" + @env, @server, @timeout).and_return(@conn)
-      @conn.should_receive(:disable_node_auto_discovery!).and_return(true)
-    end
-
-    context :conn do
-      it 'creates connection and reuses it' do
-        RightSupport::DB::CassandraModel.conn.should == @conn
-        RightSupport::DB::CassandraModel.conn.should == @conn
-      end
-    end
-  end
-
-
   describe "use" do
 
     before(:each) do
       @column_family  = "TestApp"
-      RightSupport::DB::CassandraModel.keyspace       = ["TestAppService1", "TestAppService2", "TestAppService3"]
-      RightSupport::DB::CassandraModel.default_keyspace = "TestAppService1"
+      RightSupport::DB::CassandraModel.keyspace       = "TestAppService"
       @server         = "localhost:9160"
       @env            = "test"
       @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
@@ -105,19 +82,28 @@ describe RightSupport::DB::CassandraModel do
     end
     
     describe 'multiple keyspaces' do
-      context :default_keyspace do
+      context :keyspace do
+        it 'add and remove new keyspace dynamically' do
+          keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
+          new_keyspace_basic_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
+          RightSupport::DB::CassandraModel.keyspace = new_keyspace_basic_name
+          RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount + 1	         
+
+          just_created_keyspace = RightSupport::DB::CassandraModel.keyspaces.keys.detect{|x| x[new_keyspace_basic_name]}
+          puts "*" * 50
+          puts just_created_keyspace
+          RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace)
+
+          RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount
+        end
+      end
+
+     context :default_keyspace do
         it 'change default keyspace properly' do
-          RightSupport::DB::CassandraModel.default_keyspace.should == 'TestAppService1_test'
+          RightSupport::DB::CassandraModel.default_keyspace.should == "TestAppService_#{ENV['RACK_ENV']}"
           RightSupport::DB::CassandraModel.default_keyspace = 'TestAppService2'
           RightSupport::DB::CassandraModel.default_keyspace = 'CHACHACHA'
           RightSupport::DB::CassandraModel.default_keyspace.should == 'TestAppService2_test'
-        end
-      end
-      
-      context :keyspace do
-        it 'add new keyspace dynamically' do
-          RightSupport::DB::CassandraModel.keyspace = 'TestAppService4'
-          RightSupport::DB::CassandraModel.keyspaces.keys.size.should == 4
         end
       end
     end
