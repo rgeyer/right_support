@@ -110,6 +110,9 @@ module RightSupport::DB
   # Exception that indicates database configuration info is missing.
   class MissingConfiguration < Exception; end
 
+  # Exception that indicates a problem with the keyspace provided
+  class InvalidKeyspace < Exception; end
+
   # Base class for a column family in a keyspace
   # Used to access data persisted in Cassandra
   # Provides wrappers for Cassandra client methods
@@ -135,9 +138,9 @@ module RightSupport::DB
       # Return current keyspaces
       #
       # === Return
-      # (Hash):: hash like {"keyspace"=>connection}
+      # (Hash):: hash like {"keyspace" => connection}
       def keyspaces
-        @@keyspaces.clone
+        @@keyspaces
       end
      
       # Return default_keyspace for current keyspaces
@@ -145,14 +148,6 @@ module RightSupport::DB
       # === Return
       # (String):: default keyspaces for current keyspaces
       def default_keyspace
-        if @@default_keyspace.nil? && @@keyspaces.size>0
-          first_no_nil_keyspaces = @@keyspaces.detect{|kyspc, connection| !connection.nil?}
-          if first_no_nil_keyspaces.nil?
-            @@default_keyspace = @@keyspaces.clone.shift[0]
-          else
-            @@default_keyspace = first_no_nil_keyspaces[0]
-          end
-        end
         @@default_keyspace
       end
       
@@ -161,8 +156,9 @@ module RightSupport::DB
       # === Parameters
       # new_default_kyspc(String):: should exists as key in hashes of keyspaces
       def default_keyspace=(new_default_kyspc)
-        @@default_keyspace = new_default_kyspc if @@keyspaces.has_key?(new_default_kyspc)
-        # if not - probably raise exception
+        raise InvalidKeyspace, "Keyspace '#{kyspc}' must be set before you can make it the default keyspace" unless @@keyspaces.has_key?(new_default_kyspc)
+
+        @@default_keyspace = new_default_kyspc
       end
 
       def config
@@ -182,16 +178,14 @@ module RightSupport::DB
       end
       
       # Alias for .default_keyspace method
-      def keyspace
-        return_value = nil
-        if self.default_keyspace
-          return_value = self.default_keyspace
-        end
-        return_value
+      def keyspace(kyspc = nil)
+        return_value = kyspc
+        return_value = self.default_keyspace if kyspc.nil? && self.default_keyspace
+        return_value + "_" + (ENV['RACK_ENV'] || 'development')
       end
       
       # Add new keyspace(s) to set of current keyspaces
-      # if there is not default_keyspace set it
+      # if there is no default_keyspace set it
       #
       # === Parameters
       # new_keyspace(String | Array):: String or Array of new keyspaces that should be added
@@ -202,41 +196,31 @@ module RightSupport::DB
         elsif new_keyspace.kind_of?(Array)
           filtered_keyspaces = new_keyspace.select{|kyspc| !@@keyspaces.has_key?(kyspc) }
         else
-          raise ArgumentError, "You can specify String or Array as keyspaces."
+          raise ArgumentError, "Keyspace must be a String or an Array of Strings."
         end
-        filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc + "_" + (ENV['RACK_ENV'] || 'development')] = nil}
-        @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))\
-                          if filtered_keyspaces.size > 0
+        filtered_keyspaces.each { |kyspc| @@keyspaces[kyspc] = nil }
+        # Set default keyspace only if one has not been previously set
+        @@default_keyspace = filtered_keyspaces[0] if !@@default_keyspace && filtered_keyspaces.size
       end
       
       # Client connected to Cassandra server
       # Create connection if does not already exist
-      # Use BinaryProtocolAccelerated if it available
+      # Use BinaryProtocolAccelerated if it is available
       #
       # === Parameters
       # kyspc(String):: keyspace, if not specified default_keyspace will be used
       #
       # === Return
       # (Cassandra):: Client connected to server
-      def conn(kyspc=nil)
-        connection  = nil
-
+      def conn(kyspc = nil)
+        # If no keyspace is provided, return the connection for the default keyspace
         if kyspc.nil?
-          if !@@default_keyspace.nil?
-            kyspc = @@default_keyspace
-          else
-            if @@keyspaces.size>0
-              kyspc = @@keyspaces.shift[0]
-            else
-              #probably raise exception
-              return nil
-            end
-          end
+          raise InvalidKeyspace, "A non-nil keyspace must be provided or a valid default keyspace must exist prior to calling conn" if kyspc == default_keyspace
+          return conn(default_keyspace)
         end
 
-        if !@@keyspaces[kyspc].nil?
-          connection = @@keyspaces[kyspc]
-        elsif @@keyspaces.has_key?(kyspc)
+        raise InvalidKeyspace, "Keyspace '#{kyspc}' must be set before you can reference it's connection" unless @@keyspaces.has_key?(kyspc)
+        if @@keyspaces[kyspc].nil?
           # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
           config = @@config[ENV["RACK_ENV"]]
           raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
@@ -245,11 +229,11 @@ module RightSupport::DB
           thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
             if defined? Thrift::BinaryProtocolAccelerated
 
-          connection = Cassandra.new(kyspc, config["server"], thrift_client_options)
+          connection = Cassandra.new(keyspace(kyspc), config["server"], thrift_client_options)
           connection.disable_node_auto_discovery!
           @@keyspaces[kyspc] = connection
         end
-        connection        
+        @@keyspaces[kyspc]
       end
       
       # Disconnect given keyspace from Cassandra server
@@ -258,32 +242,30 @@ module RightSupport::DB
       # disconnect_keyspace(String):: keyspace name to be disconnected
       #
       # === Return
-      # (Cassandra):: Client connected to server
+      # true:: Always return true
       def disconnect!(disconnect_keyspace)
+        # Raise error if default keyspace is the one selected for disconnection
+        raise InvalidKeyspace, "You cannot disconnect from the default keyspace" if disconnect_keyspace == default_keyspace
         if @@keyspaces.has_key?(disconnect_keyspace)                    
           connection = @@keyspaces[disconnect_keyspace]
-          if !connection.nil?
+          unless connection.nil?
             connection.disconnect!
             connection = nil
           end
           @@keyspaces.delete(disconnect_keyspace)
-          if disconnect_keyspace == @@default_keyspace
-            shifted_keyspace = @@keyspaces.keys           
-            @@default_keyspace = (shifted_keyspace.empty? ? nil : shifted_keyspace[0])
-          end
-          return_value = true
         end
-        return_value
+        true
       end
       
-      # Disconnect from all keyspaces of Cassandra
+      # Disconnect from all keyspaces of Cassandra except the default keyspace
       #
       # === Return
-      # (Cassandra):: Client connected to server
+      # true:: Always return true
       def disconnect_all!
         @@keyspaces.each do |kyspc, conn|
-          disconnect(kyspc)
+          disconnect(kyspc) unless kyspc == default_keyspace
         end
+        true
       end
 
       # Get row(s) for specified key(s)

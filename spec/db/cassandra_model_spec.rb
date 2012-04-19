@@ -131,10 +131,12 @@ describe RightSupport::DB::CassandraModel do
 
      context :default_keyspace do
         it 'change default keyspace properly' do
+          pending "This behavior is deprecated"
           RightSupport::DB::CassandraModel.keyspace.should == "TestAppService_#{@env}"
           keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
           new_keyspace_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
-          RightSupport::DB::CassandraModel.keyspace = new_keyspace_name         
+          RightSupport::DB::CassandraModel.keyspace = new_keyspace_name
+          puts "Keyspaces: #{RightSupport::DB::CassandraModel.inspect}"
 
           RightSupport::DB::CassandraModel.keyspace.should == new_keyspace_name + "_#{@env}"
           RightSupport::DB::CassandraModel.disconnect!(new_keyspace_name + "_#{@env}")
