@@ -132,15 +132,15 @@ module RightSupport::DB
       
       @@default_keyspace = nil
       
-      # Return current keyspaces
+      # Return current keyspaces name as Array of String
       #
       # === Return
-      # (Hash):: hash like {"keyspace"=>connection}
+      # (Array):: keyspaces names
       def keyspaces
-        @@keyspaces.clone
+        @@keyspaces.keys
       end
      
-      # Return default_keyspace for current keyspaces
+      # Return default_keyspace
       #
       # === Return
       # (String):: default keyspaces for current keyspaces
@@ -156,15 +156,6 @@ module RightSupport::DB
         @@default_keyspace
       end
       
-      # Set new default keyspace for current set of keyspaces
-      #
-      # === Parameters
-      # new_default_kyspc(String):: should exists as key in hashes of keyspaces
-      def default_keyspace=(new_default_kyspc)
-        @@default_keyspace = new_default_kyspc if @@keyspaces.has_key?(new_default_kyspc)
-        # if not - probably raise exception
-      end
-
       def config
         @@config
       end
@@ -191,7 +182,7 @@ module RightSupport::DB
       end
       
       # Add new keyspace(s) to set of current keyspaces
-      # if there is not default_keyspace set it
+      # if there is not default_keyspace set it (from first of keyspaces).
       #
       # === Parameters
       # new_keyspace(String | Array):: String or Array of new keyspaces that should be added
@@ -205,8 +196,10 @@ module RightSupport::DB
           raise ArgumentError, "You can specify String or Array as keyspaces."
         end
         filtered_keyspaces.each{|kyspc| @@keyspaces[kyspc + "_" + (ENV['RACK_ENV'] || 'development')] = nil}
-        @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))\
-                          if filtered_keyspaces.size > 0
+
+        if @@default_keyspace.nil? && filtered_keyspaces.size >0
+          @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))
+        end
       end
       
       # Client connected to Cassandra server
@@ -260,7 +253,8 @@ module RightSupport::DB
       # === Return
       # (Cassandra):: Client connected to server
       def disconnect!(disconnect_keyspace)
-        if @@keyspaces.has_key?(disconnect_keyspace)                    
+        return_value = false
+        if (@@keyspaces.has_key?(disconnect_keyspace) && disconnect_keyspace != @@default_keyspace) 
           connection = @@keyspaces[disconnect_keyspace]
           if !connection.nil?
             connection.disconnect!

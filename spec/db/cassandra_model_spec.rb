@@ -86,16 +86,12 @@ describe RightSupport::DB::CassandraModel do
         context :lazy do
           before(:each) do
             keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
-            new_keyspace_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
+            new_keyspace_name = ( @keyspace + (keyspaces_amount + 1).to_s)
             RightSupport::DB::CassandraModel.keyspace = new_keyspace_name
 
             @keyspaces = RightSupport::DB::CassandraModel.keyspaces
-            @new_keyspace_real_name = @keyspaces.keys.detect{|x| x[new_keyspace_name]}
+            @new_keyspace_real_name = @keyspaces.detect{|x| x[new_keyspace_name]}
           end
-
-          it 'nil if was not needed yet' do
-            @keyspaces.fetch(@new_keyspace_real_name).should be_nil
-          end          
           
           it 'not nil if was needed already' do
             connection = RightSupport::DB::CassandraModel.conn(@new_keyspace_real_name)
@@ -111,16 +107,16 @@ describe RightSupport::DB::CassandraModel do
       context :keyspace do
         it 'add and remove new keyspaces dynamically' do          
           keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
-          new_keyspace_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
-          new_keyspace_name_1 = ('TestAppService' + (keyspaces_amount + 2).to_s)
+          new_keyspace_name = ( @keyspace + (keyspaces_amount + 1).to_s)
+          new_keyspace_name_1 = ( @keyspace + (keyspaces_amount + 2).to_s)
           RightSupport::DB::CassandraModel.keyspace = [new_keyspace_name, new_keyspace_name_1]
-          RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount + 2	         
+          RightSupport::DB::CassandraModel.keyspaces.size.should == keyspaces_amount + 2	         
 
-          just_created_keyspace = RightSupport::DB::CassandraModel.keyspaces.keys.detect{|x| x[new_keyspace_name]}
-          just_created_keyspace_1 = RightSupport::DB::CassandraModel.keyspaces.keys.detect{|x| x[new_keyspace_name_1]}
-          RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace)
-          RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace_1)
-          RightSupport::DB::CassandraModel.keyspaces.keys.size.should == keyspaces_amount
+          just_created_keyspace = RightSupport::DB::CassandraModel.keyspaces.detect{|x| x[new_keyspace_name]}
+          just_created_keyspace_1 = RightSupport::DB::CassandraModel.keyspaces.detect{|x| x[new_keyspace_name_1]}
+          RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace).should be_true
+          RightSupport::DB::CassandraModel.disconnect!(just_created_keyspace_1).should be_true
+          RightSupport::DB::CassandraModel.keyspaces.size.should == keyspaces_amount
         end
         
         it 'raise exception for incorrect keyspace' do
@@ -130,17 +126,27 @@ describe RightSupport::DB::CassandraModel do
       end
 
      context :default_keyspace do
-        it 'change default keyspace properly' do
-          RightSupport::DB::CassandraModel.keyspace.should == "TestAppService_#{@env}"
+        it 'set default keyspace properly even without raw mention' do
+          RightSupport::DB::CassandraModel.keyspace.should == "#{@keyspace}_#{@env}"
+        end
+
+        it 'doesn`t disconnect default keyspace' do
+           default_keyspace = RightSupport::DB::CassandraModel.keyspace 
+           RightSupport::DB::CassandraModel.disconnect!(default_keyspace).should be_false
+        end
+
+        it 'dont change default keyspace if new keyspace is being added' do
+          RightSupport::DB::CassandraModel.keyspace.should == "#{@keyspace}_#{@env}"
           keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
           new_keyspace_name = ('TestAppService' + (keyspaces_amount + 1).to_s)
           RightSupport::DB::CassandraModel.keyspace = new_keyspace_name         
 
-          RightSupport::DB::CassandraModel.keyspace.should == new_keyspace_name + "_#{@env}"
+          RightSupport::DB::CassandraModel.keyspace.should == "#{@keyspace}_#{@env}"
           RightSupport::DB::CassandraModel.disconnect!(new_keyspace_name + "_#{@env}")
           
-          RightSupport::DB::CassandraModel.keyspace.should == "TestAppService_#{@env}"
+          RightSupport::DB::CassandraModel.keyspace.should == "#{@keyspace}_#{@env}"
         end
+        
       end
     end
 
