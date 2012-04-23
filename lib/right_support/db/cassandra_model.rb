@@ -476,7 +476,9 @@ module RightSupport::DB
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)        
         if args.size>0 && args[args.size-1].kind_of?(Hash)         
-          conn(args[args.size-1][:keyspace]).send(meth, *args, &block)
+          kyspc = args[args.size-1][:keyspace]
+          args[args.size-1].delete(:keyspace)
+          conn(kyspc).send(meth, *args, &block)  
         else
           conn.send(meth, *args, &block)  
         end
