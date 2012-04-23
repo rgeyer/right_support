@@ -477,8 +477,6 @@ module RightSupport::DB
       def do_op(meth, *args, &block)        
         if args.size>0 && args[args.size-1].kind_of?(Hash)         
           kyspc = args[args.size-1].delete(:keyspace)
-          puts " do_op " * 20
-          puts args
           conn(kyspc).send(meth, *args, &block)  
         else
           conn.send(meth, *args, &block)  
