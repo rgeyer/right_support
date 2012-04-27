@@ -172,6 +172,11 @@ module RightSupport::DB
         @@logger 
       end
       
+      def with_keyspace(temp_keyspace, &block)
+        context = CassandraContext.new(self, temp_keyspace)
+        block.call(context)
+      end
+
       # Alias for .default_keyspace method
       def keyspace
         return_value = nil
