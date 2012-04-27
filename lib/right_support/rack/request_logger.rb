@@ -55,8 +55,8 @@ module RightSupport::Rack
 
       log_request_begin(logger, env)
       status, header, body = @app.call(env)
-      log_request_end(logger, env, status, began_at)
       log_exception(logger, env['sinatra.error']) if env['sinatra.error']
+      log_request_end(logger, status, header, began_at)
 
       return [status, header, body]
     rescue Exception => e
@@ -87,16 +87,26 @@ module RightSupport::Rack
         query_info = ''
       end
 
+      # Session
+      if env['global_session']
+        cookie = env['global_session']
+        info = [ env['global_session'].id,
+                 cookie.keys.map{|k| %{"#{k}"=>"#{cookie[k]}"} }.join(', ') ]
+        sess = %Q{Session ID: %s  Session Data: {%s}} % info
+      else
+        sess = ""
+      end
+
       params = [
-        remote_addr,
         env["REQUEST_METHOD"],
         env["PATH_INFO"],
         query_info,
-        env["HTTP_VERSION"],
+        remote_addr,
+        sess,
         env["rack.request_uuid"] || ''
       ]
 
-      logger.info %Q{Begin: %s "%s %s%s %s" %s} % params
+      logger.info %Q{Processing %s "%s%s" (for %s)  %s  Request ID: %s} % params
     end
 
     # Log end of request
@@ -109,16 +119,22 @@ module RightSupport::Rack
     #
     # === Return
     # always returns true
-    def log_request_end(logger, env, status, began_at)
-      duration = Time.now - began_at
+    def log_request_end(logger, status, headers, began_at)
+      duration = (Time.now - began_at) * 1000
+
+      content_length = if headers['Content-Length']
+        headers['Content-Length'].to_s
+      else
+        '-'
+      end
       
       params = [
-        status,
         duration,
-        env["rack.request_uuid"] || ''
+        status,
+        content_length,
       ]
 
-      logger.info %Q{End: %d %0.3f %s} % params
+      logger.info %Q{Completed in %dms | %d | %s bytes} % params
     end
 
     # Log exception
