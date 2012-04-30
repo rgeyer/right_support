@@ -33,9 +33,6 @@ module RightSupport
     # Maximum characters in sub-stat value line
     MAX_SUB_STAT_VALUE_WIDTH = 80
 
-    # Maximum characters displayed for exception message
-    MAX_EXCEPTION_MESSAGE_WIDTH = 60
-
     # Separator between stat name and stat value
     SEPARATOR = " : "
 
@@ -133,37 +130,67 @@ module RightSupport
       end
     end
 
-    # Wrap string by breaking it into lines at the specified separator
+    # Wrap string by breaking it into lines at the specified separators
+    # Allow for presence of color encoding when measuring string length
     #
     # === Parameters
     # string(String):: String to be wrapped
-    # max_length(Integer):: Maximum length of a line excluding indentation
-    # indent(String):: Indentation for each line
-    # separator(String):: Separator at which to make line breaks
+    # max_length(Integer|Array):: Maximum length of a line, or array containing
+    #   maximum length of first line followed by maximum for any subsequent line
+    #   including indent
+    # indent(String):: Indentation for each line after first
+    # separators(Regexp):: Separators where string can wrap
     #
     # === Return
-    # (String):: Multi-line string
-    def self.wrap(string, max_length, indent, separator)
-      all = []
-      line = ""
-      for l in string.split(separator)
-        if (line + l).length >= max_length
-          all.push(line)
-          line = ""
+    # (String|Array):: Multi-line string
+    def self.wrap(string, max_length, indent, separators)
+      # Strip color encoding from string
+      strip = lambda { |string| string.gsub(/\e\[[0-9]*m/, "") }
+
+      # Split string at specified separators and return an array of arrays
+      # containing string segments and associated separator
+      split = lambda do |string, separators|
+        head, sep, tail = string.partition(separators)
+        if tail == ""
+          [[head, sep]]
+        else
+          [[head, sep]].concat(split.call(tail, separators))
         end
-        line += line == "" ? l : separator + l
       end
-      all.push(line).join(separator + "\n" + indent)
+
+      all = []
+      line = ["", last_sep = ""]
+      limit = max_length.is_a?(Array) ? max_length[0] : max_length
+      length = 0
+      separators = /#{separators}/ if separators.is_a?(String)
+      split.call(string, separators).each do |str, sep|
+        if (length + strip.call(str).size + last_sep.size + sep.size) > limit
+          all.push(line) unless line[0] == ""
+          line = [indent, last_sep = ""]
+          length = indent.size
+          limit = max_length.is_a?(Array) ? max_length[1] : max_length
+        end
+        line[0] += (str = last_sep + str)
+        line[1] = last_sep = sep
+        length += strip.call(str).size
+      end
+      all.push(line)
+      all[0..-2].inject("") { |a, (str, sep)| a + str + sep + "\n" } + all[-1][0]
     end
 
     # Format UTC time value
     #
     # === Parameters
     # time(Integer):: Time in seconds in Unix-epoch to be formatted
+    # with_year(Boolean):: Whether to include year, defaults to false
     #
     # (String):: Formatted time string
-    def self.time_at(time)
-      Time.at(time).strftime("%a %b %d %H:%M:%S")
+    def self.time_at(time, with_year = false)
+      if with_year
+        Time.at(time).strftime("%a %b %d %H:%M:%S %Y")
+      else
+        Time.at(time).strftime("%a %b %d %H:%M:%S")
+      end
     end
 
     # Sort hash elements by key in ascending order into array of key/value pairs
@@ -192,9 +219,9 @@ module RightSupport
     # Converts server statistics to a displayable format
     #
     # === Parameters
-    # stats(Hash):: Statistics with generic keys "name", "identity", "hostname", "service uptime",
+    # stats(Hash):: Statistics with generic keys "name", "identity", "hostname", "revision", "service uptime",
     #   "machine uptime", "memory KB", "stat time", "last reset time", "version", and "broker" with
-    #   the latter two and "machine uptime", "memory KB", "version", and "broker" being optional;
+    #   the latter two and "revision", "machine uptime", "memory KB", "version", and "broker" being optional;
     #   any other keys ending with "stats" have an associated hash value that is displayed in sorted
     #   key order, unless "stats" is preceded by a non-blank, in which case that character is prepended
     #   to the key to drive the sort order
@@ -202,7 +229,6 @@ module RightSupport
     #   :name_width(Integer):: Maximum characters in displayed stat name
     #   :sub_name_width(Integer):: Maximum characters in displayed sub-stat name
     #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
-    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # (String):: Display string
@@ -211,9 +237,12 @@ module RightSupport
 
       str = stats["name"] ? sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "name", stats["name"]) : ""
       str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "identity", stats["identity"]) +
-             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "hostname", stats["hostname"]) +
-             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "stat time", time_at(stats["stat time"])) +
-             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "last reset", time_at(stats["last reset time"])) +
+             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "hostname", stats["hostname"])
+      if stats.has_key?("revision")
+        str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "revision", stats["revision"])
+      end
+      str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "stat time", time_at(stats["stat time"], with_year = true)) +
+             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "last reset", time_at(stats["last reset time"], with_year = true)) +
              sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "service up", elapsed(stats["service uptime"]))
       if stats.has_key?("machine uptime")
         str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "machine up", elapsed(stats["machine uptime"]))
@@ -256,7 +285,6 @@ module RightSupport
     #   :name_width(Integer):: Fixed width for left-justified name display
     #   :sub_name_width(Integer):: Maximum characters in displayed sub-stat name
     #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
-    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # str(String):: Broker display with one line per broker plus exceptions
@@ -302,7 +330,8 @@ module RightSupport
       str += if brokers["returns"].nil? || brokers["returns"].empty?
         "none\n"
       else
-        wrap(activity_str(brokers["returns"]), sub_stat_value_width, sub_value_indent, ", ") + "\n"
+        wrap(activity_str(brokers["returns"]), [sub_stat_value_width, sub_stat_value_width + sub_value_indent.size],
+             sub_value_indent, /, /) + "\n"
       end
     end
 
@@ -325,7 +354,6 @@ module RightSupport
     #   :name_width(Integer):: Fixed width for left-justified name display
     #   :sub_name_width(Integer):: Maximum characters in displayed sub-stat name
     #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
-    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
     #
     # === Return
     # (String):: Single line display of stat
@@ -349,13 +377,15 @@ module RightSupport
           if v.empty? || v["total"] == 0
             "none"
           elsif v["total"]
-            wrap(activity_str(v), sub_stat_value_width, sub_value_indent, ", ")
+            wrap(activity_str(v), [sub_stat_value_width, sub_stat_value_width + sub_value_indent.size],
+                 sub_value_indent, ", ")
           elsif k =~ /last$/
             last_activity_str(v)
           elsif k == "exceptions"
             exceptions_str(v, sub_value_indent, options)
           else
-            wrap(hash_str(v), sub_stat_value_width, sub_value_indent, ", ")
+            wrap(hash_str(v), [sub_stat_value_width, sub_stat_value_width + sub_value_indent.size],
+                 sub_value_indent, /, /)
           end
         else
           "#{v || "none"}"
@@ -427,20 +457,19 @@ module RightSupport
     #   "recent"(Array):: Most recent as a hash of "count", "type", "message", "when", and "where"
     # indent(String):: Indentation for each line
     # options(Hash):: Formatting options
-    #   :exception_message_width(Integer):: Maximum characters displayed for exception message
+    #   :sub_stat_value_width(Integer):: Maximum characters in displayed sub-stat value line
     #
     # === Return
     # (String):: Exceptions in displayable format with line separators
     def self.exceptions_str(exceptions, indent, options = {})
-      exception_message_width = options[:exception_message_width] || MAX_EXCEPTION_MESSAGE_WIDTH
+      sub_stat_value_width = options[:sub_stat_value_width] || MAX_SUB_STAT_VALUE_WIDTH
       indent2 = indent + (" " * 4)
       exceptions.to_a.sort.map do |k, v|
         sprintf("%s total: %d, most recent:\n", k, v["total"]) + v["recent"].reverse.map do |e|
-          message = e["message"]
-          if message && message.size > (exception_message_width - 3)
-            message = e["message"][0, exception_message_width - 3] + "..."
-          end
-          indent + "(#{e["count"]}) #{time_at(e["when"])} #{e["type"]}: #{message}\n" + indent2 + "#{e["where"]}"
+          where = " IN #{e["where"]}" if e["where"]
+          indent + wrap("(#{e["count"]}) #{time_at(e["when"])} #{e["type"]}: #{e["message"]}#{where}",
+                        [sub_stat_value_width, sub_stat_value_width + indent2.size],
+                        indent2, / |\/\/|\/|::|\.|-/)
         end.join("\n")
       end.join("\n" + indent)
     end
