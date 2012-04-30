@@ -420,8 +420,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40\n" +
-                       "last reset  : Mon Jan 12 05:46:40\n" +
+                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
                        "service up  : 1 hr 2 min\n" +
                        "machine up  : 2 days 2 hr 59 min\n" +
                        "version     : 10\n" +
@@ -456,8 +456,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40\n" +
-                       "last reset  : Mon Jan 12 05:46:40\n" +
+                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "stuff       : empty_hash        : none\n" +
                        "              exceptions        : none\n" +
@@ -481,8 +481,8 @@ describe RightSupport::Stats do
       result.should == "name        : tester_1\n" +
                        "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40\n" +
-                       "last reset  : Mon Jan 12 05:46:40\n" +
+                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "stuff       : empty_hash        : none\n" +
                        "              exceptions        : none\n" +
@@ -505,8 +505,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats, :sub_name_width => 11)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40\n" +
-                       "last reset  : Mon Jan 12 05:46:40\n" +
+                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "/data       : empty_hash  : none\n" +
                        "              float_value : 3.2\n" +
@@ -527,8 +527,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats, :name_width => 15)
       result.should == "identity        : unit tester\n" +
                        "hostname        : localhost\n" +
-                       "stat time       : Mon Jan 12 05:46:40\n" +
-                       "last reset      : Mon Jan 12 05:46:40\n" +
+                       "stat time       : Mon Jan 12 05:46:40 1970\n" +
+                       "last reset      : Mon Jan 12 05:46:40 1970\n" +
                        "service up      : 16 min 40 sec\n" +
                        "stuff           : empty_hash        : none\n" +
                        "                  float_value       : 3.2\n" +
