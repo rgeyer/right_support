@@ -159,6 +159,10 @@ describe RightSupport::Stats do
       c = 0
       string = string.split(" ").map { |s| s.send(colors[c = (c + 1) % 3]) }.join(" ")
       result = @helpers.wrap(string, 20, " " * 4, / /)
+      result.gsub(/\e\[[0-9]*m/, "").should == "Now is the time for \n" +
+                                               "    all good men to \n" +
+                                               "    come to the aid \n" +
+                                               "    of their people."
       result.should == "\e[1m\e[34mNow\e[0m \e[1m\e[32mis\e[0m \e[1m\e[31mthe\e[0m \e[1m\e[34mtime\e[0m \e[1m\e[32mfor\e[0m \n" +
                        "    \e[1m\e[31mall\e[0m \e[1m\e[34mgood\e[0m \e[1m\e[32mmen\e[0m \e[1m\e[31mto\e[0m \n" +
                        "    \e[1m\e[34mcome\e[0m \e[1m\e[32mto\e[0m \e[1m\e[31mthe\e[0m \e[1m\e[34maid\e[0m \n" +
