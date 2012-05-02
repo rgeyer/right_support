@@ -124,8 +124,8 @@ describe RightSupport::DB::CassandraModel do
           bad_keyspace.should raise_error(ArgumentError)
         end
       end
-     
-      context :default_keyspace do
+
+     context :default_keyspace do
         it 'set default keyspace properly even without raw mention' do
           RightSupport::DB::CassandraModel.keyspace.should == "#{@keyspace}_#{@env}"
         end
@@ -148,15 +148,6 @@ describe RightSupport::DB::CassandraModel do
         end
         
       end
-      
-      context :'temporary keyspace' do
-        it 'change keyspace inside block' do
-          connection_block = RightSupport::DB::CassandraModel.with_keyspace(@keyspace){|c| c.conn}
-          connection_block.should == @conn
-        end
-
-      end
-
     end
 
     describe "instance methods" do

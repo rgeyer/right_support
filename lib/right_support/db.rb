@@ -30,4 +30,3 @@ module RightSupport
 end
 
 require 'right_support/db/cassandra_model'
-require 'right_support/db/cassandra_context'
