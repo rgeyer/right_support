@@ -148,6 +148,34 @@ describe RightSupport::DB::CassandraModel do
         end
         
       end
+
+    context :'temporary keyspace context' do
+      before(:each) do
+        keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
+        new_keyspace_name = ( @keyspace + (keyspaces_amount + 1).to_s)
+        RightSupport::DB::CassandraModel.keyspace = new_keyspace_name
+
+        @keyspaces = RightSupport::DB::CassandraModel.keyspaces
+        @new_keyspace_real_name = @keyspaces.detect{|x| x[new_keyspace_name]}
+      end
+
+      it 'change keyspace inside block' do
+        keyspace_block = RightSupport::DB::CassandraModel.with_keyspace(@new_keyspace_real_name){ RightSupport::DB::CassandraModel.keyspace }
+        keyspace_block.should == @new_keyspace_real_name
+      end
+
+      it 'raise custom exception inside block if keyspace doesnt exists' do
+        RightSupport::DB::CassandraModel.custom_operation_exception = Proc.new{ raise ArgumentError }
+        keyspace_block = lambda{ RightSupport::DB::CassandraModel.with_keyspace("I_am_not_exist"){ RightSupport::DB::CassandraModel.reconnect } }
+        keyspace_block.should raise_error(ArgumentError)
+      end
+
+      after(:each) do
+        RightSupport::DB::CassandraModel.disconnect!(@new_keyspace_real_name)
+      end
+
+     end
+
     end
 
     describe "instance methods" do

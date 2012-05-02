@@ -134,15 +134,16 @@ module RightSupport::DB
 
       # current keyspace context
       @current_keyspace = nil
-      # exception being raised in .with_keyspace block
-      @@with_keyspace_exception = nil
 
-      def with_keyspace_exception
-        @@with_keyspace_exception
+      # exception being raised in .with_keyspace block
+      @@custom_operation_exception = nil
+
+      def custom_operation_exception
+        @@custom_operation_exception
       end
 
-      def with_keyspace_exception=(new_exception)
-        @@with_keyspace_exception = new_exception
+      def custom_operation_exception=(new_exception)
+        @@custom_operation_exception = new_exception
       end
 
       # Return current keyspaces name as Array of String
@@ -200,17 +201,15 @@ module RightSupport::DB
       # auto_add_keyspace(Boolean):: Automatically add keyspace to list of keyspaces, if not added previously
       # block(Proc):: Code that will be called in keyspace context
       def with_keyspace(kyspc, auto_add_keyspace=true, &block)
-        kyspc_postfix =  "_" + (ENV['RACK_ENV'] || 'development')
-
-        if !@@keyspaces.has_key?(kyspc + kyspc_postfix) && auto_add_keyspace
+        if !@@keyspaces.has_key?(kyspc) && auto_add_keyspace
           self.keyspace = kyspc
         end
-        @current_keyspace = kyspc + kyspc_postfix
+        @current_keyspace = kyspc
         begin
           block.call
         rescue Exception => e
-          if !with_keyspace_exception.nil? && with_keyspace_exception.kind_of?(Proc)
-            with_keyspace_exception.call
+          if !custom_operation_exception.nil? && custom_operation_exception.kind_of?(Proc)
+            custom_operation_exception.call
           else
             puts e
           end
@@ -534,15 +533,15 @@ module RightSupport::DB
         config = @@config[ENV["RACK_ENV"]]
         raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
         
-        return false if @@default_keyspace.nil?
+        return false if keyspace.nil?
     
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
           if defined? Thrift::BinaryProtocolAccelerated
 
-        connection = Cassandra.new(@@default_keyspace, config["server"], thrift_client_options)
+        connection = Cassandra.new(keyspace, config["server"], thrift_client_options)
         connection.disable_node_auto_discovery!
-        @@keyspaces[@@default_keyspace] = connection
+        @@keyspaces[keyspace] = connection
         true
       end
 
