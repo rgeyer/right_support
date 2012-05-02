@@ -135,7 +135,15 @@ module RightSupport::DB
       # current keyspace context
       @current_keyspace = nil
       # exception being raised in .with_keyspace block
-      attr_accessor :with_keyspace_exception
+      @@with_keyspace_exception = nil
+
+      def with_keyspace_exception
+        @@with_keyspace_exception
+      end
+
+      def with_keyspace_exception=(new_exception)
+        @@with_keyspace_exception = new_exception
+      end
 
       # Return current keyspaces name as Array of String
       #
