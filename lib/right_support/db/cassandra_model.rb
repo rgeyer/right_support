@@ -132,6 +132,9 @@ module RightSupport::DB
       
       @@default_keyspace = nil
       
+      #current keyspace context      
+      @current_keyspace = nil     
+
       # Return current keyspaces name as Array of String
       #
       # === Return
@@ -172,15 +175,21 @@ module RightSupport::DB
         @@logger 
       end
       
-      # Alias for .default_keyspace method
-      def keyspace
-        return_value = nil
-        if self.default_keyspace
-          return_value = self.default_keyspace
-        end
-        return_value
+      # Returns current active keyspace.
+      #
+      # === Return
+      # keyspace(String):: current_keyspace or default_keyspace
+      def keyspace            
+        @current_keyspace || self.default_keyspace
       end
       
+      def with_keyspace(kyspc, &block)        
+        @current_keyspace = kyspc
+        block.call
+        ensure
+         @current_keyspace = nil
+      end
+     
       # Add new keyspace(s) to set of current keyspaces
       # if there is not default_keyspace set it (from first of keyspaces).
       #
@@ -215,8 +224,8 @@ module RightSupport::DB
         connection  = nil
 
         if kyspc.nil?
-          if !@@default_keyspace.nil?
-            kyspc = @@default_keyspace
+          if !self.keyspace.nil?
+            kyspc = self.keyspace
           else
             if @@keyspaces.size>0
               kyspc = @@keyspaces.shift[0]
