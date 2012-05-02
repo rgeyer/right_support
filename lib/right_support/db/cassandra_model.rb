@@ -131,9 +131,11 @@ module RightSupport::DB
       @@keyspaces = {}      
       
       @@default_keyspace = nil
-      
-      #current keyspace context      
-      @current_keyspace = nil     
+
+      # current keyspace context
+      @current_keyspace = nil
+      # exception being raised in .with_keyspace block
+      attr_accessor :with_keyspace_exception
 
       # Return current keyspaces name as Array of String
       #
@@ -179,23 +181,43 @@ module RightSupport::DB
       #
       # === Return
       # keyspace(String):: current_keyspace or default_keyspace
-      def keyspace            
+      def keyspace
         @current_keyspace || self.default_keyspace
       end
-      
-      def with_keyspace(kyspc, &block)        
-        @current_keyspace = kyspc
-        block.call
+
+      # Execute give block in kyspc context
+      #
+      # === Parameters
+      # kyspc(String):: Keyspace context
+      # auto_add_keyspace(Boolean):: Automatically add keyspace to list of keyspaces, if not added previously
+      # block(Proc):: Code that will be called in keyspace context
+      def with_keyspace(kyspc, auto_add_keyspace=true, &block)
+        kyspc_postfix =  "_" + (ENV['RACK_ENV'] || 'development')
+
+        if !@@keyspaces.has_key?(kyspc + kyspc_postfix) && auto_add_keyspace
+          self.keyspace = kyspc
+        end
+        @current_keyspace = kyspc + kyspc_postfix
+        begin
+          block.call
+        rescue Exception => e
+          if !with_keyspace_exception.nil? && with_keyspace_exception.kind_of?(Proc)
+            with_keyspace_exception.call
+          else
+            puts e
+          end
         ensure
          @current_keyspace = nil
+        end
       end
-     
+
       # Add new keyspace(s) to set of current keyspaces
       # if there is not default_keyspace set it (from first of keyspaces).
       #
       # === Parameters
       # new_keyspace(String | Array):: String or Array of new keyspaces that should be added
       def keyspace=(new_keyspace)
+
         filtered_keyspaces = []
         if new_keyspace.kind_of?(String)
           filtered_keyspaces.push(new_keyspace)
