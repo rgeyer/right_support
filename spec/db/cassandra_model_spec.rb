@@ -152,15 +152,15 @@ describe RightSupport::DB::CassandraModel do
     context :'temporary keyspace context' do
       before(:each) do
         keyspaces_amount = RightSupport::DB::CassandraModel.keyspaces.size
-        new_keyspace_name = ( @keyspace + (keyspaces_amount + 1).to_s)
-        RightSupport::DB::CassandraModel.keyspace = new_keyspace_name
+        @new_keyspace_name = ( @keyspace + (keyspaces_amount + 1).to_s)
+        RightSupport::DB::CassandraModel.keyspace = @new_keyspace_name
 
         @keyspaces = RightSupport::DB::CassandraModel.keyspaces
-        @new_keyspace_real_name = @keyspaces.detect{|x| x[new_keyspace_name]}
+        @new_keyspace_real_name = @keyspaces.detect{|x| x[@new_keyspace_name]}
       end
 
       it 'change keyspace inside block' do
-        keyspace_block = RightSupport::DB::CassandraModel.with_keyspace(@new_keyspace_real_name){ RightSupport::DB::CassandraModel.keyspace }
+        keyspace_block = RightSupport::DB::CassandraModel.with_keyspace(@new_keyspace_name){ RightSupport::DB::CassandraModel.keyspace }
         keyspace_block.should == @new_keyspace_real_name
       end
 

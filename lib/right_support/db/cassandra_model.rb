@@ -203,7 +203,7 @@ module RightSupport::DB
         if !@@keyspaces.has_key?(kyspc) && auto_add_keyspace
           self.keyspace = kyspc
         end
-        @@current_keyspace = kyspc
+        @@current_keyspace = kyspc + "_" + (ENV['RACK_ENV'] || 'development')
         begin
           block.call
         rescue Exception => e
@@ -553,7 +553,7 @@ module RightSupport::DB
       # === Return
       # (Array):: Members of ring
       def ring(kyspc=nil)
-        conn(kyspc).ring
+        conn(kyspc || self.keyspace).ring
       end
 
     end # self
