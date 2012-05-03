@@ -200,10 +200,13 @@ module RightSupport::DB
       # auto_add_keyspace(Boolean):: Automatically add keyspace to list of keyspaces, if not added previously
       # block(Proc):: Code that will be called in keyspace context
       def with_keyspace(kyspc, auto_add_keyspace=true, &block)
+        @@current_keyspace = nil
         if !@@keyspaces.has_key?(kyspc) && auto_add_keyspace
           self.keyspace = kyspc
+          @@current_keyspace = kyspc + "_" + (ENV['RACK_ENV'] || 'development')
+        elsif @@keyspaces.has_key?(kyspc)
+          @@current_keyspace = kyspc
         end
-        @@current_keyspace = kyspc + "_" + (ENV['RACK_ENV'] || 'development')
         begin
           block.call
         rescue Exception => e
