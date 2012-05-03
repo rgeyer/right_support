@@ -208,10 +208,10 @@ module RightSupport::DB
         begin
           block.call
         rescue Exception => e
-          if !custom_operation_exception.nil? && custom_operation_exception.kind_of?(Proc)
+          if !custom_operation_exception.nil? && custom_operation_exception.kind_of?(Proc) && e.kind_of?(Thrift::Exception)
             custom_operation_exception.call
-          else
-            puts e
+          else          
+            raise e
           end
         ensure
          @current_keyspace = nil
