@@ -166,8 +166,7 @@ describe RightSupport::DB::CassandraModel do
 
       it 'raise custom exception inside block if keyspace doesnt exists' do
         RightSupport::DB::CassandraModel.custom_operation_exception = Proc.new{ raise ArgumentError }
-        keyspace_block = lambda{ RightSupport::DB::CassandraModel.with_keyspace("I_am_not_exist"){ RightSupport::DB::CassandraModel.reconnect } }
-        keyspace_block.should raise_error(ArgumentError)
+        RightSupport::DB::CassandraModel.should_receive(:with_keyspace).with(String, Proc).and_raise(ArgumentError)
       end
 
       after(:each) do

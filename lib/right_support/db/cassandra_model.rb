@@ -19,7 +19,6 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 begin
   require 'cassandra/0.8'
 
@@ -133,7 +132,7 @@ module RightSupport::DB
       @@default_keyspace = nil
 
       # current keyspace context
-      @current_keyspace = nil
+      @@current_keyspace = nil
 
       # exception being raised in .with_keyspace block
       @@custom_operation_exception = nil
@@ -191,7 +190,7 @@ module RightSupport::DB
       # === Return
       # keyspace(String):: current_keyspace or default_keyspace
       def keyspace
-        @current_keyspace || self.default_keyspace
+        @@current_keyspace || self.default_keyspace
       end
 
       # Execute give block in kyspc context
@@ -204,17 +203,18 @@ module RightSupport::DB
         if !@@keyspaces.has_key?(kyspc) && auto_add_keyspace
           self.keyspace = kyspc
         end
-        @current_keyspace = kyspc
+        @@current_keyspace = kyspc
         begin
           block.call
         rescue Exception => e
-          if !custom_operation_exception.nil? && custom_operation_exception.kind_of?(Proc) && e.kind_of?(Thrift::Exception)
+          if !self.custom_operation_exception.nil? && self.custom_operation_exception.kind_of?(Proc)\
+                && e.kind_of?(Thrift::Exception)
             custom_operation_exception.call
           else          
             raise e
           end
         ensure
-         @current_keyspace = nil
+          @@current_keyspace = nil
         end
       end
 
