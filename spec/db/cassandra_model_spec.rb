@@ -146,7 +146,6 @@ describe RightSupport::DB::CassandraModel do
           
           RightSupport::DB::CassandraModel.keyspace.should == "#{@keyspace}_#{@env}"
         end
-        
       end
 
     context :'temporary keyspace context' do
@@ -172,10 +171,8 @@ describe RightSupport::DB::CassandraModel do
       after(:each) do
         RightSupport::DB::CassandraModel.disconnect!(@new_keyspace_real_name)
       end
-
-     end
-
     end
+  end
 
     describe "instance methods" do
        context :save do

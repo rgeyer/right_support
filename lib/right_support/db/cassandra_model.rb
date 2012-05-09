@@ -145,6 +145,22 @@ module RightSupport::DB
         @@custom_operation_exception = new_exception
       end
 
+      def config
+        @@config
+      end
+
+      def config=(value)
+        @@config = value
+      end
+
+      def logger=(l)
+        @@logger = l
+      end
+
+      def logger
+        @@logger
+      end
+
       # Return current keyspaces name as Array of String
       #
       # === Return
@@ -152,7 +168,7 @@ module RightSupport::DB
       def keyspaces
         @@keyspaces.keys
       end
-     
+
       # Return default_keyspace
       #
       # === Return
@@ -168,23 +184,7 @@ module RightSupport::DB
         end
         @@default_keyspace
       end
-      
-      def config
-        @@config
-      end
-      
-      def config=(value)
-        @@config = value
-      end
- 
-      def logger=(l)
-        @@logger = l
-      end
-      
-      def logger
-        @@logger 
-      end
-      
+
       # Returns current active keyspace.
       #
       # === Return
@@ -516,12 +516,7 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)        
-        if args.size>0 && args[args.size-1].kind_of?(Hash)         
-          kyspc = args[args.size-1].delete(:keyspace)
-          conn(kyspc).send(meth, *args, &block)  
-        else
-          conn.send(meth, *args, &block)  
-        end
+        conn.send(meth, *args, &block)
       rescue IOError
         reconnect
         retry
