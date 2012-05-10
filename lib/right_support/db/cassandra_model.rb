@@ -543,15 +543,12 @@ module RightSupport::DB
         true
       end
 
-      # Cassandra ring for given keyspace
-      #
-      # === Parameters
-      # kyspc(String):: keyspace
+      # Cassandra ring
       #
       # === Return
       # (Array):: Members of ring
-      def ring(kyspc=nil)
-        conn(kyspc || self.keyspace).ring
+      def ring
+        conn(self.keyspace).ring
       end
 
     end # self
