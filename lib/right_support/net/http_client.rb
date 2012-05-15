@@ -100,6 +100,10 @@ module RightSupport::Net
   # * :user and :password - for basic auth, will be replaced by a user/password available in the url
   # * :raw_response - return a low-level RawResponse instead of a Response
   # * :verify_ssl - enable ssl verification, possible values are constants from OpenSSL::SSL
+  #     * OpenSSL::SSL::VERIFY_NONE (default)
+  #     * OpenSSL::SSL::VERIFY_CLIENT_ONCE
+  #     * OpenSSL::SSL::VERIFY_PEER
+  #     * OpenSSL::SSL::VERIFY_FAIL_IF_NO_PEER_CERT
   # * :timeout and :open_timeout - specify overall request timeout + socket connect timeout
   # * :ssl_client_cert, :ssl_client_key, :ssl_ca_file
   #
