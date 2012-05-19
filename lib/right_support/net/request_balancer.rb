@@ -74,16 +74,6 @@ module RightSupport::Net
       new(endpoints, options).request(&block)
     end
 
-    def resolve(endpoints)
-      endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
-      @resolved_at = Time.now.to_i
-      endpoints
-    end
-
-    def expired?
-      @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
-    end
-
     # Constructor. Accepts a sequence of request endpoints which it shuffles randomly at
     # creation time; however, the ordering of the endpoints does not change thereafter
     # and the sequence is tried from the beginning for every request.
@@ -145,6 +135,16 @@ module RightSupport::Net
       end
     end
 
+    def resolve(endpoints)
+      endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
+      @resolved_at = Time.now.to_i
+      endpoints
+    end
+
+    def expired?
+      @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
+    end
+
     # Perform a request.
     #
     # === Block
@@ -160,75 +160,154 @@ module RightSupport::Net
     # Return the first non-nil value provided by the block.
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
-      if self.expired?
-        @ips = self.resolve(@endpoints)
+      if expired?
+        @ips = resolve(@endpoints)
         @policy.set_endpoints(@ips)
       end
 
       exceptions = []
       result     = nil
-      complete   = false
       n          = 0
 
       loop do
-        if complete
-          break
-        else
-          do_retry = @options[:retry] || DEFAULT_RETRY_PROC
-          do_retry = do_retry.call(@ips || @endpoints, n) if do_retry.respond_to?(:call)
-          break if (do_retry.is_a?(Integer) && n >= do_retry) || [nil, false].include?(do_retry)
-        end
-
-        endpoint, need_health_check  = @policy.next
-        raise NoResult, "No endpoints are available" unless endpoint
-        n += 1
-        t0 = Time.now
-
-        # Perform health check if necessary. Note that we guard this with a rescue, because the
-        # health check may raise an exception and we want to log the exception info if this happens.
-        if need_health_check
-          begin
-            unless @policy.health_check(endpoint)
-              logger.error "RequestBalancer: health check failed to #{endpoint} because of non-true return value"
-              next
-            end
-          rescue Exception => e
-            logger.error "RequestBalancer: health check failed to #{endpoint} because of #{e.class.name}: #{e.message}"
-            next
-          end
-
-          logger.info "RequestBalancer: health check succeeded to #{endpoint}"
-        end
+        endpoint, n, t0 = next_endpoint(n, exceptions)
 
         begin
-          result   = yield(endpoint)
-          @policy.good(endpoint, t0, Time.now)
-          complete = true
+          result = yield(endpoint)
+          good_endpoint(endpoint, t0, Time.now)
           break
         rescue Exception => e
-          if to_raise = handle_exception(endpoint, e, t0)
-            raise(to_raise)
-          else
-            @policy.bad(endpoint, t0, Time.now)
-            exceptions << e
-          end
+          handle_exception(endpoint, e, t0, exceptions)
+          bad_endpoint(endpoint, t0, Time.now)
         end
-
       end
 
-      return result if complete
+      result
+    end
 
-      exceptions = exceptions.map { |e| e.class.name }.uniq.join(', ')
-      msg = "No available endpoints from #{(@ips || @endpoints).inspect}! Exceptions: #{exceptions}"
-      logger.error "RequestBalancer: #{msg}"
-      raise NoResult, msg
+    # Get next endpoint to try. If health check is warranted, initiate it.
+    #
+    # === Parameters
+    # n(Integer):: Counter tracking number of endpoints already tried
+    # exceptions(Array):: Exceptions encountered so far
+    #
+    # === Raise
+    # NoResult:: if *every* URL in the list times out or returns nil
+    #
+    # === Return
+    # (Array):: Endpoint, updated n counter, time when endpoint selected,
+    #   with nil endpoint indicating
+    def next_endpoint(n, exceptions)
+      endpoint = need_health_check = nil
+      do_retry = @options[:retry] || DEFAULT_RETRY_PROC
+      do_retry = do_retry.call(@ips || @endpoints, n) if do_retry.respond_to?(:call)
+      if (do_retry.is_a?(Integer) && n >= do_retry) || [nil, false].include?(do_retry)
+        endpoint = nil
+      else
+        endpoint, need_health_check  = @policy.next
+      end
+      unless endpoint
+        exceptions = exceptions.map { |e| e.class.name }.uniq.join(', ')
+        msg = "No available endpoints from #{(@ips || @endpoints).inspect}!"
+        msg += " Exceptions: #{exceptions}" unless exceptions.empty?
+        logger.error "RequestBalancer: #{msg}"
+        raise NoResult, msg
+      end
+
+      n += 1
+      t0 = Time.now
+
+      # Perform health check if necessary. Note that we guard this with a rescue, because the
+      # health check may raise an exception and we want to log the exception info if this happens.
+      if need_health_check
+        begin
+          unless @policy.health_check(endpoint)
+            logger.error "RequestBalancer: health check failed to #{endpoint} because of non-true return value"
+            endpoint, n, _ = next_endpoint(n, exceptions)
+          end
+        rescue Exception => e
+          logger.error "RequestBalancer: health check failed to #{endpoint} because of #{e.class.name}: #{e.message}"
+          endpoint, n, _ = next_endpoint(n, exceptions)
+        end
+        logger.info "RequestBalancer: health check succeeded to #{endpoint}"
+      end
+      [endpoint, n, t0]
+    end
+
+    # Declare an endpoint good.
+    #
+    # === Parameters
+    # endpoint(Object):: Good network endpoint (e.g. HTTP URL)
+    # e(Exception):: Exception encountered
+    # t0(Time):: Time when request started
+    # t1(Time):: Time when request finished
+    #
+    # === Return
+    # true:: Always return true
+    def good_endpoint(endpoint, t0, t1)
+      @policy.good(endpoint, t0, t1)
+      true
+    end
+
+    # Declare an endpoint bad.
+    #
+    # === Parameters
+    # endpoint(Object):: Bad network endpoint (e.g. HTTP URL)
+    # e(Exception):: Exception encountered
+    # t0(Time):: Time when request started
+    #
+    # === Return
+    # true:: Always return true
+    def bad_endpoint(endpoint, t0, t1)
+      @policy.bad(endpoint, t0, t1)
+      true
+    end
+
+    # Decide what to do with an exception. The decision is influenced by the :fatal
+    # option passed to the constructor.
+    #
+    # === Parameters
+    # endpoint(Object):: Network endpoint (e.g. HTTP URL)
+    # e(Exception):: Exception encountered
+    # t0(Time):: Time when request started
+    # exceptions(Array):: Accumulator for exceptions
+    #
+    # === Return
+    # true:: Always return true
+    def handle_exception(endpoint, e, t0, exceptions)
+      fatal = @options[:fatal] || DEFAULT_FATAL_PROC
+
+      #The option may be a proc or lambda; call it to get input
+      fatal = fatal.call(e) if fatal.respond_to?(:call)
+
+      #The options may be single exception classes, in which case we want to expand
+      #it out into a list
+      fatal = [fatal] if fatal.is_a?(Class)
+
+      #The option may be a list of exception classes, in which case we want to evaluate
+      #whether the exception we're handling is an instance of any mentioned exception
+      #class
+      fatal = fatal.any?{ |c| e.is_a?(c) } if fatal.respond_to?(:any?)
+      duration = sprintf('%.4f', Time.now - t0)
+      msg = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} during request to #{endpoint}: " +
+            "#{e.message} after #{duration} seconds"
+      logger.error msg
+      @options[:on_exception].call(fatal, e, endpoint) if @options[:on_exception]
+
+      if fatal
+        #Final decision: did we identify it as fatal?
+        raise e
+      else
+        exceptions << e
+      end
+      true
     end
 
     # Provide an interface so one can query the RequestBalancer for statistics on
     # it's endpoints.  Merely proxies the balancing policy's get_stats method. If
     # no method exists in the balancing policy, a hash of endpoints with "n/a" is
     # returned.
-    # 
+    #
     # Examples
     #
     # A RequestBalancer created with endpoints [1,2,3,4,5] and using a HealthCheck
@@ -248,35 +327,6 @@ module RightSupport::Net
     end
 
     protected
-
-    # Decide what to do with an exception. The decision is influenced by the :fatal
-    # option passed to the constructor.
-    def handle_exception(endpoint, e, t0)
-      fatal = @options[:fatal] || DEFAULT_FATAL_PROC
-
-      #The option may be a proc or lambda; call it to get input
-      fatal = fatal.call(e) if fatal.respond_to?(:call)
-
-      #The options may be single exception classes, in which case we want to expand
-      #it out into a list
-      fatal = [fatal] if fatal.is_a?(Class)
-
-      #The option may be a list of exception classes, in which case we want to evaluate
-      #whether the exception we're handling is an instance of any mentioned exception
-      #class
-      fatal = fatal.any?{ |c| e.is_a?(c) } if fatal.respond_to?(:any?)
-      duration = sprintf('%.4f', Time.now - t0)
-      msg = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} during request to #{endpoint}: #{e.message} after #{duration} seconds"
-      logger.error msg
-      @options[:on_exception].call(fatal, e, endpoint) if @options[:on_exception]
-
-      if fatal
-        #Final decision: did we identify it as fatal?
-        return e
-      else
-        return nil
-      end
-    end
 
     def test_policy_duck_type(object)
       [:next, :good, :bad].all? { |m| object.respond_to?(m) }
