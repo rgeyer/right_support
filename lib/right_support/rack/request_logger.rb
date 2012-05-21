@@ -93,10 +93,11 @@ module RightSupport::Rack
         env["PATH_INFO"],
         query_info,
         env["HTTP_VERSION"],
+        env['COMMON_INFO'] || '',
         env["rack.request_uuid"] || ''
       ]
 
-      logger.info %Q{Begin: %s "%s %s%s %s" %s} % params
+      logger.info %Q{Begin: %s "%s %s%s %s" %s %s} % params
     end
 
     # Log end of request
