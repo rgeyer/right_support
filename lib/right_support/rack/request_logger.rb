@@ -93,7 +93,7 @@ module RightSupport::Rack
         env["PATH_INFO"],
         query_info,
         env["HTTP_VERSION"],
-        env['COMMON_INFO'] || '',
+        env['HTTP_X_SHARD'] || '',
         env["rack.request_uuid"] || ''
       ]
 
