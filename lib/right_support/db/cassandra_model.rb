@@ -200,7 +200,6 @@ module RightSupport::DB
       # auto_add_keyspace(Boolean):: Automatically add keyspace to list of keyspaces, if not added previously
       # block(Proc):: Code that will be called in keyspace context
       def with_keyspace(kyspc, auto_add_keyspace=true, &block)
-        ENV['COMMON_INFO'.freeze] = kyspc
         @@current_keyspace = nil
         if !@@keyspaces.has_key?(kyspc) && auto_add_keyspace
           self.keyspace = kyspc
@@ -219,7 +218,6 @@ module RightSupport::DB
           end
         ensure
           @@current_keyspace = nil
-          ENV['COMMON_INFO'.freeze] = nil
         end
       end
 
