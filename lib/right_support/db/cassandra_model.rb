@@ -124,11 +124,11 @@ module RightSupport::DB
     class << self
 
       @@logger = nil
-      
+
       attr_accessor :column_family
 
-      @@keyspaces = {}      
-      
+      @@keyspaces = {}
+
       @@default_keyspace = nil
 
       # current keyspace context
@@ -213,7 +213,7 @@ module RightSupport::DB
           if !self.custom_operation_exception.nil? && self.custom_operation_exception.kind_of?(Proc)\
                 && e.kind_of?(Thrift::Exception)
             custom_operation_exception.call
-          else          
+          else
             raise e
           end
         ensure
@@ -242,7 +242,7 @@ module RightSupport::DB
           @@default_keyspace = (filtered_keyspaces[0] + "_" + (ENV['RACK_ENV'] || 'development'))
         end
       end
-      
+
       # Client connected to Cassandra server
       # Create connection if does not already exist
       # Use BinaryProtocolAccelerated if it available
@@ -283,9 +283,9 @@ module RightSupport::DB
           connection.disable_node_auto_discovery!
           @@keyspaces[kyspc] = connection
         end
-        connection        
+        connection
       end
-      
+
       # Disconnect given keyspace from Cassandra server
       #
       # === Parameters
@@ -295,7 +295,7 @@ module RightSupport::DB
       # (Cassandra):: Client connected to server
       def disconnect!(disconnect_keyspace)
         return_value = false
-        if (@@keyspaces.has_key?(disconnect_keyspace) && disconnect_keyspace != @@default_keyspace) 
+        if (@@keyspaces.has_key?(disconnect_keyspace) && disconnect_keyspace != @@default_keyspace)
           connection = @@keyspaces[disconnect_keyspace]
           if !connection.nil?
             connection.disconnect!
@@ -303,14 +303,14 @@ module RightSupport::DB
           end
           @@keyspaces.delete(disconnect_keyspace)
           if disconnect_keyspace == @@default_keyspace
-            shifted_keyspace = @@keyspaces.keys           
+            shifted_keyspace = @@keyspaces.keys
             @@default_keyspace = (shifted_keyspace.empty? ? nil : shifted_keyspace[0])
           end
           return_value = true
         end
         return_value
       end
-      
+
       # Disconnect from all keyspaces of Cassandra
       #
       # === Return
@@ -334,7 +334,7 @@ module RightSupport::DB
       def all(k, opt = {})
         real_get(k, opt)
       end
-      
+
       # Get row for specified primary key and convert into object of given class
       # Unless :count is specified, a maximum of 100 columns are retrieved
       #
@@ -515,7 +515,7 @@ module RightSupport::DB
       #
       # === Return
       # (Object):: Value returned by executed method
-      def do_op(meth, *args, &block)        
+      def do_op(meth, *args, &block)
         conn.send(meth, *args, &block)
       rescue IOError
         reconnect
@@ -530,9 +530,9 @@ module RightSupport::DB
       def reconnect
         config = @@config[ENV["RACK_ENV"]]
         raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
-        
+
         return false if keyspace.nil?
-    
+
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
           if defined? Thrift::BinaryProtocolAccelerated
@@ -574,7 +574,7 @@ module RightSupport::DB
       self.class.insert(key, attributes)
       true
     end
-    
+
     # Load object from Cassandra without modifying this object
     #
     # === Return
