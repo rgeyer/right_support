@@ -240,6 +240,35 @@ module RightSupport::DB
         end
       end
 
+      def get_all_indexed_slices(index, key, columns = nil, opt = {})
+        if rows = real_get_all_indexed_slices(index, key, columns, opt)
+          rows
+        else
+          Cassandra::OrderedHash.new
+        end
+      end
+
+      def real_get_all_indexed_slices(index, key, columns = nil, opt = {})
+        rows = Cassandra::OrderedHash.new
+        start = ""
+        count = DEFAULT_COUNT
+        expr = do_op(:create_idx_expr, index, key, "EQ")
+        opt = opt[:consistency] ? {:consistency => opt[:consistency]} : {}
+        while true
+          clause = do_op(:create_idx_clause, [expr], start, count)
+          chunk = self.conn.get_indexed_slices(column_family, clause, columns, opt)
+          rows.merge!(chunk)
+          if chunk.size == count
+            # Assume there are more chunks, use last key as start of next get
+            start = chunk.keys.last
+          else
+          # This must be the last chunk
+            break
+          end
+        end
+        rows
+      end
+
       # Get all rows for specified secondary key
       #
       # === Parameters
@@ -260,13 +289,6 @@ module RightSupport::DB
         else
           []
         end
-      end
-
-      # Get all rows for specified secondary key
-      # as OrderedHash of key: columns,
-      # wrapping get_indexed
-      def get_indexed_as_hash(index, key, columns = nil, opt = {})
-        self.get_indexed(index, key, columns, opt).inject(Cassandra::OrderedHash.new){|h, key_slice| h[key_slice.key] = key_slice.attributes; h}
       end
 
       # Get all raw rows for specified secondary key
