@@ -266,7 +266,7 @@ module RightSupport::DB
       # as OrderedHash of key: columns,
       # wrapping get_indexed
       def get_indexed_as_hash(index, key, columns = nil, opt = {})
-        get_indexed(index, key, columns, opt).inject(OrderedHash.new){|h, key_slice| h[key_slice.key] = key_slice.columns; h}
+        self.get_indexed(index, key, columns, opt).inject(OrderedHash.new){|h, key_slice| h[key_slice.key] = key_slice.columns; h}
       end
 
       # Get all raw rows for specified secondary key
