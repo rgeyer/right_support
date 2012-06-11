@@ -240,6 +240,16 @@ module RightSupport::DB
         end
       end
 
+      # Get all rows for specified secondary key
+      #
+      # === Parameters
+      # index(String):: Name of secondary index
+      # key(String):: Index value that each selected row is required to match
+      # columns(Array|nil):: Names of columns to be retrieved, defaults to all
+      # opt(Hash):: Request options with only :consistency used
+      #
+      # === Return
+      # (OrderedHash):: Rows retrieved with each key, value is columns
       def get_all_indexed_slices(index, key, columns = nil, opt = {})
         if rows = real_get_all_indexed_slices(index, key, columns, opt)
           rows
