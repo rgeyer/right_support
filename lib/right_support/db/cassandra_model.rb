@@ -126,24 +126,24 @@ module RightSupport::DB
 
       @@logger = nil
       @@conn = nil
-      
+
       attr_accessor :column_family
       attr_writer :keyspace
 
       def config
         @@config
       end
-      
+
       def config=(value)
         @@config = value
       end
-      
+
       def logger=(l)
         @@logger = l
       end
-      
+
       def logger
-        @@logger 
+        @@logger
       end
 
       def keyspace
@@ -185,7 +185,7 @@ module RightSupport::DB
       def all(k, opt = {})
         real_get(k, opt)
       end
-      
+
       # Get row for specified primary key and convert into object of given class
       # Unless :count is specified, a maximum of 100 columns are retrieved
       #
@@ -238,6 +238,37 @@ module RightSupport::DB
           end
           columns
         end
+      end
+
+      # Get all rows for specified secondary key
+      #
+      # === Parameters
+      # index(String):: Name of secondary index
+      # key(String):: Index value that each selected row is required to match
+      # columns(Array|nil):: Names of columns to be retrieved, defaults to all
+      # opt(Hash):: Request options with only :consistency used
+      #
+      # === Return
+      # (OrderedHash):: Rows retrieved with each key, value is columns
+      def get_all_indexed_slices(index, key, columns = nil, opt = {})
+        rows = Cassandra::OrderedHash.new
+        start = ""
+        count = opt.delete(:count) || DEFAULT_COUNT
+        expr = do_op(:create_idx_expr, index, key, "EQ")
+        opt = opt[:consistency] ? {:consistency => opt[:consistency]} : {}
+        while true
+          clause = do_op(:create_idx_clause, [expr], start, count)
+          chunk = self.conn.get_indexed_slices(column_family, clause, columns, opt)
+          rows.merge!(chunk)
+          if chunk.size == count
+            # Assume there are more chunks, use last key as start of next get
+            start = chunk.keys.last
+          else
+          # This must be the last chunk
+            break
+          end
+        end
+        rows
       end
 
       # Get all rows for specified secondary key
