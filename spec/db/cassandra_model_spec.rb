@@ -26,7 +26,7 @@ describe RightSupport::DB::CassandraModel do
       let(:column_family) { 'column_family' }
       let(:env) { 'test' }
       let(:server) { 'localhost:9160' }
-      let(:keyspace) { 'SatelliteService_1_' + (ENV['RACK_ENV'] || 'development') }
+      let(:keyspace) { 'SatelliteService_1' }
       let(:default_keyspace) { 'SatelliteService' }
       let(:current_keyspace_connection) { flexmock('cassandra') }
       let(:default_keyspace_connection) { flexmock('cassandra') }
@@ -43,7 +43,7 @@ describe RightSupport::DB::CassandraModel do
         default_keyspace_connection.should_receive(:disable_node_auto_discovery!).and_return(true)
         default_keyspace_connection.should_receive(:name).and_return('connection2')
 
-        flexmock(Cassandra).should_receive(:new).with(keyspace, "localhost:9160", {:timeout=>10}).and_return(current_keyspace_connection)
+        flexmock(Cassandra).should_receive(:new).with(keyspace + '_' + (ENV['RACK_ENV'] || 'development'), "localhost:9160", {:timeout=>10}).and_return(current_keyspace_connection)
         flexmock(Cassandra).should_receive(:new).with(default_keyspace + '_' + (ENV['RACK_ENV'] || 'development'), "localhost:9160", {:timeout=>10}).and_return(default_keyspace_connection)
       end
 
@@ -168,7 +168,7 @@ describe RightSupport::DB::CassandraModel do
       # executed within the block.  Any requests processed outside of the block should execute using the
       # default keyspace.
       context :with_keyspace do
-        let(:keyspace) { 'SatelliteService_1_' + (ENV['RACK_ENV'] || 'development') }
+        let(:keyspace) { 'SatelliteService_1' }
         let(:default_keyspace) { 'SatelliteService' }
 
         before(:each) do
@@ -177,7 +177,7 @@ describe RightSupport::DB::CassandraModel do
 
         it 'should set the current keyspace to the keyspace provided for execution within the block' do
           RightSupport::DB::CassandraModel.with_keyspace(keyspace) do
-            RightSupport::DB::CassandraModel.keyspace.should == keyspace
+            RightSupport::DB::CassandraModel.keyspace.should == keyspace + "_" + (ENV['RACK_ENV'] || 'development')
           end
         end
 
