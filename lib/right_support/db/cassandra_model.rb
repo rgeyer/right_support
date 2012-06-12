@@ -126,24 +126,24 @@ module RightSupport::DB
 
       @@logger = nil
       @@conn = nil
-      
+
       attr_accessor :column_family
       attr_writer :keyspace
 
       def config
         @@config
       end
-      
+
       def config=(value)
         @@config = value
       end
-      
+
       def logger=(l)
         @@logger = l
       end
-      
+
       def logger
-        @@logger 
+        @@logger
       end
 
       def keyspace
@@ -185,7 +185,7 @@ module RightSupport::DB
       def all(k, opt = {})
         real_get(k, opt)
       end
-      
+
       # Get row for specified primary key and convert into object of given class
       # Unless :count is specified, a maximum of 100 columns are retrieved
       #
@@ -261,7 +261,7 @@ module RightSupport::DB
       def real_get_all_indexed_slices(index, key, columns = nil, opt = {})
         rows = Cassandra::OrderedHash.new
         start = ""
-        count = DEFAULT_COUNT
+        count = opt.delete(:count) || DEFAULT_COUNT
         expr = do_op(:create_idx_expr, index, key, "EQ")
         opt = opt[:consistency] ? {:consistency => opt[:consistency]} : {}
         while true
