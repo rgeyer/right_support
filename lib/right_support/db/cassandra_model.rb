@@ -251,14 +251,6 @@ module RightSupport::DB
       # === Return
       # (OrderedHash):: Rows retrieved with each key, value is columns
       def get_all_indexed_slices(index, key, columns = nil, opt = {})
-        if rows = real_get_all_indexed_slices(index, key, columns, opt)
-          rows
-        else
-          Cassandra::OrderedHash.new
-        end
-      end
-
-      def real_get_all_indexed_slices(index, key, columns = nil, opt = {})
         rows = Cassandra::OrderedHash.new
         start = ""
         count = opt.delete(:count) || DEFAULT_COUNT
