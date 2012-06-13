@@ -197,14 +197,10 @@ module RightSupport::DB
       #
       # === Parameters
       # kyspc(String):: Keyspace context
-      # auto_add_keyspace(Boolean):: Automatically add keyspace to list of keyspaces, if not added previously
       # block(Proc):: Code that will be called in keyspace context
-      def with_keyspace(kyspc, auto_add_keyspace=true, &block)
+      def with_keyspace(kyspc, &block)
         @@current_keyspace = nil
-        if !@@keyspaces.has_key?(kyspc) && auto_add_keyspace
-          self.keyspace = kyspc
-          @@current_keyspace = kyspc + "_" + (ENV['RACK_ENV'] || 'development')
-        elsif @@keyspaces.has_key?(kyspc)
+        if @@keyspaces.has_key?(kyspc)
           @@current_keyspace = kyspc
         end
         begin
@@ -284,41 +280,6 @@ module RightSupport::DB
           @@keyspaces[kyspc] = connection
         end
         connection
-      end
-
-      # Disconnect given keyspace from Cassandra server
-      #
-      # === Parameters
-      # disconnect_keyspace(String):: keyspace name to be disconnected
-      #
-      # === Return
-      # (Cassandra):: Client connected to server
-      def disconnect!(disconnect_keyspace)
-        return_value = false
-        if (@@keyspaces.has_key?(disconnect_keyspace) && disconnect_keyspace != @@default_keyspace)
-          connection = @@keyspaces[disconnect_keyspace]
-          if !connection.nil?
-            connection.disconnect!
-            connection = nil
-          end
-          @@keyspaces.delete(disconnect_keyspace)
-          if disconnect_keyspace == @@default_keyspace
-            shifted_keyspace = @@keyspaces.keys
-            @@default_keyspace = (shifted_keyspace.empty? ? nil : shifted_keyspace[0])
-          end
-          return_value = true
-        end
-        return_value
-      end
-
-      # Disconnect from all keyspaces of Cassandra
-      #
-      # === Return
-      # (Cassandra):: Client connected to server
-      def disconnect_all!
-        @@keyspaces.each do |kyspc, conn|
-          disconnect(kyspc)
-        end
       end
 
       # Get row(s) for specified key(s)
