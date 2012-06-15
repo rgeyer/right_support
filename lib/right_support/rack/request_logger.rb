@@ -93,7 +93,7 @@ module RightSupport::Rack
         env["PATH_INFO"],
         query_info,
         env["HTTP_VERSION"],
-        'Shard_id:' + (env['HTTP_X_SHARD'] || 'not setted').to_s + ';',
+        'Shard_id:' + (env['HTTP_X_SHARD'] || 'not set').to_s + ';',
         env["rack.request_uuid"] || ''
       ]
 
