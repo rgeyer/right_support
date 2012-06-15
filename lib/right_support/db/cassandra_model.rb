@@ -19,7 +19,6 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 begin
   require 'cassandra/0.8'
 
@@ -125,29 +124,78 @@ module RightSupport::DB
     class << self
 
       @@logger = nil
-      @@conn = nil
-      
+
+      attr_reader   :default_keyspace
       attr_accessor :column_family
-      attr_writer :keyspace
+      attr_accessor :custom_operation_exception
+
+      @@current_keyspace = nil
+
+      @@connections = {}
 
       def config
         @@config
       end
-      
+
       def config=(value)
         @@config = value
       end
-      
+
       def logger=(l)
         @@logger = l
       end
-      
+
       def logger
-        @@logger 
+        @@logger
       end
 
+      # Return current keyspaces name as Array of String
+      #
+      # === Return
+      # (Array):: keyspaces names
+
+      def keyspaces
+        @@connections.keys
+      end
+
+      # Returns current active keyspace.
+      #
+      # === Return
+      # keyspace(String):: current_keyspace or default_keyspace
+
       def keyspace
-        @keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+        @@current_keyspace || @@default_keyspace
+      end
+
+      # Sets the default keyspace
+      #
+      # === Parameters
+      # keyspace(String):: Set the default keyspace
+
+      def keyspace=(kyspc)
+        @@default_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
+      end
+
+      # Execute given block in kyspc context
+      #
+      # === Parameters
+      # kyspc(String):: Keyspace context
+      # block(Proc):: Code that will be called in keyspace context
+
+      def with_keyspace(kyspc, &block)
+        @@current_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
+        begin
+          block.call
+        rescue Exception => e
+          if !self.custom_operation_exception.nil? && self.custom_operation_exception.kind_of?(Proc)\
+                && e.kind_of?(Thrift::Exception)
+            custom_operation_exception.call
+          else
+            raise e
+          end
+        ensure
+          @@current_keyspace = nil
+        end
       end
 
       # Client connected to Cassandra server
@@ -156,8 +204,8 @@ module RightSupport::DB
       #
       # === Return
       # (Cassandra):: Client connected to server
-      def conn
-        return @@conn if @@conn
+      def conn()
+        @@connections ||= {}
 
         # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
         config = @@config[ENV["RACK_ENV"]]
@@ -167,9 +215,9 @@ module RightSupport::DB
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
           if defined? Thrift::BinaryProtocolAccelerated
 
-        @@conn = Cassandra.new(keyspace, config["server"], thrift_client_options)
-        @@conn.disable_node_auto_discovery!
-        @@conn
+        @@connections[self.keyspace] ||= Cassandra.new(self.keyspace, config["server"], thrift_client_options)
+        @@connections[self.keyspace].disable_node_auto_discovery!
+        @@connections[self.keyspace]
       end
 
       # Get row(s) for specified key(s)
@@ -185,7 +233,7 @@ module RightSupport::DB
       def all(k, opt = {})
         real_get(k, opt)
       end
-      
+
       # Get row for specified primary key and convert into object of given class
       # Unless :count is specified, a maximum of 100 columns are retrieved
       #
@@ -382,16 +430,19 @@ module RightSupport::DB
         config = @@config[ENV["RACK_ENV"]]
         raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
 
+        return false if keyspace.nil?
+
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
           if defined? Thrift::BinaryProtocolAccelerated
 
-        @@conn = Cassandra.new(keyspace, config["server"], thrift_client_options)
-        @@conn.disable_node_auto_discovery!
+        connection = Cassandra.new(keyspace, config["server"], thrift_client_options)
+        connection.disable_node_auto_discovery!
+        @@connections[keyspace] = connection
         true
       end
 
-      # Cassandra ring for given keyspace
+      # Cassandra ring
       #
       # === Return
       # (Array):: Members of ring
@@ -422,7 +473,7 @@ module RightSupport::DB
       self.class.insert(key, attributes)
       true
     end
-    
+
     # Load object from Cassandra without modifying this object
     #
     # === Return
