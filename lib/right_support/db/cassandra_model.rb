@@ -297,6 +297,37 @@ module RightSupport::DB
       # opt(Hash):: Request options with only :consistency used
       #
       # === Return
+      # (OrderedHash):: Rows retrieved with each key, value is columns
+      def get_all_indexed_slices(index, key, columns = nil, opt = {})
+        rows = Cassandra::OrderedHash.new
+        start = ""
+        count = opt.delete(:count) || DEFAULT_COUNT
+        expr = do_op(:create_idx_expr, index, key, "EQ")
+        opt = opt[:consistency] ? {:consistency => opt[:consistency]} : {}
+        while true
+          clause = do_op(:create_idx_clause, [expr], start, count)
+          chunk = self.conn.get_indexed_slices(column_family, clause, columns, opt)
+          rows.merge!(chunk)
+          if chunk.size == count
+            # Assume there are more chunks, use last key as start of next get
+            start = chunk.keys.last
+          else
+          # This must be the last chunk
+            break
+          end
+        end
+        rows
+      end
+
+      # Get all rows for specified secondary key
+      #
+      # === Parameters
+      # index(String):: Name of secondary index
+      # key(String):: Index value that each selected row is required to match
+      # columns(Array|nil):: Names of columns to be retrieved, defaults to all
+      # opt(Hash):: Request options with only :consistency used
+      #
+      # === Return
       # (Array):: Rows retrieved with each member being an instantiated object of the
       #   given class as value, but object only contains values for the columns retrieved
       def get_indexed(index, key, columns = nil, opt = {})
