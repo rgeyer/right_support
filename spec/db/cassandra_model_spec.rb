@@ -14,23 +14,39 @@ describe RightSupport::DB::CassandraModel do
     ENV["RACK_ENV"] = env
     RightSupport::DB::CassandraModel.column_family = column_family
     RightSupport::DB::CassandraModel.keyspace = keyspace
-    RightSupport::DB::CassandraModel.config = {"test" => {"server" => server}}
+    RightSupport::DB::CassandraModel.config = {"#{env}" => {"server" => server}}
   end
 
   describe "initialization" do
-
-    before(:each) do
-      @keyspace       = "TestAppService"
-      @server         = "localhost:9160"
-      @env            = "test"
-      @timeout        = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
-
-      @conn = flexmock(:conn)
-      flexmock(Cassandra).should_receive(:new).with(@keyspace + "_" + @env, @server, @timeout).and_return(@conn)
-      @conn.should_receive(:disable_node_auto_discovery!).and_return(true)
-    end
-
+    # This method determines the current keyspace based on the return value of the CassandraModel.keyspace method
+    # which looks at the value of @@current_keyspace or @@default_keyspace to determine the keyspace it is operating
+    # under. If a connection already exists for the keyspace it will re-use it.  If a connection does not exist,
+    # it will create a new persistent connection for that keyspace that can be re-used with future requests
     context :conn do
+      let(:column_family) { 'column_family' }
+      let(:env) { 'test' }
+      let(:server) { 'localhost:9160' }
+      let(:keyspace) { 'SatelliteService_1' }
+      let(:default_keyspace) { 'SatelliteService' }
+      let(:current_keyspace_connection) { flexmock('cassandra') }
+      let(:default_keyspace_connection) { flexmock('cassandra') }
+
+      before(:each) do
+        ENV["RACK_ENV"] = env
+        RightSupport::DB::CassandraModel.column_family = column_family
+        RightSupport::DB::CassandraModel.keyspace = default_keyspace
+        RightSupport::DB::CassandraModel.config = {env => {"server" => server}}
+
+        current_keyspace_connection.should_receive(:disable_node_auto_discovery!).and_return(true)
+        current_keyspace_connection.should_receive(:name).and_return('connection1')
+
+        default_keyspace_connection.should_receive(:disable_node_auto_discovery!).and_return(true)
+        default_keyspace_connection.should_receive(:name).and_return('connection2')
+
+        flexmock(Cassandra).should_receive(:new).with(keyspace + '_' + (ENV['RACK_ENV'] || 'development'), "localhost:9160", {:timeout=>10}).and_return(current_keyspace_connection)
+        flexmock(Cassandra).should_receive(:new).with(default_keyspace + '_' + (ENV['RACK_ENV'] || 'development'), "localhost:9160", {:timeout=>10}).and_return(default_keyspace_connection)
+      end
+
       it 'raises a meaningful exception when a config stanza is missing' do
         old_rack_env = ENV['RACK_ENV']
 
@@ -46,9 +62,23 @@ describe RightSupport::DB::CassandraModel do
         end
       end
 
-      it 'creates connection and reuses it' do
-        RightSupport::DB::CassandraModel.conn.should == @conn
-        RightSupport::DB::CassandraModel.conn.should == @conn
+      # This method assumes that keyspaces being requested to connect to already exist.
+      # If they do not exist, it should NOT create them.  If the connection is able
+      # to be successfully established then it should be stored in a pool of connections
+      it 'should create a new connection if no connection exists for provided keyspace' do
+        RightSupport::DB::CassandraModel.conn.name.should == default_keyspace_connection.name
+      end
+
+      # If a connection has already been opened for a keyspace it should be re-used
+      it 'should re-use an existing connection if it exists for provided keyspace' do
+        RightSupport::DB::CassandraModel.conn.name.should == RightSupport::DB::CassandraModel.conn.name
+      end
+
+      # The keyspace being used for the connection should be either the current keyspace or the default keyspace
+      it 'should use the connection that corresponds to the provided keyspace' do
+        RightSupport::DB::CassandraModel.with_keyspace(keyspace) do
+          RightSupport::DB::CassandraModel.conn.name.should == current_keyspace_connection.name
+        end
       end
     end
   end
@@ -73,7 +103,7 @@ describe RightSupport::DB::CassandraModel do
 
       @instance = RightSupport::DB::CassandraModel.new(@key, @attrs)
 
-      @conn = flexmock(:conn)
+      @conn = flexmock(:connection)
       flexmock(RightSupport::DB::CassandraModel).should_receive(:conn).and_return(@conn)
       @conn.should_receive(:insert).with(@column_family, @key, @attrs,@opt).and_return(true)
       @conn.should_receive(:remove).with(@column_family, @key).and_return(true)
@@ -82,7 +112,7 @@ describe RightSupport::DB::CassandraModel do
     end
 
     describe "instance methods" do
-       context :save do
+      context :save do
         it 'saves the row' do
           @instance.save.should be_true
         end
@@ -103,6 +133,60 @@ describe RightSupport::DB::CassandraModel do
     end
 
     describe "class methods" do
+      # We want to remain backward-compatible for existing services so we expect this call to be made
+      # as such: RightSupport::DB::CassandraModel.keyspace = "SatelliteService" and CassandraModel
+      # will append the RACK_ENV to the end of it.  Ex: "SatelliteService_development"
+      context :keyspace= do
+        let(:keyspace) { 'SatelliteService' }
+
+        it 'should append the environment to the keyspace provided' do
+          RightSupport::DB::CassandraModel.keyspace = keyspace
+          RightSupport::DB::CassandraModel.send(:class_variable_get, :@@default_keyspace).should == (keyspace + "_" + (ENV['RACK_ENV'] || 'development'))
+        end
+      end
+
+      # If a current keyspace is provided it takes precedence over the default keyspace.  If none is
+      # provided, the default keyspace should be returned.
+      context :keyspace do
+        let(:keyspace) { 'SatelliteService_' + ENV['RACK_ENV'] }
+
+        it 'should return the default keyspace if no current keyspace is set' do
+          RightSupport::DB::CassandraModel.send(:class_variable_set, :@@current_keyspace, nil)
+          RightSupport::DB::CassandraModel.send(:class_variable_set, :@@default_keyspace, keyspace)
+          RightSupport::DB::CassandraModel.keyspace.should == keyspace
+        end
+
+        it 'should return the current keyspace if a current keyspace is set' do
+          RightSupport::DB::CassandraModel.send(:class_variable_set, :@@current_keyspace, keyspace)
+          RightSupport::DB::CassandraModel.send(:class_variable_set, :@@default_keyspace, nil)
+          RightSupport::DB::CassandraModel.keyspace.should == keyspace
+        end
+      end
+
+      # This method assumes that a valid keyspace is passed in.  If the keyspace does not exist we do NOT
+      # want to create it.  CassandraModel should use the keyspace provided for the duration of the code
+      # executed within the block.  Any requests processed outside of the block should execute using the
+      # default keyspace.
+      context :with_keyspace do
+        let(:keyspace) { 'SatelliteService_1' }
+        let(:default_keyspace) { 'SatelliteService' }
+
+        before(:each) do
+          RightSupport::DB::CassandraModel.keyspace = default_keyspace
+        end
+
+        it 'should set the current keyspace to the keyspace provided for execution within the block' do
+          RightSupport::DB::CassandraModel.with_keyspace(keyspace) do
+            RightSupport::DB::CassandraModel.keyspace.should == keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+          end
+        end
+
+        it 'should reset back to the default keyspace for execution outside of the block' do
+          RightSupport::DB::CassandraModel.with_keyspace(keyspace) {}
+          RightSupport::DB::CassandraModel.keyspace.should == default_keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+        end
+      end
+
       context :insert do
         it 'inserts a row by using the class method' do
           RightSupport::DB::CassandraModel.insert(@key, @attrs, @opt).should be_true

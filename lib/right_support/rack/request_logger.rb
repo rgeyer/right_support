@@ -103,10 +103,11 @@ module RightSupport::Rack
         query_info,
         remote_addr,
         sess,
+        'Shard_id:' + (env['HTTP_X_SHARD'] || 'not set').to_s + ';',
         env["rack.request_uuid"] || ''
       ]
 
-      logger.info %Q{Processing %s "%s%s" (for %s)  %s  Request ID: %s} % params
+      logger.info %Q{Processing %s "%s%s" (for %s)  %s %s Request ID: %s} % params
     end
 
     # Log end of request
@@ -127,7 +128,7 @@ module RightSupport::Rack
       else
         '-'
       end
-      
+
       params = [
         duration,
         status,
