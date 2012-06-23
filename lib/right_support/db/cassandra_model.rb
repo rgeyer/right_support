@@ -273,7 +273,7 @@ module RightSupport::DB
           opt = opt.clone
           opt[:count] = DEFAULT_COUNT
           columns = Cassandra::OrderedHash.new
-          while true
+          loop do
             chunk = do_op(:get, column_family, k, opt)
             columns.merge!(chunk)
             if chunk.size == opt[:count]
@@ -295,6 +295,10 @@ module RightSupport::DB
       # key(String):: Index value that each selected row is required to match
       # columns(Array|nil):: Names of columns to be retrieved, defaults to all
       # opt(Hash):: Request options with only :consistency used
+      #
+      # === Block
+      # Optional block that is yielded each chunk as it is retrieved as an array
+      # like the normally returned result
       #
       # === Return
       # (OrderedHash):: Rows retrieved with each key, value is columns
@@ -329,40 +333,29 @@ module RightSupport::DB
       #
       # === Return
       # (Array):: Rows retrieved with each member being an instantiated object of the
-      #   given class as value, but object only contains values for the columns retrieved
+      #   given class as value, but object only contains values for the columns retrieved;
+      #   array is always empty if a block is given
       def get_indexed(index, key, columns = nil, opt = {})
-        if rows = real_get_indexed(index, key, columns, opt)
-          rows.map do |key, columns|
-            attrs = columns.inject({}) { |a, c| a[c.column.name] = c.column.value; a }
-            new(key, attrs)
-          end
-        else
-          []
-        end
-      end
-
-      # Get all raw rows for specified secondary key
-      #
-      # === Parameters
-      # index(String):: Name of secondary index
-      # key(String):: Index value that each selected row is required to match
-      # columns(Array|nil):: Names of columns to be retrieved, defaults to all
-      # opt(Hash):: Request options with only :consistency used
-      #
-      # === Return
-      # (Hash):: Rows retrieved with primary key as key and value being an array
-      #   of CassandraThrift::ColumnOrSuperColumn with attributes :name, :timestamp,
-      #   and :value
-      def real_get_indexed(index, key, columns = nil, opt = {})
-        rows = {}
+        rows = []
         start = ""
         count = DEFAULT_COUNT
         expr = do_op(:create_idx_expr, index, key, "EQ")
         opt = opt[:consistency] ? {:consistency => opt[:consistency]} : {}
-        while true
+        loop do
           clause = do_op(:create_idx_clause, [expr], start, count)
           chunk = do_op(:get_indexed_slices, column_family, clause, columns, opt)
-          rows.merge!(chunk)
+          chunk_rows = []
+          chunk.each do |row_key, row_columns|
+            if row_columns && row_key != start
+              attrs = row_columns.inject({}) { |a, c| a[c.column.name] = c.column.value; a }
+              chunk_rows << new(row_key, attrs)
+            end
+          end
+          if block_given?
+            yield chunk_rows
+          else
+            rows.concat(chunk_rows)
+          end
           if chunk.size == count
             # Assume there are more chunks, use last key as start of next get
             start = chunk.keys.last
