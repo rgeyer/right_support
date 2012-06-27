@@ -186,13 +186,8 @@ module RightSupport::DB
         @@current_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
         begin
           block.call
-        rescue Exception => e
-          if !self.custom_operation_exception.nil? && self.custom_operation_exception.kind_of?(Proc)\
-                && e.kind_of?(Thrift::Exception)
-            custom_operation_exception.call
-          else
-            raise e
-          end
+        rescue CassandraThrift::InvalidRequestException => e
+          raise Exception, e.message
         ensure
           @@current_keyspace = nil
         end
