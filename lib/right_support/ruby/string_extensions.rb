@@ -108,8 +108,8 @@ module RightSupport::Ruby
     def pur; colorize("\e[1m\e[35m"); end
     def colorize(color_code)
       # Doesn't work with the Windows prompt...
-      @windows ||= RbConfig::CONFIG['host_os'] =~ /mswin|win32|dos|mingw|cygwin/i
-      (@windows || !$stdout.isatty) ? to_s : "#{color_code}#{to_s}\e[0m"
+      @@windows ||= RbConfig::CONFIG['host_os'] =~ /mswin|win32|dos|mingw|cygwin/i
+      (@@windows || !$stdout.isatty) ? to_s : "#{color_code}#{to_s}\e[0m"
     end
   
   end
