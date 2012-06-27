@@ -127,7 +127,6 @@ module RightSupport::DB
 
       attr_reader   :default_keyspace
       attr_accessor :column_family
-      attr_accessor :custom_operation_exception
 
       @@current_keyspace = nil
 
