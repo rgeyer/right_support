@@ -127,7 +127,6 @@ module RightSupport::DB
 
       attr_reader   :default_keyspace
       attr_accessor :column_family
-      attr_accessor :custom_operation_exception
 
       @@current_keyspace = nil
 
@@ -184,18 +183,9 @@ module RightSupport::DB
 
       def with_keyspace(kyspc, &block)
         @@current_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
-        begin
-          block.call
-        rescue Exception => e
-          if !self.custom_operation_exception.nil? && self.custom_operation_exception.kind_of?(Proc)\
-                && e.kind_of?(Thrift::Exception)
-            custom_operation_exception.call
-          else
-            raise e
-          end
+        block.call
         ensure
           @@current_keyspace = nil
-        end
       end
 
       # Client connected to Cassandra server
