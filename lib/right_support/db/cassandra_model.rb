@@ -183,13 +183,9 @@ module RightSupport::DB
 
       def with_keyspace(kyspc, &block)
         @@current_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
-        begin
-          block.call
-        rescue CassandraThrift::InvalidRequestException => e
-          raise Exception, e.message
+        block.call
         ensure
           @@current_keyspace = nil
-        end
       end
 
       # Client connected to Cassandra server
