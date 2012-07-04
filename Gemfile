@@ -22,4 +22,5 @@ group :development do
   gem 'rspec', "~> 1.3"
   gem 'cucumber', "~> 0.8"
   gem 'flexmock', "~> 0.8"
+  gem 'syntax', '~> 1.0.0' #rspec will syntax-highlight code snippets if this gem is available
 end
