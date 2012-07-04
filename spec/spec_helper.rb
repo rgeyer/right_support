@@ -2,6 +2,7 @@ require 'rubygems'
 require 'bundler/setup'
 require 'flexmock'
 require 'ruby-debug'
+require 'syntax'
 
 Spec::Runner.configure do |config|
   config.mock_with :flexmock
