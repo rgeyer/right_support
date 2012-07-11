@@ -218,7 +218,7 @@ describe RightSupport::Data::HashTools do
         :target   => {},
         :source   => {},
         :expected => {} },
-      :identical => {       clazz
+      :identical => {
         :target   => { :x => 1, :y => { :foo => :bar } },
         :source   => { :x => 1, :y => { :foo => :bar } },
         :expected => {} },
