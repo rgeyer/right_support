@@ -219,16 +219,16 @@ describe RightSupport::Stats do
       @helpers.sort_value({"append_info" => 9.6, "create_new_section" => 8.5, "append_output" => 7.3, "record" => 4.7,
                            "update_status" => 4.4,
                            "declare" => 39.2, "list_agents" => 3.7, "update_tags" => 3.2, "append_error" => 3.0,
-                           "add_user" => 2.4, "get_boot_bundle" => 1.4, "get_repositories" => 1.4,
-                           "update_login_policy" => 1.3, "schedule_decommission" => 0.91, "update_inputs" => 0.75,
-                           "delete_queues" => 0.75, "soft_decommission" => 0.75, "remove" => 0.66,
-                           "get_login_policy" => 0.58, "ping" => 0.50, "update_entry" => 0.25, "query_tags" => 0.083,
-                           "get_decommission_bundle" => 0.083, "list_queues" => 0.083}).should ==
-                          [["list_queues", 0.083], ["query_tags", 0.083], ["get_decommission_bundle", 0.083],
+                           "add_user" => 2.4, "get_boot_bundle" => 1.5, "get_repositories" => 1.4,
+                           "update_login_policy" => 1.3, "schedule_decommission" => 0.91, "update_inputs" => 0.77,
+                           "delete_queues" => 0.75, "soft_decommission" => 0.76, "remove" => 0.66,
+                           "get_login_policy" => 0.58, "ping" => 0.50, "update_entry" => 0.25, "query_tags" => 0.082,
+                           "get_decommission_bundle" => 0.083, "list_queues" => 0.081}).should ==
+                          [["list_queues", 0.081], ["query_tags", 0.082], ["get_decommission_bundle", 0.083],
                            ["update_entry", 0.25], ["ping", 0.5], ["get_login_policy", 0.58], ["remove", 0.66],
-                           ["delete_queues", 0.75], ["soft_decommission", 0.75], ["update_inputs", 0.75],
+                           ["delete_queues", 0.75], ["soft_decommission", 0.76], ["update_inputs", 0.77],
                            ["schedule_decommission", 0.91], ["update_login_policy", 1.3], ["get_repositories", 1.4],
-                           ["get_boot_bundle", 1.4], ["add_user", 2.4], ["append_error", 3.0], ["update_tags", 3.2],
+                           ["get_boot_bundle", 1.5], ["add_user", 2.4], ["append_error", 3.0], ["update_tags", 3.2],
                            ["list_agents", 3.7], ["update_status", 4.4],
                            ["record", 4.7], ["append_output", 7.3], ["create_new_section", 8.5], ["append_info", 9.6],
                            ["declare", 39.2]]
@@ -262,7 +262,7 @@ describe RightSupport::Stats do
                        "             b1: rs-broker-localhost-5673 disconnected, disconnects: 2 (16 min 40 sec ago), failures: none\n" +
                        "             b2: rs-broker-localhost-5674 failed, disconnects: none, failures: 3 (16 min 40 sec ago w/ 2 retries)\n" +
                        "             exceptions        : testing total: 1, most recent:\n" +
-                       "                                 (1) Mon Jan 12 05:46:40 Exception: Test error\n" +
+                       "                                 (1) Mon Jan 12 13:46:40 Exception: Test error\n" +
                        "             heartbeat         : 60 sec\n" +
                        "             returns           : no queue consumers: 67%, no queue: 33%, total: 3, \n" +
                        "                                 last: no queue consumers (10 sec ago), rate: 0/sec\n"
@@ -313,11 +313,11 @@ describe RightSupport::Stats do
 
       result = @helpers.exceptions_str(@exceptions.stats, "----")
       result.should == "another total: 3, most recent:\n" +
-                       "----(1) Mon Jan 12 05:46:50 ArgumentError: badarg IN Over there\n" +
-                       "----(2) Mon Jan 12 05:46:50 ArgumentError: badarg IN It happened here\n" +
+                       "----(1) Mon Jan 12 13:46:50 ArgumentError: badarg IN Over there\n" +
+                       "----(2) Mon Jan 12 13:46:50 ArgumentError: badarg IN It happened here\n" +
                        "----testing total: 2, most recent:\n" +
-                       "----(1) Mon Jan 12 05:46:50 ArgumentError: badarg IN Over there\n" +
-                       "----(1) Mon Jan 12 05:46:40 Exception: This is a very long exception message that \n" +
+                       "----(1) Mon Jan 12 13:46:50 ArgumentError: badarg IN Over there\n" +
+                       "----(1) Mon Jan 12 13:46:40 Exception: This is a very long exception message that \n" +
                        "----    should be wrapped so that it stays within the maximum line length"
     end
   end
@@ -383,7 +383,7 @@ describe RightSupport::Stats do
                        "                activity3 last    : testing forever: 46 min 40 sec ago and still active\n" +
                        "                empty_hash        : none\n" +
                        "                exceptions        : testing total: 1, most recent:\n" +
-                       "                                    (1) Mon Jan 12 05:46:40 Exception: Test error\n" +
+                       "                                    (1) Mon Jan 12 13:46:40 Exception: Test error\n" +
                        "                float_value       : 3.2\n" +
                        "                some %            : 3.5%\n" +
                        "                some age          : 2 min 5 sec\n" +
@@ -420,8 +420,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
                        "service up  : 1 hr 2 min\n" +
                        "machine up  : 2 days 2 hr 59 min\n" +
                        "version     : 10\n" +
@@ -435,7 +435,7 @@ describe RightSupport::Stats do
                        "              activity last     : testing: 10 sec ago\n" +
                        "              empty_hash        : none\n" +
                        "              exceptions        : testing total: 1, most recent:\n" +
-                       "                                  (1) Mon Jan 12 05:46:40 Exception: Test error\n" +
+                       "                                  (1) Mon Jan 12 13:46:40 Exception: Test error\n" +
                        "              float_value       : 3.2\n" +
                        "              some hash         : ants: 100000000, bears: 1, cats: 3, dogs: 2, dragons: none, hippopotami: 99, \n" +
                        "                                  leopards: 25\n"
@@ -456,8 +456,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "stuff       : empty_hash        : none\n" +
                        "              exceptions        : none\n" +
@@ -481,8 +481,8 @@ describe RightSupport::Stats do
       result.should == "name        : tester_1\n" +
                        "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "stuff       : empty_hash        : none\n" +
                        "              exceptions        : none\n" +
@@ -505,8 +505,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats, :sub_name_width => 11)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 05:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 05:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "/data       : empty_hash  : none\n" +
                        "              float_value : 3.2\n" +
@@ -527,8 +527,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats, :name_width => 15)
       result.should == "identity        : unit tester\n" +
                        "hostname        : localhost\n" +
-                       "stat time       : Mon Jan 12 05:46:40 1970\n" +
-                       "last reset      : Mon Jan 12 05:46:40 1970\n" +
+                       "stat time       : Mon Jan 12 13:46:40 1970\n" +
+                       "last reset      : Mon Jan 12 13:46:40 1970\n" +
                        "service up      : 16 min 40 sec\n" +
                        "stuff           : empty_hash        : none\n" +
                        "                  float_value       : 3.2\n" +

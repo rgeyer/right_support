@@ -187,9 +187,9 @@ module RightSupport
     # (String):: Formatted time string
     def self.time_at(time, with_year = false)
       if with_year
-        Time.at(time).strftime("%a %b %d %H:%M:%S %Y")
+        Time.at(time).utc.strftime("%a %b %d %H:%M:%S %Y")
       else
-        Time.at(time).strftime("%a %b %d %H:%M:%S")
+        Time.at(time).utc.strftime("%a %b %d %H:%M:%S")
       end
     end
 
