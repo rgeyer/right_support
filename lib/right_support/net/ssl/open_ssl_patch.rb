@@ -1,3 +1,6 @@
+require 'openssl'
+require 'openssl/ssl'
+
 module RightSupport::Net
   module SSL
     # A helper module that provides monkey patch for OpenSSL::SSL.verify_certificate_identity method.
@@ -7,13 +10,12 @@ module RightSupport::Net
     # verify_certificate_identity method, to change the SSL algorythm of hostname verification.
     module OpenSSLPatch
       class << self
-        @@status = false
+        @enabled = false
 
         def enable!
-          return if @@status
-          @@status = true
+          return if @enabled
+          @enabled = true
 
-          require 'openssl'
           OpenSSL::SSL.module_exec do
             def verify_certificate_identity(cert, hostname)
               if RightSupport::Net::SSL::OpenSSLPatch.enabled?
@@ -55,11 +57,11 @@ module RightSupport::Net
         end
 
         def disable!
-          @@status = false
+          @enabled = false
         end
 
         def enabled?
-          @@status
+          @enabled
         end
       end
     end
