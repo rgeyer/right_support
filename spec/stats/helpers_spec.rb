@@ -37,6 +37,7 @@ describe RightSupport::Stats do
   end
 
   before(:each) do
+    @hr = sprintf("%0-2d", 12 + (Time.now.utc_offset / 3600))
     @now = 1000000
     flexmock(Time).should_receive(:now).and_return(@now).by_default
     @exceptions = RightSupport::Stats::Exceptions.new
@@ -262,7 +263,7 @@ describe RightSupport::Stats do
                        "             b1: rs-broker-localhost-5673 disconnected, disconnects: 2 (16 min 40 sec ago), failures: none\n" +
                        "             b2: rs-broker-localhost-5674 failed, disconnects: none, failures: 3 (16 min 40 sec ago w/ 2 retries)\n" +
                        "             exceptions        : testing total: 1, most recent:\n" +
-                       "                                 (1) Mon Jan 12 13:46:40 Exception: Test error\n" +
+                       "                                 (1) Mon Jan 12 #{@hr}:46:40 Exception: Test error\n" +
                        "             heartbeat         : 60 sec\n" +
                        "             returns           : no queue consumers: 67%, no queue: 33%, total: 3, \n" +
                        "                                 last: no queue consumers (10 sec ago), rate: 0/sec\n"
@@ -313,11 +314,11 @@ describe RightSupport::Stats do
 
       result = @helpers.exceptions_str(@exceptions.stats, "----")
       result.should == "another total: 3, most recent:\n" +
-                       "----(1) Mon Jan 12 13:46:50 ArgumentError: badarg IN Over there\n" +
-                       "----(2) Mon Jan 12 13:46:50 ArgumentError: badarg IN It happened here\n" +
+                       "----(1) Mon Jan 12 #{@hr}:46:50 ArgumentError: badarg IN Over there\n" +
+                       "----(2) Mon Jan 12 #{@hr}:46:50 ArgumentError: badarg IN It happened here\n" +
                        "----testing total: 2, most recent:\n" +
-                       "----(1) Mon Jan 12 13:46:50 ArgumentError: badarg IN Over there\n" +
-                       "----(1) Mon Jan 12 13:46:40 Exception: This is a very long exception message that \n" +
+                       "----(1) Mon Jan 12 #{@hr}:46:50 ArgumentError: badarg IN Over there\n" +
+                       "----(1) Mon Jan 12 #{@hr}:46:40 Exception: This is a very long exception message that \n" +
                        "----    should be wrapped so that it stays within the maximum line length"
     end
   end
@@ -383,7 +384,7 @@ describe RightSupport::Stats do
                        "                activity3 last    : testing forever: 46 min 40 sec ago and still active\n" +
                        "                empty_hash        : none\n" +
                        "                exceptions        : testing total: 1, most recent:\n" +
-                       "                                    (1) Mon Jan 12 13:46:40 Exception: Test error\n" +
+                       "                                    (1) Mon Jan 12 #{@hr}:46:40 Exception: Test error\n" +
                        "                float_value       : 3.2\n" +
                        "                some %            : 3.5%\n" +
                        "                some age          : 2 min 5 sec\n" +
@@ -420,8 +421,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 #{@hr}:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 #{@hr}:46:40 1970\n" +
                        "service up  : 1 hr 2 min\n" +
                        "machine up  : 2 days 2 hr 59 min\n" +
                        "version     : 10\n" +
@@ -435,7 +436,7 @@ describe RightSupport::Stats do
                        "              activity last     : testing: 10 sec ago\n" +
                        "              empty_hash        : none\n" +
                        "              exceptions        : testing total: 1, most recent:\n" +
-                       "                                  (1) Mon Jan 12 13:46:40 Exception: Test error\n" +
+                       "                                  (1) Mon Jan 12 #{@hr}:46:40 Exception: Test error\n" +
                        "              float_value       : 3.2\n" +
                        "              some hash         : ants: 100000000, bears: 1, cats: 3, dogs: 2, dragons: none, hippopotami: 99, \n" +
                        "                                  leopards: 25\n"
@@ -456,8 +457,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 #{@hr}:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 #{@hr}:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "stuff       : empty_hash        : none\n" +
                        "              exceptions        : none\n" +
@@ -481,8 +482,8 @@ describe RightSupport::Stats do
       result.should == "name        : tester_1\n" +
                        "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 #{@hr}:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 #{@hr}:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "stuff       : empty_hash        : none\n" +
                        "              exceptions        : none\n" +
@@ -505,8 +506,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats, :sub_name_width => 11)
       result.should == "identity    : unit tester\n" +
                        "hostname    : localhost\n" +
-                       "stat time   : Mon Jan 12 13:46:40 1970\n" +
-                       "last reset  : Mon Jan 12 13:46:40 1970\n" +
+                       "stat time   : Mon Jan 12 #{@hr}:46:40 1970\n" +
+                       "last reset  : Mon Jan 12 #{@hr}:46:40 1970\n" +
                        "service up  : 16 min 40 sec\n" +
                        "/data       : empty_hash  : none\n" +
                        "              float_value : 3.2\n" +
@@ -527,8 +528,8 @@ describe RightSupport::Stats do
       result = @helpers.stats_str(stats, :name_width => 15)
       result.should == "identity        : unit tester\n" +
                        "hostname        : localhost\n" +
-                       "stat time       : Mon Jan 12 13:46:40 1970\n" +
-                       "last reset      : Mon Jan 12 13:46:40 1970\n" +
+                       "stat time       : Mon Jan 12 #{@hr}:46:40 1970\n" +
+                       "last reset      : Mon Jan 12 #{@hr}:46:40 1970\n" +
                        "service up      : 16 min 40 sec\n" +
                        "stuff           : empty_hash        : none\n" +
                        "                  float_value       : 3.2\n" +

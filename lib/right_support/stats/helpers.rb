@@ -178,7 +178,7 @@ module RightSupport
       all[0..-2].inject("") { |a, (str, sep)| a + str + sep + "\n" } + all[-1][0]
     end
 
-    # Format UTC time value
+    # Format time value in local time
     #
     # === Parameters
     # time(Integer):: Time in seconds in Unix-epoch to be formatted
@@ -187,9 +187,9 @@ module RightSupport
     # (String):: Formatted time string
     def self.time_at(time, with_year = false)
       if with_year
-        Time.at(time).utc.strftime("%a %b %d %H:%M:%S %Y")
+        Time.at(time).strftime("%a %b %d %H:%M:%S %Y")
       else
-        Time.at(time).utc.strftime("%a %b %d %H:%M:%S")
+        Time.at(time).strftime("%a %b %d %H:%M:%S")
       end
     end
 
