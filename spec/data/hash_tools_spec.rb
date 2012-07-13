@@ -142,11 +142,13 @@ describe RightSupport::Data::HashTools do
   end
 
   context '#deep_clone' do
-    def deep_check_object_id(a, b)
+    def deep_check_object_id(a, b, &leaf_callback)
       a.object_id.should_not == b.object_id
       a.each do |k, v|
         if subject.hashable?(v)
           deep_check_object_id(v, b[k])
+        elsif leaf_callback
+          leaf_callback.call(v, b[k])
         elsif v.respond_to?(:duplicable?) && v.duplicable?
           v.object_id.should_not == b[k].object_id
         else
@@ -174,6 +176,19 @@ describe RightSupport::Data::HashTools do
           data[:tree][:branch][:b].duplicable?.should be_true
         end
         deep_check_object_id(actual, data)
+      end
+    end
+
+    it 'should deep clone leaves using callback when given' do
+      initial = { :x => 1, :y => { :a => [1, 2, 3], :b => [4, 5, 6] } }
+      actual = subject.deep_clone(initial) { |value| value.kind_of?(Array) ? value.clone : value }
+      actual.should == initial
+      deep_check_object_id(actual, initial) do |a, b|
+        if a.kind_of?(Array)
+          a.object_id.should_not == b.object_id
+        else
+          a.object_id.should == b.object_id
+        end
       end
     end
   end

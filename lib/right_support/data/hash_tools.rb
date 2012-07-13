@@ -123,13 +123,19 @@ module RightSupport::Data
     # === Parameters
     # @param [Hash] original hash to clone
     #
+    # === Block
+    # @yieldparam [Object] value of leaf
+    # @yieldreturn [Object] cloned value of leaf or original value
+    #
     # === Return
     # @return [Hash] deep cloned hash
-    def self.deep_clone(original)
+    def self.deep_clone(original, &leaf_callback)
       result = original.clone
       result.each do |k, v|
         if hashable?(v)
           result[k] = deep_clone(v)
+        elsif leaf_callback
+          result[k] = leaf_callback.call(v)
         elsif v.respond_to?(:duplicable?)
           result[k] = (v.duplicable? ? v.clone : v)
         else
