@@ -37,7 +37,7 @@ describe RightSupport::Stats do
   end
 
   before(:each) do
-    @hr = sprintf("%0-2d", 12 + (Time.now.utc_offset / 3600))
+    @hr = sprintf("%0-2d", 13 + (Time.now.utc_offset / 3600) + (Time.now.dst? ? -1 : 0))
     @now = 1000000
     flexmock(Time).should_receive(:now).and_return(@now).by_default
     @exceptions = RightSupport::Stats::Exceptions.new
