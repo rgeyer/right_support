@@ -12,7 +12,7 @@ describe RightSupport::Net::HTTPClient do
   context 'with defaults passed to initializer' do
     before(:all) do
       @http_client = RightSupport::Net::HTTPClient.new(:open_timeout=>999, :timeout=>101010,
-                                                  :headers=>{:moo=>:bah})
+                                                       :headers=>{:moo=>:bah})
     end
     
     context :process_query_string do
@@ -29,25 +29,67 @@ describe RightSupport::Net::HTTPClient do
         params = '?'
         @http_client.instance_eval { process_query_string(url, params) }.should == '/moo'
       end
-      it 'process String params with question mark in the begining' do
+      it 'process String params with question mark in the beginning' do
         url = '/moo'
         params = '?a=b'
         @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a=b'
       end
-      it 'process String params without question mark in the begining' do
+      it 'process String params without question mark in the beginning' do
         url = '/moo'
         params = 'a=b&c=d'
         @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a=b&c=d'
       end
-      it 'process raw Hash params' do
-        url = '/moo'
-        params = {:a=>:b}
-        @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a=b'
+
+      context 'when converting with Addressable::URI' do
+        it 'process raw Hash params' do
+          url = '/moo'
+          params = {:a=>:b}
+          @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a=b'
+        end
+        it 'process Hash params with hash inside' do
+          url = '/moo'
+          params = {:a=>{:b=>:c}}
+          @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a[b]=c'
+        end
+        it 'process Hash params with array inside' do
+          url = '/moo'
+          params = {:a=>['b','c']}
+          @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a[0]=b&a[1]=c'
+        end
+        it 'process Hash params with nested array inside' do
+          url = '/moo'
+          params = {:a=>{:b=>:c,:d=>['e','f'],:g=>{:h=>'i'}},:j=>'k'}
+          @http_client.instance_eval { process_query_string(url, params) }.should ==
+              '/moo?a[b]=c&a[d][0]=e&a[d][1]=f&a[g][h]=i&j=k'
+        end
       end
-      it 'process Hash params with hash inside' do
-        url = '/moo'  
-        params = {:a=>{:b=>:c}}
-        @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a[b]=c'
+
+      context 'when converting directly' do
+        before(:each) do
+          flexmock(@http_client).should_receive(:require_succeeds?).with('addressable/uri').and_return(false)
+        end
+
+        it 'process raw Hash params' do
+          url = '/moo'
+          params = {:a=>:b}
+          @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a=b'
+        end
+        it 'process Hash params with hash inside' do
+          url = '/moo'
+          params = {:a=>{:b=>:c}}
+          @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a%5Bb%5D=c'
+        end
+        it 'process Hash params with array inside' do
+          url = '/moo'
+          params = {:a=>['b','c']}
+          @http_client.instance_eval { process_query_string(url, params) }.should == '/moo?a%5B%5D=b&a%5B%5D=c'
+        end
+        it 'process Hash params with nested array inside' do
+          url = '/moo'
+          params = {:a=>{:b=>:c,:d=>['e','f'],:g=>{:h=>'i'}},:j=>'k'}
+          @http_client.instance_eval { process_query_string(url, params) }.should ==
+              '/moo?a%5Bb%5D=c&a%5Bd%5D%5B%5D=e&a%5Bd%5D%5B%5D=f&a%5Bg%5D%5Bh%5D=i&j=k'
+        end
       end
     end
 
