@@ -174,14 +174,15 @@ module RightSupport::Net
     private
 
     # Process a query-string option and append it to the URL as a properly
-    # encoded query string. The input must be either a String or Hash.
+    # encoded query string. The input must be either a String or Hash and the
+    # Hash may recursively contain String, Hash, and Array values.
     #
     # === Parameters
     # url(String):: the URL to request, including any query-string parameters
     # query(Hash|String):: the URL params, that will be added to URL, Hash or String
     #
     # === Return
-    # Returns url with concated with parameters.
+    # (String) url concatenated with parameters
     def process_query_string(url='', query={})
       url_params = ''
 
@@ -193,7 +194,7 @@ module RightSupport::Net
           uri.query_values = query
           url_params = uri.query
         else
-          url_params = query.collect { |k, v| "#{CGI.escape(k.to_s)}=#{CGI.escape(v.to_s)}" }.join('&')
+          url_params = hash_to_query_string(query)
         end
       else
         raise ArgumentError.new("Parameter query should be String or Hash")
@@ -203,6 +204,56 @@ module RightSupport::Net
       end
 
       url + url_params
+    end
+
+    # Convert a hash into a string suitable for use as a URL query string
+    #
+    # === Examples
+    # { :name => 'David', :nationality => 'Danish' }.to_query # => "name=David&nationality=Danish"
+    #
+    # { :name => 'David', :nationality => 'Danish' }.to_query('user') # => "user%5Bname%5D=David&user%5Bnationality%5D=Danish"
+    #
+    # === Parameters
+    # hash(Hash):: Hash to be converted
+    # namespace(String|nil):: Optional namespace to enclose param names
+    #
+    # === Return
+    # (String):: Converted hash
+    def hash_to_query_string(hash, namespace = nil)
+      hash.collect do |key, value|
+        key = namespace ? "#{namespace}[#{key}]" : key
+        if value.kind_of?(Hash)
+          hash_to_query_string(value, key)
+        elsif value.kind_of?(Array)
+          array_to_query_string(value, key)
+        else
+          "#{CGI.escape(key.to_s)}=#{CGI.escape(value.to_s)}"
+        end
+      end.sort.join('&')
+    end
+
+    # Convert an array into a string suitable for use as a URL query string
+    #
+    # === Examples
+    # ['Rails', 'coding'].to_query('hobbies') # => "hobbies%5B%5D=Rails&hobbies%5B%5D=coding"
+    #
+    # === Parameters
+    # array(Array):: Array to be converted
+    # key(String):: Param name
+    #
+    # === Return
+    # (String):: Converted array
+    def array_to_query_string(array, key)
+      prefix = "#{key}[]"
+      array.collect do |value|
+        if value.kind_of?(Hash)
+          hash_to_query_string(value, prefix)
+        elsif value.kind_of?(Array)
+          array_to_query_string(value, prefix)
+        else
+          "#{CGI.escape(prefix)}=#{CGI.escape(value.to_s)}"
+        end
+      end.join('&')
     end
 
     # Wrapper around RestClient::Request.execute -- see class documentation for details.
