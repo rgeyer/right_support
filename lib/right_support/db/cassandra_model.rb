@@ -313,6 +313,51 @@ module RightSupport::DB
         rows
       end
 
+      # TODO azure docs
+      def tony_all_indexed_slices(index, key)
+        expr = do_op(:create_idx_expr, index, key, "EQ")
+
+        start_row = ""
+        row_count = 10
+        has_more_rows = true
+
+        while has_more_rows
+          clause = do_op(:create_idx_clause, [expr], start_row, row_count)
+
+          rows = self.conn.get_indexed_slices(column_family, clause, 'account_id',
+                                              :key_count => row_count, :key_start => start_row)
+          rows = rows.keys
+
+          if rows.empty?
+            has_more_rows = false
+          else
+            rows.each do |row|
+              start_column = ''
+              column_count = 1_000
+              has_more_columns = true
+
+              while has_more_columns
+                clause = do_op(:create_idx_clause, [expr], row, 1)
+                chunk = self.conn.get_indexed_slices(column_family, clause, nil,
+                                                     :start => start_column,
+                                                     :count => column_count)
+
+                yield(chunk.keys.first, chunk.values.first) unless chunk.empty?
+
+                if chunk.size == column_count
+                  #Assume there are more columns, use last column as start of next slice
+                  start_column = chunk.values.keys.last
+                else
+                  has_more_columns = false
+                end
+              end
+            end
+
+            start_row = rows.last
+          end
+        end
+      end
+
       # Get all rows for specified secondary key
       #
       # === Parameters
