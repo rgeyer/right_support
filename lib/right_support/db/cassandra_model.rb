@@ -314,46 +314,46 @@ module RightSupport::DB
       end
 
       # TODO azure docs
-      def tony_all_indexed_slices(index, key)
+      def stream_all_indexed_slices(index, key)
         expr = do_op(:create_idx_expr, index, key, "EQ")
 
-        start_row = ""
+        start_row = ''
         row_count = 10
         has_more_rows = true
 
-        while has_more_rows
+        while (start_row != nil)
           clause = do_op(:create_idx_clause, [expr], start_row, row_count)
 
           rows = self.conn.get_indexed_slices(column_family, clause, 'account_id',
                                               :key_count => row_count, :key_start => start_row)
           rows = rows.keys
+          rows.shift unless start_row == ''
+          start_row = rows.last
 
-          if rows.empty?
-            has_more_rows = false
-          else
-            rows.each do |row|
-              start_column = ''
-              column_count = 1_000
-              has_more_columns = true
+          rows.each do |row|
+            start_column = ''
+            column_count = 1_000
+            has_more_columns = true
 
-              while has_more_columns
-                clause = do_op(:create_idx_clause, [expr], row, 1)
-                chunk = self.conn.get_indexed_slices(column_family, clause, nil,
-                                                     :start => start_column,
-                                                     :count => column_count)
+            while has_more_columns
+              clause = do_op(:create_idx_clause, [expr], row, 1)
+              chunk = self.conn.get_indexed_slices(column_family, clause, nil,
+                                                   :start => start_column,
+                                                   :count => column_count)
 
-                yield(chunk.keys.first, chunk.values.first) unless chunk.empty?
+              key = chunk.keys.first
+              columns = chunk.values.first
+              columns.shift unless start_column == ''
+              yield(key, columns) unless chunk.empty?
 
-                if chunk.size == column_count
-                  #Assume there are more columns, use last column as start of next slice
-                  start_column = chunk.values.keys.last
-                else
-                  has_more_columns = false
-                end
+              if columns.size >= column_count - 1
+                #Assume there are more columns, use last column as start of next slice
+                start_column = columns.last.column.name
+                column_count = 1_001
+              else
+                has_more_columns = false
               end
             end
-
-            start_row = rows.last
           end
         end
       end
