@@ -313,7 +313,17 @@ module RightSupport::DB
         rows
       end
 
-      # TODO azure docs
+      # This method is an attempt to circumvent the Cassandra gem limitation of returning only 100 columns for wide rows
+      # This method returns only columns that are within the result set specified by a secondary index equality query 
+      # This method will iterate through chunks of rows of the resultset and it will yield to the caller all of the 
+      # columns in chunks of 1,000 until all of the columns have been retrieved
+      #
+      # == Parameters:
+      # @param [String] index column name
+      # @param [String] index column value 
+      #
+      # == Yields:
+      # @yield [Array<String, Array<CassandraThrift::ColumnOrSuperColumn>>] irray containing ndex column value passed in and an array of columns matching the index query
       def stream_all_indexed_slices(index, key)
         expr = do_op(:create_idx_expr, index, key, "EQ")
 
