@@ -313,6 +313,61 @@ module RightSupport::DB
         rows
       end
 
+      # This method is an attempt to circumvent the Cassandra gem limitation of returning only 100 columns for wide rows
+      # This method returns only columns that are within the result set specified by a secondary index equality query 
+      # This method will iterate through chunks of rows of the resultset and it will yield to the caller all of the 
+      # columns in chunks of 1,000 until all of the columns have been retrieved
+      #
+      # == Parameters:
+      # @param [String] index column name
+      # @param [String] index column value 
+      #
+      # == Yields:
+      # @yield [Array<String, Array<CassandraThrift::ColumnOrSuperColumn>>] irray containing ndex column value passed in and an array of columns matching the index query
+      def stream_all_indexed_slices(index, key)
+        expr = do_op(:create_idx_expr, index, key, "EQ")
+
+        start_row = ''
+        row_count = 10
+        has_more_rows = true
+
+        while (start_row != nil)
+          clause = do_op(:create_idx_clause, [expr], start_row, row_count)
+
+          rows = self.conn.get_indexed_slices(column_family, clause, 'account_id',
+                                              :key_count => row_count, :key_start => start_row)
+          rows = rows.keys
+          rows.shift unless start_row == ''
+          start_row = rows.last
+
+          rows.each do |row|
+            start_column = ''
+            column_count = 1_000
+            has_more_columns = true
+
+            while has_more_columns
+              clause = do_op(:create_idx_clause, [expr], row, 1)
+              chunk = self.conn.get_indexed_slices(column_family, clause, nil,
+                                                   :start => start_column,
+                                                   :count => column_count)
+
+              key = chunk.keys.first
+              columns = chunk.values.first
+              columns.shift unless start_column == ''
+              yield(key, columns) unless chunk.empty?
+
+              if columns.size >= column_count - 1
+                #Assume there are more columns, use last column as start of next slice
+                start_column = columns.last.column.name
+                column_count = 1_001
+              else
+                has_more_columns = false
+              end
+            end
+          end
+        end
+      end
+
       # Get all rows for specified secondary key
       #
       # === Parameters
