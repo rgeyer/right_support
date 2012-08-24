@@ -19,9 +19,11 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-begin
-  require 'cassandra/0.8'
 
+
+# If cassandra gem is installed and 0.8 bindings are available, apply some
+# monkey patches.
+if require_succeeds?('cassandra/0.8')
   class Cassandra
     module Protocol
       # Monkey patch _get_indexed_slices so that it accepts list of columns when doing indexed
@@ -64,46 +66,35 @@ begin
       key_slices.inject(OrderedHash.new){|h, key_slice| h[key_slice.key] = key_slice.columns; h}
     end
   end
-
-rescue LoadError => e
-  # Make sure we're dealing with a legitimate missing-file LoadError
-  raise e unless e.message =~ /^no such file to load/
-  # Missing 'cassandra/0.8' indicates that the cassandra gem is not installed; we can ignore this
 end
 
-# monkey patch thrift to work with jruby
-if (RUBY_PLATFORM =~ /java/)
-  begin
-    require 'thrift'
-    module Thrift
-      class Socket
-        def open
+# If thrift gem is available and we are running JRuby, monkey patch it so it
+# works!
+if (RUBY_PLATFORM =~ /java/) && require_succeeds?('thrift')
+  module Thrift
+    class Socket
+      def open
+        begin
+          addrinfo = ::Socket::getaddrinfo(@host, @port).first
+          @handle = ::Socket.new(addrinfo[4], ::Socket::SOCK_STREAM, 0)
+          sockaddr = ::Socket.sockaddr_in(addrinfo[1], addrinfo[3])
           begin
-            addrinfo = ::Socket::getaddrinfo(@host, @port).first
-            @handle = ::Socket.new(addrinfo[4], ::Socket::SOCK_STREAM, 0)
-            sockaddr = ::Socket.sockaddr_in(addrinfo[1], addrinfo[3])
+            @handle.connect_nonblock(sockaddr)
+          rescue Errno::EINPROGRESS
+            resp = IO.select(nil, [ @handle ], nil, @timeout) # 3 lines removed here, 1 line added
             begin
               @handle.connect_nonblock(sockaddr)
-            rescue Errno::EINPROGRESS
-              resp = IO.select(nil, [ @handle ], nil, @timeout) # 3 lines removed here, 1 line added
-              begin
-                @handle.connect_nonblock(sockaddr)
-              rescue Errno::EISCONN
-              end
+            rescue Errno::EISCONN
             end
-            @handle
-          rescue StandardError => e
-            raise TransportException.new(TransportException::NOT_OPEN, "Could not connect to #{@desc}: #{e}")
           end
+          @handle
+        rescue StandardError => e
+          raise TransportException.new(TransportException::NOT_OPEN, "Could not connect to #{@desc}: #{e}")
         end
       end
     end
-  rescue LoadError => e
-    # Make sure we're dealing with a legitimate missing-file LoadError
-    raise e unless e.message =~ /^no such file to load/
   end
 end
-
 
 module RightSupport::DB
   # Exception that indicates database configuration info is missing.
