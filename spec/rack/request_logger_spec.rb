@@ -47,5 +47,25 @@ describe RightSupport::Rack::RequestLogger do
         @logger.should_receive(:error)
       end
     end
+
+    context 'Shard_id logging' do
+      before(:each) do
+        @middleware = RightSupport::Rack::RequestLogger.new(@app)
+        @logger = mock_logger
+      end
+
+      it 'logs if shard_id exists' do
+        env = {'rack.logger' => @logger, 'HTTP_X_SHARD' => '9'}
+        @logger.should_receive(:info).with(FlexMock.on { |arg| arg.should =~ /Shard_id: 9;/ } )
+        @middleware.send(:log_request_begin, @logger, env)
+      end
+
+      it 'does not log if shard_id does not exist' do
+        env = {'rack.logger' => @logger}
+        @logger.should_receive(:info).with(FlexMock.on { |arg| arg.match(/Shard_id: 9;/).should == nil } )
+        @middleware.send(:log_request_begin, @logger, env)
+      end
+    end
+
   end
 end
