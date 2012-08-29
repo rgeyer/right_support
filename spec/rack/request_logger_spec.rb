@@ -3,19 +3,19 @@ require 'spec_helper'
 describe RightSupport::Rack::RequestLogger do
   class OhNoes < Exception; end
 
-  before(:all) do
+  before(:each) do
     @app = flexmock('Rack app')
     @app.should_receive(:call).and_return([200, {}, 'body']).by_default
     @logger = mock_logger
+    @env = {'rack.logger' => @logger}
+    @middleware = RightSupport::Rack::RequestLogger.new(@app)
   end
 
   context :initialize do
     context 'without :logger option' do
       it 'uses rack.logger' do
-        env = {'rack.logger' => @logger}
-        middleware = RightSupport::Rack::RequestLogger.new(@app)
         @logger.should_receive(:info)
-        middleware.call(env).should == [200, {}, 'body']
+        @middleware.call(@env).should == [200, {}, 'body']
       end
     end
   end
@@ -24,7 +24,6 @@ describe RightSupport::Rack::RequestLogger do
     context 'when the app raises an exception' do
       before(:each) do
         @app.should_receive(:call).and_raise(OhNoes)
-        @middleware = RightSupport::Rack::RequestLogger.new(@app)
       end
 
       it 'logs the exception' do
@@ -38,32 +37,30 @@ describe RightSupport::Rack::RequestLogger do
     context 'when Sinatra stores an exception' do
       before(:each) do
         @app.should_receive(:call).and_return([500, {}, 'body'])
-        @env = {'sinatra.error' => OhNoes.new}
-        @middleware = RightSupport::Rack::RequestLogger.new(@app)
+        @env['sinatra.error'] = OhNoes.new
       end
 
       it 'logs the exception' do
         @logger.should_receive(:info)
         @logger.should_receive(:error)
+        @middleware.call(@env)
       end
     end
 
-    context 'Shard_id logging' do
+    context 'Shard ID logging' do
       before(:each) do
-        @middleware = RightSupport::Rack::RequestLogger.new(@app)
         @logger = mock_logger
       end
 
-      it 'logs if shard_id exists' do
-        env = {'rack.logger' => @logger, 'HTTP_X_SHARD' => '9'}
-        @logger.should_receive(:info).with(FlexMock.on { |arg| arg.should =~ /Shard_id: 9;/ } )
-        @middleware.send(:log_request_begin, @logger, env)
+      it 'logs X-Shard header if it is present' do
+        @env['HTTP_X_SHARD'] = '9'
+        @logger.should_receive(:info).with(FlexMock.on { |arg| arg.should =~ /Shard: 9;/ } )
+        @middleware.send(:log_request_begin, @logger, @env)
       end
 
-      it 'does not log if shard_id does not exist' do
-        env = {'rack.logger' => @logger}
-        @logger.should_receive(:info).with(FlexMock.on { |arg| arg.match(/Shard_id: 9;/).should == nil } )
-        @middleware.send(:log_request_begin, @logger, env)
+      it 'logs "default" if X-Shard header is absent' do
+        @logger.should_receive(:info).with(FlexMock.on { |arg| arg.should =~ /Shard: default;/ } )
+        @middleware.send(:log_request_begin, @logger, @env)
       end
     end
 
