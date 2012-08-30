@@ -97,13 +97,15 @@ module RightSupport::Rack
         sess = ""
       end
 
+      shard_info = 'Shard: ' + (env['HTTP_X_SHARD'] || 'default').to_s + ';'
+
       params = [
         env["REQUEST_METHOD"],
         env["PATH_INFO"],
         query_info,
         remote_addr,
         sess,
-        'Shard_id:' + (env['HTTP_X_SHARD'] || 'not set').to_s + ';',
+        shard_info,
         env["rack.request_uuid"] || ''
       ]
 
