@@ -22,6 +22,12 @@ module RightSupport
       @service_infos = {}
     end
 
+    # TODO docs
+    def self.respond_to?(name)
+      name = name.to_s
+       @service_infos.key?(name)
+    end
+
     #TODO docs
     def self.method_missing(name)
       name = name.to_s

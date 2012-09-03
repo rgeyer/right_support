@@ -14,7 +14,6 @@ module RightSupport::Services
       @last_mtime = mtime
       return false if last_mtime && mtime <= last_mtime
       content = File.read(@filename)
-      #TODO JSON support
       @services = YAML.load(content)
       return true
     end
