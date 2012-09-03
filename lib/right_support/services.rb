@@ -42,10 +42,9 @@ module RightSupport
       #Instantiate the service proxy object if needed
       unless service
         service_stanza = info[name]
-        #TODO account for modules (steal Rails constantize?)
-        klass = RightSupport::Inflection.constantize(service_stanza[CLASS_CONFIG_KEY])
-        raise MissingConfiguration, "Every service must have a 'class' setting" unless klass
-        service = klass.new(service_stanza[SETTINGS_CONFIG_KEY])
+        proxy_klass = service_stanza[CLASS_CONFIG_KEY].to_const
+        raise MissingConfiguration, "Every service must have a 'class' setting" unless proxy_klass
+        service = proxy_klass.new(service_stanza[SETTINGS_CONFIG_KEY])
         @services[name] = service
       end
 
