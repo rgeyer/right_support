@@ -20,7 +20,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-if_require_succeeds('net/ssh') do
+if require_succeeds?('net/ssh')
   module RightSupport::Validation
     # Validation methods pertaining to the Secure Shell (SSH) protocol.
     module SSH
@@ -60,7 +60,8 @@ if_require_succeeds('net/ssh') do
       # If the key is well-formed and valid, return true. Otherwise, return false.
       def ssh_public_key?(key_material)
         return false if key_material.nil? || key_material.empty?
-        ::Net::SSH::KeyFactory.load_data_public_key(key_material)
+        key = ::Net::SSH::KeyFactory.load_data_public_key(key_material)
+        key.to_der #make sure it's valid in addition to being well formed
         return true
       rescue ::Net::SSH::Exception, ::OpenSSL::PKey::PKeyError, NotImplementedError
         return false

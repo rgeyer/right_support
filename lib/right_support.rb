@@ -1,12 +1,14 @@
-require 'right_support/kernel_extensions'
-require 'right_support/inflection'
-require 'right_support/filter_logger'
-require 'right_support/system_logger'
-require 'right_support/tag_logger'
-require 'right_support/rack/custom_logger'
+# Workaround for badly-coded gems such as active_support which fail to require this for themselves
+require 'thread'
 
-require 'right_support/validation'
-
+require 'right_support/ruby'
+require 'right_support/data'
+require 'right_support/crypto'
+require 'right_support/config'
+require 'right_support/db'
+require 'right_support/log'
 require 'right_support/net'
-
+require 'right_support/rack'
 require 'right_support/services'
+require 'right_support/stats'
+require 'right_support/validation'

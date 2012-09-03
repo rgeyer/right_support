@@ -1,0 +1,37 @@
+== 2.0
+
+=== Interface-breaking changes
+
+* Changed some of the more esoteric options of RequestBalancer
+* Removed TagLogger and CustomLogger middlwares
+* Renamed Balancing module to LB
+* Renamed StickyPolicy class to Sticky
+* Removed Object#if_require_succeeds(&block); too dangerous -- use
+  Object#require_succeeds instead!
+
+=== New functionality
+
+* Several new Rack middlewares for request logging & tracking
+* Statistics gathering, string extensions,
+* HTTPClient methods can accept query-strings (:query) and/or request body
+  (:payload)
+
+== 1.0
+
+=== Interface-breaking changes
+
+* Moved logging classes (FilterLogger, SystemLogger, TagLogger) into RightSupport::Log namespace
+* Moved CassandraModel into RightSupport::DB
+* Removed RightSupport::REST module entirely. Replaced by RightSupport::Net::HTTPClient class.
+
+=== New functionality
+
+* RequestBalancer now capable of using multiple policies for endpoint selection.
+  Default is RoundRobin (previously the only option); now you can choose HealthCheck
+  in addition. See rdoc for more info.
+* RequestBalancer can accept a logger as a class attribute. If supplied, any failed requests
+  will be logged with the error severity, including detailed information about exception type,
+  retryability, etc.
+* HTTPClient object is a thin wrapper around RestClient that adds some default timeouts.
+  It's appropriate for low-latency REST requests to nearby services; by tweaking the
+  defaults, you can use it for various other scenarios.

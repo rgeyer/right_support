@@ -1,8 +1,10 @@
 # -*-ruby-*-
 require 'rubygems'
+require 'bundler/setup'
+
 require 'rake'
-require 'rake/rdoctask'
-require 'rake/gempackagetask'
+require 'rdoc/task'
+require 'rubygems/package_task'
 require 'rake/clean'
 require 'spec/rake/spectask'
 require 'cucumber/rake/task'
@@ -23,7 +25,7 @@ Cucumber::Rake::Task.new do |t|
   t.cucumber_opts = %w{--color --format pretty}
 end
 
-desc 'Generate documentation for the rightscale_foundation gem.'
+desc 'Generate documentation for the right_support gem.'
 Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_dir = 'doc'
   rdoc.title    = 'RightSupport'
@@ -34,8 +36,8 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_files.exclude('spec/**/*')
 end
 
-desc "Build rightscale_foundation gem"
-Rake::GemPackageTask.new(Gem::Specification.load("right_support.gemspec")) do |package|
+desc "Build right_support gem"
+Gem::PackageTask.new(Gem::Specification.load("right_support.gemspec")) do |package|
   package.need_zip = true
   package.need_tar = true
 end

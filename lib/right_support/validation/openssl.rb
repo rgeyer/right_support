@@ -65,6 +65,7 @@ module RightSupport::Validation
       alg = pem_key?(key_material)
       return false unless alg
       key = alg.new(key_material, passphrase || 'dummy passphrase, should never work')
+      key.to_der #make sure it's valid in addition to being well formed
       return key.private?
     rescue ::OpenSSL::PKey::PKeyError, NotImplementedError
       return false
@@ -82,6 +83,7 @@ module RightSupport::Validation
       alg = pem_key?(key_material)
       return false unless alg
       key = alg.new(key_material)
+      key.to_der #make sure it's valid in addition to being well formed
       return key.public?
     rescue ::OpenSSL::PKey::PKeyError, NotImplementedError
       return false

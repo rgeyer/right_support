@@ -27,40 +27,68 @@ end
 
 describe RightSupport::Net::RequestBalancer do
   def test_raise(fatal, do_raise, expect)
-    expect = [expect] unless expect.respond_to?(:first)
+    bases = []
+    base = do_raise.superclass
+    while base != Exception
+      bases << base
+      base = base.superclass
+    end
 
+    exception = expect.first
+    count = expect.last
     rb = RightSupport::Net::RequestBalancer.new([1,2,3], :fatal=>fatal)
-    tries = 0
-    l = lambda do
+    @tries = 0
+
+    code = lambda do
       rb.request do |_|
-        tries += 1
-        raise do_raise, 'bah' if do_raise
+        @tries += 1
+        next unless do_raise
+        if bases.include?(RestClient::ExceptionWithResponse)
+          #Special case: RestClient exceptions need an HTTP response, but they
+          #have stack recursion if we give them something other than a real
+          #HTTP response. Blech!
+          raise do_raise, nil
+        else
+          #Generic exception with message
+          raise do_raise, 'Bah humbug; fie on thee!'
+        end
       end
     end
 
-    if expect.first
-      l.should raise_error(expect.first)
+    if exception
+      code.should raise_error(expect[0])
     else
-      l.should_not raise_error
+      code.should_not raise_error
     end
 
-    tries.should == expect.last
+    @tries.should == count
   end
 
-  def test_randomness(trials=25000, list=[1,2,3])
-    seen = {}
-
-    trials.times do
-      value = yield(list)
-      seen[value] ||= 0
-      seen[value] += 1
+  def test_bad_endpoint_requests(number_of_endpoints)
+    test = Proc.new do |endpoint|
+      @health_checks += 1
+      false
     end
 
-    #Load should be evenly distributed
-    chance = 1.0 / list.size
-    seen.each_pair do |_, count|
-      (Float(count) / Float(trials)).should be_close(chance, 0.025) #allow 5% margin of error
+    expect = number_of_endpoints
+    yellow_states = 4
+    rb = RightSupport::Net::RequestBalancer.new((1..expect).to_a,
+                                                :policy => RightSupport::Net::LB::HealthCheck,
+                                                :health_check => test,
+                                                :yellow_states => yellow_states)
+    @health_checks = 0
+    tries = 0
+    l = lambda do
+      rb.request do |endpoint|
+        tries += 1
+        raise Exception
+      end
     end
+    yellow_states.times do
+      l.should raise_error
+    end
+    tries.should == expect
+    @health_checks.should == expect * (yellow_states - 1)
   end
 
   context :initialize do
@@ -70,16 +98,95 @@ describe RightSupport::Net::RequestBalancer do
       end.should raise_exception(ArgumentError)
     end
 
-    context 'with :fatal option' do
-      it 'validates the arity (if applicable)' do
-        bad_lambda = lambda { |too, many, arguments| }
+    context 'with Integer :retry option' do
+      it 'stops after N total tries' do
         lambda do
-          RightSupport::Net::RequestBalancer.new([1,2], :fatal=>bad_lambda)
-        end.should raise_error(ArgumentError)
+          @tries = 0
+          RightSupport::Net::RequestBalancer.new([1, 2, 3], :retry=>1).request do |u|
+            @tries += 1
+            raise NoBigDeal
+          end
+        end.should raise_error
+        @tries.should == 1
+      end
+    end
 
+    context 'with Proc :retry option' do
+      it 'stops when call evaluates to false' do
+        @tries = 0
+
+        proc = Proc.new do |ep, n|
+          @tries < 1
+        end
+
+        balancer = RightSupport::Net::RequestBalancer.new([1, 2, 3], :retry => proc)
         lambda do
-          RightSupport::Net::RequestBalancer.new([1,2], :fatal=>BigDeal)
-        end.should_not raise_error
+          balancer.request do |u|
+            @tries += 1
+            raise NoBigDeal
+          end
+        end.should raise_error(RightSupport::Net::NoResult)
+
+        @tries.should == 1
+      end
+    end
+
+    context ':fatal option' do
+      it 'has reasonable defaults' do
+        exceptions = RightSupport::Net::RequestBalancer::DEFAULT_FATAL_EXCEPTIONS - [SignalException]
+        balancer = RightSupport::Net::RequestBalancer.new([1])
+        exceptions.each do |klass|
+          lambda do
+            balancer.request { |ep| raise klass }
+          end.should raise_error(klass)
+        end
+      end
+
+      context 'with a Proc' do
+        it 'validates the arity' do
+          bad_lambda = lambda { |too, many, arguments| }
+          lambda do
+            RightSupport::Net::RequestBalancer.new([1,2], :fatal=>bad_lambda)
+          end.should raise_error(ArgumentError)
+        end
+
+        it 'delegates to the Proc' do
+          always_retry = lambda { |e| false }
+          balancer = RightSupport::Net::RequestBalancer.new([1,2], :fatal=>always_retry)
+
+          lambda do
+            balancer.request do |ep|
+              raise BigDeal
+            end
+          end.should raise_error(RightSupport::Net::NoResult)
+
+          lambda do
+            balancer.request do |ep|
+              raise ArgumentError
+            end
+          end.should raise_error(RightSupport::Net::NoResult)
+        end
+      end
+
+      context 'with an Exception' do
+        it 'considers that class of Exception to be fatal' do
+          balancer = RightSupport::Net::RequestBalancer.new([1], :fatal=>BigDeal)
+          lambda do
+            balancer.request { |ep| raise BigDeal }
+          end.should raise_error(BigDeal)
+        end
+      end
+
+      context 'with an Array' do
+        it 'considers any class in the array to be fatal' do
+          exceptions = [ArgumentError, BigDeal]
+          balancer = RightSupport::Net::RequestBalancer.new([1], :fatal=>exceptions)
+          exceptions.each do |klass|
+            lambda do
+              balancer.request { |ep| raise klass }
+            end.should raise_error(klass)
+          end
+        end
       end
     end
 
@@ -91,6 +198,90 @@ describe RightSupport::Net::RequestBalancer do
         end.should raise_error(ArgumentError)
       end
     end
+
+    context 'with :policy option' do
+      it 'accepts a Class' do
+        policy = RightSupport::Net::LB::RoundRobin
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :policy=>policy)
+        }.should_not raise_error
+      end
+
+      it 'accepts an object' do
+        policy = RightSupport::Net::LB::RoundRobin.new([1,2])
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :policy=>policy)
+        }.should_not raise_error
+      end
+
+      it 'checks for duck-type compatibility' do
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :policy=>String)
+        }.should raise_error
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :policy=>'I like cheese')
+        }.should raise_error
+      end
+    end
+
+    context 'with :health_check option' do
+
+      before(:each) do
+        @health_check = Proc.new {|endpoint| "HealthCheck passed for #{endpoint}!" }
+      end
+
+      it 'accepts a block' do
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :health_check => @health_check)
+        }.should_not raise_error
+      end
+
+      it 'calls specified block' do 
+        @balancer = RightSupport::Net::RequestBalancer.new([1,2], :health_check => @health_check)
+        @options = @balancer.instance_variable_get("@options")
+        @options[:health_check].call(1).should be_eql("HealthCheck passed for 1!")
+      end
+
+    end
+
+    context 'with default :health_check option' do
+      it 'calls default block' do 
+        @balancer = RightSupport::Net::RequestBalancer.new([1,2])
+        @options = @balancer.instance_variable_get("@options")
+        @options[:health_check].call(1).should be_true
+      end
+    end
+
+    context 'with :on_health_change option' do
+
+      before(:each) do
+        @health_updates = []
+        @on_health_change = Proc.new {|health| @health_updates << health }
+      end
+
+      it 'accepts a block' do
+        lambda {
+          RightSupport::Net::RequestBalancer.new([1,2], :on_health_change => @on_health_change)
+        }.should_not raise_error
+      end
+    end
+
+    context 'with :resolve option' do
+
+      before(:each) do
+        @resolve = 15
+        @balancer = RightSupport::Net::RequestBalancer.new([1,2], :resolve => @resolve)
+      end
+
+      it 'initializes an empty balancing policy' do
+        @policy = @balancer.instance_variable_get("@policy")
+        @policy.next.should be_nil
+      end
+
+      it 'initializes timestamp as a TTL for resolver' do
+        @balancer.instance_variable_get("@resolved_at").should == 0
+      end
+    end
   end
 
   context :request do
@@ -98,29 +289,6 @@ describe RightSupport::Net::RequestBalancer do
       lambda do
         RightSupport::Net::RequestBalancer.new([1]).request
       end.should raise_exception(ArgumentError)
-    end
-
-    context 'when called as a class method' do
-      it 'shuffles randomly' do
-
-        test_randomness do |list|
-          RightSupport::Net::RequestBalancer.request(list) do |endpoint|
-            endpoint
-          end
-        end
-      end
-    end
-
-    context 'when called as an instance method' do
-      it 'shuffles randomly' do
-
-        test_randomness do |list|
-          @balancer ||= RightSupport::Net::RequestBalancer.new(list)
-          @balancer.request do |endpoint|
-            endpoint
-          end
-        end
-      end
     end
 
     it 'retries until a request completes' do
@@ -184,12 +352,18 @@ describe RightSupport::Net::RequestBalancer do
         end
       end
 
-      it 'does not retry ArgumentError and other program errors' do
+      it 'does not retry program errors' do
+        list = [1,2,3,4,5,6,7,8,9,10]
+        rb = RightSupport::Net::RequestBalancer.new(list)
 
+        [ArgumentError, LoadError, NameError].each do |klass|
+          test_raise(nil, klass, [klass, 1])
+        end
       end
 
       it 'retries HTTP timeouts' do
         test_raise(nil, MockRequestTimeout, [RightSupport::Net::NoResult, 3])
+        test_raise(nil, RestClient::RequestTimeout, [RightSupport::Net::NoResult, 3])
       end
 
       it 'does not retry HTTP 4xx other than timeout' do
@@ -199,8 +373,36 @@ describe RightSupport::Net::RequestBalancer do
         codes = [401, 402, 403, 404, 405, 406, 407, 409]
         codes.each do |code|
           lambda do
-            rb.request { |l| raise MockHttpError.new(code) }
+            rb.request { |l| raise MockHttpError.new(nil, code) }
           end.should raise_error(MockHttpError)
+        end
+      end
+
+      context 'with default :retry option' do
+        it 'does mark endpoints as bad if they encounter retryable errors' do
+          rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
+          expect = rb.get_stats
+          codes = [401, 402, 403, 404, 405, 406, 407, 408, 409]
+          codes.each do |code|
+            lambda do
+              rb.request { |l| raise MockHttpError.new(nil, code) }
+            end.should raise_error
+          end
+
+          rb.get_stats.should_not == expect
+        end
+
+        it 'does not mark endpoints as bad if they raise fatal errors' do
+          rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
+          expect = rb.get_stats
+          codes = [401, 402, 403, 404, 405, 406, 407, 409]
+          codes.each do |code|
+            lambda do
+              rb.request { |l| raise MockHttpError.new(nil, code) }
+            end.should raise_error
+          end
+
+          rb.get_stats.should == expect
         end
       end
     end
@@ -228,6 +430,108 @@ describe RightSupport::Net::RequestBalancer do
           @rb.request { raise NoBigDeal }
         }.should raise_error(RightSupport::Net::NoResult)
 
+      end
+    end
+
+    context 'given a class-level logger' do
+      before(:all) do
+        @logger = Logger.new(StringIO.new)
+        RightSupport::Net::RequestBalancer.logger = @logger
+        RightSupport::Net::LB::HealthCheck.logger = @logger
+      end
+
+      after(:all) do
+        RightSupport::Net::RequestBalancer.logger = nil
+      end
+
+      context 'when a retryable exception is raised' do
+        it 'logs an error' do
+          flexmock(@logger).should_receive(:error).times(4)
+
+          lambda {
+            balancer = RightSupport::Net::RequestBalancer.new([1,2,3])
+            balancer.request do |ep|
+              raise NoBigDeal, "Too many cows on the moon"
+            end
+          }.should raise_error(RightSupport::Net::NoResult)
+        end
+      end
+      
+      context 'when the health of an endpoint changes' do
+        it 'logs the change' do
+          health_check = Proc.new do |endpoint|
+            false
+          end
+          flexmock(@logger).should_receive(:info).times(4)
+          
+          lambda {
+            balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::LB::HealthCheck, :health_check => health_check)
+            balancer.request do |ep|
+              raise "Bad Endpoint"
+            end
+          }.should raise_error(RightSupport::Net::NoResult)
+        end
+      end
+    end
+
+    context 'given a class health check policy' do
+      it 'retries and health checks the correct number of times' do
+        (1..10).to_a.each {|endpoint| test_bad_endpoint_requests(endpoint) }
+      end
+    end
+
+    context 'with :resolve option' do
+      before(:each) do
+        @endpoints = [1,2,3,4]
+        @resolved_set_1 = ['1.1.1.1','2.2.2.2','3.3.3.3','4.4.4.4']
+        @resolved_set_2 = ['5.5.5.5','6.6.6.6','7.7.7.7','8.8.8.8']
+        @dns = flexmock(RightSupport::Net::DNS)
+        @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
+      end
+
+      it 'resolves ip addresses for specified list of endpoints' do
+        @dns.should_receive(:resolve_all_ip_addresses).with(@endpoints).once.and_return(@resolved_set_1)
+        @rb.request { true }
+        @policy = @rb.instance_variable_get("@policy")
+        @resolved_set_1.include?(@policy.next.first).should be_true
+      end
+
+      it 're-resolves list of ip addresses if TTL is expired' do
+        @dns.should_receive(:resolve_all_ip_addresses).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
+        @rb.request { true }
+        @policy = @rb.instance_variable_get("@policy")
+        @resolved_set_1.include?(@policy.next.first).should be_true
+
+        @rb.instance_variable_set("@resolved_at", Time.now.to_i - 16)
+        @rb.request { true }
+        @policy = @rb.instance_variable_get("@policy")
+        @resolved_set_2.include?(@policy.next.first).should be_true
+      end
+    end
+  end
+
+  context :get_stats do
+    context 'using default balancing profile' do
+      it 'returns stats in an endpoint-keyed hash' do
+        expected_hash = {}
+        list = [1,2,3,4]
+        list.each { |k| expected_hash[k] = 'n/a' }
+        rb = RightSupport::Net::RequestBalancer.new(list)
+
+        rb.get_stats.should_not be_nil
+        rb.get_stats.should == expected_hash
+      end
+    end
+
+    context 'using health check balancing profile' do
+      it 'returns stats in an endpoint-keyed hash' do
+        expected_hash = {}
+        list = [1,2,3,4]
+        rb = RightSupport::Net::RequestBalancer.new(list,
+                                                :policy => RightSupport::Net::LB::HealthCheck,
+                                                :health_check => Proc.new {|endpoint| "HealthCheck passed for #{endpoint}!"})
+        rb.get_stats.should_not be_nil
+        rb.get_stats.should_not == expected_hash
       end
     end
   end
