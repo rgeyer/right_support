@@ -5,8 +5,8 @@ module RightSupport::Services
     end
 
     #TODO docs
-    def initialize(services={})
-      @services = services
+    def initialize()
+      @services = {}
     end
 
     #TODO docs
