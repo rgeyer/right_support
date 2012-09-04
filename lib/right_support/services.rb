@@ -29,7 +29,12 @@ module RightSupport
     end
 
     #TODO docs
-    def self.method_missing(name)
+    def self.method_missing(name, *params)
+      unless params.empty?
+        # If someone passed params, they don't mean to locate a service proxy object; punt to our superclass.
+        super
+      end
+
       name = name.to_s
       info = @service_infos[name]
       raise UnknownService, "The #{name} service has not been registered" unless info
