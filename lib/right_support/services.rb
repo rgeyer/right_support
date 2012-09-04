@@ -2,6 +2,7 @@ module RightSupport
   module Services
     class UnknownService < Exception; end
     class MissingConfiguration < Exception; end
+    class BadProxy < Exception; end
 
     CLASS_CONFIG_KEY    = 'class'
     SETTINGS_CONFIG_KEY = 'settings'
@@ -49,8 +50,15 @@ module RightSupport
         service_stanza = info[name]
         proxy_klass = service_stanza[CLASS_CONFIG_KEY].to_const
         raise MissingConfiguration, "Every service must have a 'class' setting" unless proxy_klass
-        service = proxy_klass.new(service_stanza[SETTINGS_CONFIG_KEY])
-        @services[name] = service
+        begin
+          service = proxy_klass.new(service_stanza[SETTINGS_CONFIG_KEY])
+        rescue ArgumentError => e
+          raise BadProxy,
+                'ArgumentError while calling service proxy initializer; ' +
+                'please make sure it accepts one parameter: a settings hash'
+        end
+
+      @services[name] = service
       end
 
       return service
