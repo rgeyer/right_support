@@ -220,8 +220,8 @@ module RightSupport
     #
     # === Parameters
     # stats(Hash):: Statistics with generic keys "name", "identity", "hostname", "revision", "service uptime",
-    #   "machine uptime", "memory KB", "stat time", "last reset time", "version", and "broker" with
-    #   the latter two and "revision", "machine uptime", "memory KB", "version", and "broker" being optional;
+    #   "machine uptime", "memory KB", "stat time", "last reset time", "version", and "brokers" with
+    #   "revision", "machine uptime", "memory KB", "version", and "brokers" being optional;
     #   any other keys ending with "stats" have an associated hash value that is displayed in sorted
     #   key order, unless "stats" is preceded by a non-blank, in which case that character is prepended
     #   to the key to drive the sort order
@@ -243,7 +243,7 @@ module RightSupport
       end
       str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "stat time", time_at(stats["stat time"], with_year = true)) +
              sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "last reset", time_at(stats["last reset time"], with_year = true)) +
-             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "service up", elapsed(stats["service uptime"]))
+             sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "service up", service_up_str(stats["service uptime"]))
       if stats.has_key?("machine uptime")
         str += sprintf("%-#{name_width}s#{SEPARATOR}%s\n", "machine up", elapsed(stats["machine uptime"]))
       end
@@ -260,6 +260,30 @@ module RightSupport
         str += sub_stats_str(k[0..-7], v, options) if k.to_s =~ /stats$/
       end
       str
+    end
+
+    # Converts service uptime stats to displayable format
+    #
+    # === Parameters
+    # stats(Integer|Hash):: Service uptime in seconds if an Integer, otherwise a Hash containing
+    #   "uptime", "total_uptime", "restarts", "graceful_exits", "crashes", and "last_crash_time" values
+    #
+    # === Return
+    # (String):: Service uptime display
+    def self.service_up_str(stats)
+      if stats.is_a?(Integer)
+        elapsed(stats)
+      else
+        str = elapsed(stats["uptime"])
+        if (r = stats["restarts"]) && r > 0
+          non_graceful = (n = r - stats["graceful_exits"]) > 0 ? "#{n} non-graceful, " : ""
+          str += ", restarts: #{r} (#{non_graceful}up #{elapsed(stats["total_uptime"])} total)"
+        end
+        if (c = stats["crashes"]) && c > 0
+          str += ", crashes: #{c} (last #{elapsed(Time.now.to_i - stats["last_crash_time"])} ago)"
+        end
+        str
+      end
     end
 
     # Convert broker information to displayable format
