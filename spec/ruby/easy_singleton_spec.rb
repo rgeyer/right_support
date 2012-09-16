@@ -17,6 +17,20 @@ class Bob
   end
 end
 
+class Charlie
+  include RightSupport::Ruby::EasySingleton
+
+  def charlie?(&block)
+    block.call("this is charlie") if block
+    true
+  end
+
+  def horse(x,y,z)
+    yield("this is horse") if block_given?
+    x+y+z
+  end
+end
+
 describe RightSupport::Ruby::EasySingleton do
   context 'when mixed into a base class' do
     it 'ensures the base is already a Singleton' do
@@ -36,6 +50,23 @@ describe RightSupport::Ruby::EasySingleton do
       Bob.respond_to?(:bob?).should be_true
       Alice.respond_to?(:bob?).should be_false
       Bob.respond_to?(:alice?).should be_false
+    end
+  end
+
+  context 'when proxying class-level method_missing to instance' do
+    it 'preserves parameters as passed' do
+      Charlie.horse(1,2,3).should == 6
+    end
+
+    it 'preserves block semantics' do
+      charlie = nil
+      horse   = nil
+
+      Charlie.charlie? { |x| charlie = x }
+      charlie.should == 'this is charlie'
+
+      Charlie.horse(1,2,3) { |x| horse = x }
+      horse.should == 'this is horse'
     end
   end
 end
