@@ -177,13 +177,30 @@ describe RightSupport::DB::CassandraModel do
 
         it 'should set the current keyspace to the keyspace provided for execution within the block' do
           RightSupport::DB::CassandraModel.with_keyspace(keyspace) do
-            RightSupport::DB::CassandraModel.keyspace.should == keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+            RightSupport::DB::CassandraModel.keyspace.should == keyspace + "_" + 'test'
           end
         end
 
         it 'should reset back to the default keyspace for execution outside of the block' do
           RightSupport::DB::CassandraModel.with_keyspace(keyspace) {}
-          RightSupport::DB::CassandraModel.keyspace.should == default_keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+          RightSupport::DB::CassandraModel.keyspace.should == default_keyspace + "_" + 'test'
+        end
+        context 'append_env parameter' do
+          it 'should append the environment by default' do
+            RightSupport::DB::CassandraModel.with_keyspace('Monkey') do
+              RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_test'
+            end
+          end
+
+          it 'should append the environment when append_env == true' do
+            RightSupport::DB::CassandraModel.with_keyspace('Monkey_notatest', false) do
+              RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_notatest'
+            end
+          end
+
+          it 'should NOT append the environment when append_env == false' do
+
+          end
         end
       end
 

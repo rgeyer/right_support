@@ -166,14 +166,19 @@ module RightSupport::DB
         @@default_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
       end
 
-      # Execute given block in kyspc context
+      # Temporarily change the working keyspace for this class for the duration of
+      # the block. Resets working keyspace back to default once control has
+      # returned to the caller.
       #
       # === Parameters
-      # kyspc(String):: Keyspace context
+      # keyspace(String):: Keyspace name
+      # append_env(true|false):: optional; default true - whether to append the environment name
       # block(Proc):: Code that will be called in keyspace context
-
-      def with_keyspace(kyspc, &block)
-        @@current_keyspace = (kyspc + "_" + (ENV['RACK_ENV'] || 'development'))
+      def with_keyspace(keyspace, append_env=true, &block)
+        @@current_keyspace = keyspace
+        if append_env
+          @@current_keyspace = "#{@@current_keyspace}_#{ENV['RACK_ENV'] || 'development'}"
+        end
         block.call
         ensure
           @@current_keyspace = nil
