@@ -236,6 +236,41 @@ describe RightSupport::Stats do
     end
   end
 
+  context "service_up_str" do
+    it "converts service up stats to string when it is an integer" do
+      result = @helpers.service_up_str(75)
+      result.should == "1 min 15 sec"
+    end
+
+    it "converts service up stats to string when it is a hash" do
+      result = @helpers.service_up_str("uptime" => 75)
+      result.should == "1 min 15 sec"
+    end
+
+    it "converts service up stats to string that includes restarts" do
+      result = @helpers.service_up_str("uptime" => 75, "total_uptime" => 86401, "restarts" => 10, "graceful_exits" => 10)
+      result.should == "1 min 15 sec, restarts: 10 (up 1 day 0 hr 0 min total)"
+    end
+
+    it "converts service up stats to string that includes restarts and non-graceful exits" do
+      result = @helpers.service_up_str("uptime" => 75, "total_uptime" => 90061, "restarts" => 10, "graceful_exits" => 8)
+      result.should == "1 min 15 sec, restarts: 10 (2 non-graceful, up 1 day 1 hr 1 min total)"
+    end
+
+    it "converts service up stats to string that includes crashes" do
+      flexmock(Time).should_receive(:now).and_return(1000000)
+      result = @helpers.service_up_str("uptime" => 75, "total_uptime" => 90061, "crashes" => 1, "last_crash_time" => 996340)
+      result.should == "1 min 15 sec, crashes: 1 (last 1 hr 1 min ago)"
+    end
+
+    it "converts service up stats to string that includes restarts and crashes" do
+      flexmock(Time).should_receive(:now).and_return(1000000)
+      result = @helpers.service_up_str("uptime" => 75, "total_uptime" => 90061, "restarts" => 10, "graceful_exits" => 8,
+                                       "crashes" => 1, "last_crash_time" => 996340)
+      result.should == "1 min 15 sec, restarts: 10 (2 non-graceful, up 1 day 1 hr 1 min total), crashes: 1 (last 1 hr 1 min ago)"
+    end
+  end
+
   context "brokers_str" do
     it "converts broker status to multi-line display string" do
       result = @helpers.brokers_str(@brokers, :name_width => 10)
