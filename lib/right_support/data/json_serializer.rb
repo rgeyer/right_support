@@ -29,6 +29,7 @@ module RightSupport::Data
   #  * Objects that represent callable code: Proc, Lambda, etc.
   #  * Hash keys that are themselves a Hash or Array (depends on JSON parser)
   #  * Hashes that contain a String key whose value is '_ruby_class'
+  #  * Hashes that contain a String key whose value is '_ruby_string'
   module JsonSerializer
     if require_succeeds?('yajl')
       InnerJSON = ::Yajl
@@ -41,10 +42,10 @@ module RightSupport::Data
     end unless defined?(InnerJSON)
 
     TIME_FORMAT    = '%Y-%m-%d %H:%M:%S %z'
-    TIME_PATTERN   = /\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}( [+-]\d{1,5})?/
+    TIME_PATTERN   = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}( [+-]\d{1,5})?$/
     CLASS_KEY      = '_ruby_class'
+    ESCAPE_KEY     = '_ruby_string'
     CLASS_NAME_KEY = 'name'
-    ESCAPE         = '\\\\'
 
     module_function
 
@@ -62,9 +63,10 @@ module RightSupport::Data
     def self.object_to_jsonish(object)
       case object
       when String
-        if (object =~ /^[#{ESCAPE}:]/) || (object =~ TIME_PATTERN)
-          # Strings that look like a Symbol, escaped String or Time, must be escaped!
-          "#{ESCAPE}#{object}"
+        if (object =~ /^:/ ) || (object =~ TIME_PATTERN)
+          # Strings that look like a Symbol or Time must themselves be escaped!
+          # We escape them as a JSON Hash containing one special key.
+          {ESCAPE_KEY => object}
         else
           object
         end
@@ -106,10 +108,7 @@ module RightSupport::Data
     def self.jsonish_to_object(object)
       case object
       when String
-        if object =~ /^#{ESCAPE}/
-          # Remove escaping from Strings
-          object[1..-1]
-        elsif object =~ /^:/
+        if object =~ /^:/
           object[1..-1].to_sym
         elsif object =~ TIME_PATTERN
           Time.parse(object)
@@ -138,6 +137,8 @@ module RightSupport::Data
           end
 
           object
+        elsif object.key?(ESCAPE_KEY)
+          object[ESCAPE_KEY]
         else
           object.inject({}) do |result, (k, v)|
             result[jsonish_to_object(k)] = jsonish_to_object(v)
