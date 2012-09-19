@@ -65,17 +65,17 @@ describe RightSupport::DB::CassandraModel do
       # This method assumes that keyspaces being requested to connect to already exist.
       # If they do not exist, it should NOT create them.  If the connection is able
       # to be successfully established then it should be stored in a pool of connections
-      it 'should create a new connection if no connection exists for provided keyspace' do
+      it 'creates a new connection if no connection exists for provided keyspace' do
         RightSupport::DB::CassandraModel.conn.name.should == default_keyspace_connection.name
       end
 
       # If a connection has already been opened for a keyspace it should be re-used
-      it 'should re-use an existing connection if it exists for provided keyspace' do
+      it 're-uses an existing connection if it exists for provided keyspace' do
         RightSupport::DB::CassandraModel.conn.name.should == RightSupport::DB::CassandraModel.conn.name
       end
 
       # The keyspace being used for the connection should be either the current keyspace or the default keyspace
-      it 'should use the connection that corresponds to the provided keyspace' do
+      it 'uses the connection that corresponds to the provided keyspace' do
         RightSupport::DB::CassandraModel.with_keyspace(keyspace) do
           RightSupport::DB::CassandraModel.conn.name.should == current_keyspace_connection.name
         end
@@ -139,7 +139,7 @@ describe RightSupport::DB::CassandraModel do
       context :keyspace= do
         let(:keyspace) { 'SatelliteService' }
 
-        it 'should append the environment to the keyspace provided' do
+        it 'appends the environment to the keyspace provided' do
           RightSupport::DB::CassandraModel.keyspace = keyspace
           RightSupport::DB::CassandraModel.send(:class_variable_get, :@@default_keyspace).should == (keyspace + "_" + (ENV['RACK_ENV'] || 'development'))
         end
@@ -150,13 +150,13 @@ describe RightSupport::DB::CassandraModel do
       context :keyspace do
         let(:keyspace) { 'SatelliteService_' + ENV['RACK_ENV'] }
 
-        it 'should return the default keyspace if no current keyspace is set' do
+        it 'returns the default keyspace if no current keyspace is set' do
           RightSupport::DB::CassandraModel.send(:class_variable_set, :@@current_keyspace, nil)
           RightSupport::DB::CassandraModel.send(:class_variable_set, :@@default_keyspace, keyspace)
           RightSupport::DB::CassandraModel.keyspace.should == keyspace
         end
 
-        it 'should return the current keyspace if a current keyspace is set' do
+        it 'returns the current keyspace if a current keyspace is set' do
           RightSupport::DB::CassandraModel.send(:class_variable_set, :@@current_keyspace, keyspace)
           RightSupport::DB::CassandraModel.send(:class_variable_set, :@@default_keyspace, nil)
           RightSupport::DB::CassandraModel.keyspace.should == keyspace
@@ -175,15 +175,34 @@ describe RightSupport::DB::CassandraModel do
           RightSupport::DB::CassandraModel.keyspace = default_keyspace
         end
 
-        it 'should set the current keyspace to the keyspace provided for execution within the block' do
+        it 'sets the current keyspace to the keyspace provided for execution within the block' do
           RightSupport::DB::CassandraModel.with_keyspace(keyspace) do
-            RightSupport::DB::CassandraModel.keyspace.should == keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+            RightSupport::DB::CassandraModel.keyspace.should == keyspace + "_" + 'test'
           end
         end
 
-        it 'should reset back to the default keyspace for execution outside of the block' do
+        it 'resets back to the default keyspace for execution outside of the block' do
           RightSupport::DB::CassandraModel.with_keyspace(keyspace) {}
-          RightSupport::DB::CassandraModel.keyspace.should == default_keyspace + "_" + (ENV['RACK_ENV'] || 'development')
+          RightSupport::DB::CassandraModel.keyspace.should == default_keyspace + "_" + 'test'
+        end
+        context 'append_env parameter' do
+          it 'appends the environment by default' do
+            RightSupport::DB::CassandraModel.with_keyspace('Monkey') do
+              RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_test'
+            end
+          end
+
+          it 'appends the environment when append_env == true' do
+            RightSupport::DB::CassandraModel.with_keyspace('Monkey', true) do
+              RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_test'
+            end
+          end
+
+          it 'does NOT append the environment when append_env == false' do
+            RightSupport::DB::CassandraModel.with_keyspace('Monkey_notatest', false) do
+              RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_notatest'
+            end
+          end
         end
       end
 

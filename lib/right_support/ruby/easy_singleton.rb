@@ -3,9 +3,9 @@ require 'singleton'
 module RightSupport::Ruby
   module EasySingleton
     module ClassMethods
-      def method_missing(meth, *args)
+      def method_missing(meth, *args, &block)
         if self.instance && self.instance.respond_to?(meth)
-          self.instance.__send__(meth, *args)
+          self.instance.__send__(meth, *args, &block)
         else
           super
         end
