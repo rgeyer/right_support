@@ -58,8 +58,6 @@ module RightSupport::Data
       InnerJSON.dump(jsonish)
     end
 
-    protected
-
     # Given an Object, transform it into a JSONish
     def self.object_to_jsonish(object)
       case object
