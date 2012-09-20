@@ -5,6 +5,8 @@ module RightSupport::Crypto
 
     if require_succeeds?('yajl')
       DefaultEncoding = ::Yajl
+    elsif require_succeeds?('oj')
+      DefaultEncoding = ::Oj
     elsif require_succeeds?('json')
       DefaultEncoding = ::JSON
     else

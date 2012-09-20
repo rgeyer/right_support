@@ -36,5 +36,6 @@ require 'right_support/net/lb'
 require 'right_support/net/request_balancer'
 require 'right_support/net/ssl'
 require 'right_support/net/dns'
+require 'right_support/net/s3_helper'
 
 RightSupport::Net.extend(RightSupport::Net::AddressHelper)
