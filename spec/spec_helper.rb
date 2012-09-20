@@ -97,7 +97,7 @@ RANDOM_VALUE_CLASSES = RANDOM_KEY_CLASSES + [Array, Hash]
 
 def random_value(klass=nil, depth=0)
   if klass.nil?
-    if depth < 3
+    if depth < 5
       klasses = RANDOM_VALUE_CLASSES
     else
       klasses = RANDOM_KEY_CLASSES
@@ -108,7 +108,9 @@ def random_value(klass=nil, depth=0)
 
   if klass == String
     result = ''
-    rand(40).times { result << (0x61 + rand(26)).to_s }
+    io = StringIO.new(result, 'w')
+    rand(40).times { io.write(0x61 + rand(26)) }
+    io.close
   elsif klass == Integer
     result = rand(0xffffff)
   elsif klass == Float
