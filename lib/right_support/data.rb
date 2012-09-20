@@ -29,6 +29,6 @@ module RightSupport
   end
 end
 
-require 'right_support/data/json_serializer'
+require 'right_support/data/serializer'
 require 'right_support/data/hash_tools'
 require 'right_support/data/uuid'

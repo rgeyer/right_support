@@ -42,7 +42,7 @@ When /^I serialize a complex random data structure$/ do
 end
 
 When /^an eldritch force deletes a key from the serialized value$/ do
-  hash = RightSupport::Data::JsonSerializer::InnerJSON.load(@serialized_value)
+  hash = RightSupport::Data::Serializer::Encoder.load(@serialized_value)
   hash.delete(hash.keys[rand(hash.keys.size)])
   @serialized_value = @serializer.dump(hash)
 end
@@ -50,8 +50,8 @@ end
 Then /^the serialized value should be: (.*)$/ do |expression|
   if (@serialized_value =~ /^\{/) || (expression =~ /^\{/)
     # Hash: ordering of JSON representation is unimportant; load as pure JSON and compare values
-    RightSupport::Data::JsonSerializer::InnerJSON.load(@serialized_value).should ==
-    RightSupport::Data::JsonSerializer::InnerJSON.load(expression)
+    RightSupport::Data::Serializer::Encoder.load(@serialized_value).should ==
+    RightSupport::Data::Serializer::Encoder.load(expression)
   else
     # Any other data: exact comparison
     @serialized_value.should == expression

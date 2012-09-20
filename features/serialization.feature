@@ -4,7 +4,7 @@ Feature: JSON serialization
   So app code can be idiomatic and focus on the business problem, not the encoding details
 
   Background:
-    Given a serializer named 'RightSupport::Data::JsonSerializer'
+    Given a serializer named 'RightSupport::Data::Serializer'
     And a stateful Ruby class named 'GotState'
 
   Scenario Outline: Ruby types with a native JSON representation

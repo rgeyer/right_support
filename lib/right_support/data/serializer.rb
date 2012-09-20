@@ -2,14 +2,20 @@ require 'time'
 require 'date'
 
 module RightSupport::Data
-  # Utility module that implements true, lossless Ruby-to-JSON serialization.
+  # Utility class that implements true, lossless Ruby-to-JSON serialization.
   # With a few small exceptions, this module can #dump any Ruby object in your
   # VM, and later #load the exact same object from its serialized representation.
+  # It can also be used with encoding schemes other than JSON, e.g. msgpack.
   #
   # This class works by transforming Ruby object graphs into an intermediate
   # representation that consists solely of JSON-clean Ruby objects (String,
   # Integer, ...). This intermediate format is dubbed "JSONish", and it can
   # be transformed to JSON and back without losing data or creating ambiguity.
+  #
+  # If you use the class-level (::load and ::dump) interface to this class,
+  # it always uses JSON serialization by default. If you construct an instance,
+  # you can control which encoding scheme to use, as well as which Hash key to use
+  # to mark a serialized object.
   #
   # === JSONish Object Representation
   # Most Ruby simple types (String, Integer, Float, true/false/nil) are
@@ -55,34 +61,52 @@ module RightSupport::Data
   #  * Times with timezone other than UTC or precision greater than 1 sec
   #  * Hash keys that are anything other than a String (depends on JSON parser)
   #  * Hashes that contain a String key whose value is '_ruby_class'
-  module JsonSerializer
+  class Serializer
     if require_succeeds?('yajl')
-      InnerJSON = ::Yajl
+      Encoder = ::Yajl
     elsif require_succeeds?('oj')
-      InnerJSON = ::Oj
+      Encoder = ::Oj
     elsif require_succeeds?('json')
-      InnerJSON = ::JSON
+      Encoder = ::JSON
     else
-      InnerJSON = nil
-    end unless defined?(InnerJSON)
+      Encoder = nil
+    end unless defined?(Encoder)
 
     # Format string to use when sprintf'ing a JSONish Time
     TIME_FORMAT       = '%4.4d-%2.2d-%2.2dT%2.2d:%2.2d:%2.2dZ'
     # Pattern to match Strings against for object-escaping
     TIME_PATTERN      = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$/
-    # Special key that means "serialized object"
-    CLASS_KEY         = '_ruby_class'
     # Special key used as a pseudo-instance-variable for Class and Module
     CLASS_ESCAPE_KEY  = 'name'
     # Special key used as a pseudo-instance-variable for String
     STRING_ESCAPE_KEY = 'value'
 
-    module_function
+    DEFAULT_OPTIONS = {
+        :marker  => '_ruby_class',
+        :encoder => Encoder
+    }
+
+    def self.load(data)
+      self.new.load(data)
+    end
+
+    def self.dump(object)
+      self.new.dump(object)
+    end
+
+    # Instantiate a Serializer instance.
+    # @option options :encoder [#load, #dump] underlying data-encoder to use. Defaults to any available JSON gem.
+    # @option options :marker special object key to use when representing a serialized Ruby object. Defaults to '_ruby_class'.
+    def initialize(options={})
+      options = DEFAULT_OPTIONS.merge(options)
+      @marker = options[:marker]
+      @encoder = options[:encoder]
+    end
 
     # @param [String] data valid JSON document representing a serialized object
     # @return [Object] unserialized Ruby object
     def load(data)
-      jsonish = InnerJSON.load(data)
+      jsonish = @encoder.load(data)
       jsonish_to_object(jsonish)
     end
 
@@ -90,18 +114,20 @@ module RightSupport::Data
     # @return [String] JSON document representing the serialized object
     def dump(object)
       jsonish = object_to_jsonish(object)
-      InnerJSON.dump(jsonish)
+      @encoder.dump(jsonish)
     end
+
+    protected
 
     # Given an Object, transform it into a JSONish Ruby structure.
     # @param [Object] object any Ruby object
     # @return [Object] JSONish representation of input object
-    def self.object_to_jsonish(object)
+    def object_to_jsonish(object)
       case object
       when String
         if (object =~ /^:/ ) || (object =~ TIME_PATTERN)
           # Strings that look like a Symbol or Time must be object-escaped.
-          {CLASS_KEY => String.name,
+          {@marker => String.name,
            STRING_ESCAPE_KEY => object}
         else
           object
@@ -124,12 +150,12 @@ module RightSupport::Data
         TIME_FORMAT % [utc.year, utc.mon, utc.day, utc.hour, utc.min, utc.sec]
       when Class, Module
         # Ruby Class/Module needs special handling - no instance vars
-        { CLASS_KEY      => object.class.name,
-          CLASS_ESCAPE_KEY => object.name }
+        { @marker => object.class.name,
+          CLASS_ESCAPE_KEY  => object.name }
       else
         # Generic serialized object; convert to Hash.
         hash = {}
-        hash[CLASS_KEY] = object.class.name
+        hash[@marker] = object.class.name
 
         object.instance_variables.each do |var|
           hash[ var[1..-1] ] = object_to_jsonish(object.instance_variable_get(var))
@@ -142,7 +168,7 @@ module RightSupport::Data
     # Given a JSONish structure, transform it back to a Ruby object.
     # @param [Object] jsonish JSONish Ruby structure
     # @return [Object] unserialized Ruby object
-    def self.jsonish_to_object(jsonish)
+    def jsonish_to_object(jsonish)
       case jsonish
       when String
         if jsonish =~ /^:/
@@ -158,9 +184,9 @@ module RightSupport::Data
       when Fixnum, Float, TrueClass, FalseClass, NilClass
         jsonish
       when Hash
-        if jsonish.key?(CLASS_KEY) # We have a serialized Ruby object!
+        if jsonish.key?(@marker) # We have a serialized Ruby object!
           hash   = jsonish
-          klass  = hash.delete(CLASS_KEY)
+          klass  = hash.delete(@marker)
           case klass
           when Class.name, Module.name
             # Serialized instance of Ruby Class or Module
