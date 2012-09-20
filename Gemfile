@@ -11,6 +11,7 @@ group :optional do
   gem 'uuidtools', "~> 2.0", :require=>nil
   gem 'simple_uuid', "~> 0.2", :require=>nil
   gem 'uuid', "~> 2.3", :require=>nil
+  gem 'yajl-ruby', "~> 1.1"
 end
 
 # Gems used during test and development of RightSupport.

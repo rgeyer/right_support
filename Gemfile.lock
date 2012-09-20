@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    right_support (2.4.1)
+    right_support (2.5.0)
 
 GEM
   remote: http://rubygems.org/
@@ -58,6 +58,7 @@ GEM
     uuid (2.3.5)
       macaddr (~> 1.0)
     uuidtools (2.1.2)
+    yajl-ruby (1.1.0)
 
 PLATFORMS
   ruby
@@ -78,3 +79,4 @@ DEPENDENCIES
   syntax (~> 1.0.0)
   uuid (~> 2.3)
   uuidtools (~> 2.0)
+  yajl-ruby (~> 1.1)
