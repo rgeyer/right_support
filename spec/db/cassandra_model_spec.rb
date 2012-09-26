@@ -203,6 +203,12 @@ describe RightSupport::DB::CassandraModel do
               RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_notatest'
             end
           end
+
+          it 'avoids double-appending the environment' do
+            RightSupport::DB::CassandraModel.with_keyspace('Monkey_test') do
+              RightSupport::DB::CassandraModel.keyspace.should == 'Monkey_test'
+            end
+          end
         end
       end
 

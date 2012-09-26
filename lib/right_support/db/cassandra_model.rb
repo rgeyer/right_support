@@ -176,8 +176,9 @@ module RightSupport::DB
       # block(Proc):: Code that will be called in keyspace context
       def with_keyspace(keyspace, append_env=true, &block)
         @@current_keyspace = keyspace
-        if append_env
-          @@current_keyspace = "#{@@current_keyspace}_#{ENV['RACK_ENV'] || 'development'}"
+        env = ENV['RACK_ENV'] || 'development'
+        if append_env && @@current_keyspace !~ /_#{env}$/
+          @@current_keyspace = "#{@@current_keyspace}_#{env}"
         end
         block.call
         ensure
