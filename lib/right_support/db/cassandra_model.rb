@@ -128,7 +128,7 @@ module RightSupport::DB
       end
 
       def config=(value)
-        @@config = value
+        @@config = normalize_config(value)
       end
 
       def logger=(l)
@@ -516,6 +516,29 @@ module RightSupport::DB
         conn.ring
       end
 
+      private
+
+      # Massage configuration hash into a standard form.
+      # @return the config hash, with contents normalized
+      def normalize_config(config)
+        server = config['server']
+
+        if server.is_a?(String)
+          # Strip surrounding brackets, in case Ops put a YAML array into an input value
+          if server.start_with?('[') && server.end_with?(']')
+            server server[1..-2]
+          end
+
+          # Transform comma-separated host lists into an Array
+          if server =~ /,/
+            server = server.split(/\s*,\s*/)
+          end
+        end
+
+        config['server'] = server
+
+        config
+      end
     end # self
 
     attr_accessor :key, :attributes
