@@ -127,8 +127,15 @@ module RightSupport::DB
         @@config
       end
 
+      def env_config
+        env = ENV['RACK_ENV']
+        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" \
+            unless !@@config.nil? && @@config.keys.include?(env) && @@config[env]
+        @@config[env]
+      end
+
       def config=(value)
-        @@config = normalize_config(value)
+        @@config = normalize_config(value) unless value.nil?
       end
 
       def logger=(l)
@@ -194,9 +201,7 @@ module RightSupport::DB
       def conn()
         @@connections ||= {}
 
-        # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
-        config = @@config[ENV["RACK_ENV"]]
-        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
+        config = env_config
 
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
@@ -493,8 +498,7 @@ module RightSupport::DB
       # === Return
       # true:: Always return true
       def reconnect
-        config = @@config[ENV["RACK_ENV"]]
-        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
+        config = env_config
 
         return false if keyspace.nil?
 
@@ -520,24 +524,28 @@ module RightSupport::DB
 
       # Massage configuration hash into a standard form.
       # @return the config hash, with contents normalized
-      def normalize_config(config)
-        server = config['server']
+      def normalize_config(untrasted_config)
+        untrasted_config.each do |env, config|
+          raise MissingConfiguration, "CassandraModel config is broken, a '#{ENV['RACK_ENV']}' missing 'server' option" \
+ unless config.keys.include?('server')
+          server = config['server']
 
-        if server.is_a?(String)
-          # Strip surrounding brackets, in case Ops put a YAML array into an input value
-          if server.start_with?('[') && server.end_with?(']')
-            server server[1..-2]
+          if server.is_a?(String)
+            # Strip surrounding brackets, in case Ops put a YAML array into an input value
+            if server.start_with?('[') && server.end_with?(']')
+              server = server[1..-2]
+            end
+
+            # Transform comma-separated host lists into an Array
+            if server =~ /,/
+              server = server.split(/\s*,\s*/)
+            end
           end
 
-          # Transform comma-separated host lists into an Array
-          if server =~ /,/
-            server = server.split(/\s*,\s*/)
-          end
+          config['server'] = server
+
+          config
         end
-
-        config['server'] = server
-
-        config
       end
     end # self
 
