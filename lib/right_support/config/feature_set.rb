@@ -82,8 +82,14 @@ module RightSupport::Config
     # (ArgumentError):: If configuration source can`t be loaded
     def load(something)
       return_value = nil
+      error_message = ''
       @configuration_source = something
-      raise ArgumentError, "Can't coerce #{something} into YAML/Hash" unless (return_value = YAMLConfig.read(something))
+      begin
+        return_value = YAMLConfig.read(something)
+      rescue Exception => e
+        error_message = "#{e}"
+      end
+      raise ArgumentError, "Can't coerce #{something} into YAML/Hash. #{e}" unless return_value
       return_value
     end
 

@@ -49,7 +49,7 @@ module RightSupport::Data
     # === Return
     # @return [TrueClass|FalseClass] true if clazz is hash-like, false otherwise
     def self.hash_like?(clazz)
-      clazz.public_instance_methods.include?('has_key?')
+      clazz.public_method_defined?('has_key?')
     end
 
     # Gets a value from a (deep) hash using a path given as an array of keys.

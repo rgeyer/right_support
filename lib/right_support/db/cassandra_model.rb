@@ -265,7 +265,7 @@ module RightSupport::DB
             columns.merge!(chunk)
             if chunk.size == opt[:count]
               # Assume there are more chunks, use last key as start of next get
-              opt[:start] = chunk.keys.last
+              opt[:start] = chunk.keys.sort.last
             else
               # This must be the last chunk
               break
@@ -400,7 +400,7 @@ module RightSupport::DB
           end
           if chunk.size == count
             # Assume there are more chunks, use last key as start of next get
-            start = chunk.keys.last
+            start = chunk.keys.sort.last
           else
             # This must be the last chunk
             break

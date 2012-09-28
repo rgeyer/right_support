@@ -245,8 +245,10 @@ describe RightSupport::DB::CassandraModel do
         it 'returns all columns for the specified key if no count specified' do
           default_count = RightSupport::DB::CassandraModel::DEFAULT_COUNT
 
+          RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
+          RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, 2)
           begin
-            RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, 2)
+
             attrs1 = {@offset + '1' => @value, @offset + '2' => @value}
             attrs2 = {@offset + '3' => @value}
             attrs = attrs1.merge(attrs2)
@@ -256,6 +258,7 @@ describe RightSupport::DB::CassandraModel do
             @conn.should_receive(:get).with(@column_family, @key, get_opt2).and_return(attrs2).once
             RightSupport::DB::CassandraModel.get(@key).attributes.should == attrs
           ensure
+            RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
             RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, default_count)
           end
         end
@@ -314,8 +317,9 @@ describe RightSupport::DB::CassandraModel do
         it 'returns all rows for the specified key if no count specified' do
           default_count = RightSupport::DB::CassandraModel::DEFAULT_COUNT
 
+          RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
+          RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, 2)
           begin
-            RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, 2)
             key1 = @key + '1'
             key2 = @key + '2'
             key3 = @key + '3'
@@ -330,6 +334,7 @@ describe RightSupport::DB::CassandraModel do
             rows.size.should == 3
             rows.inject({}) { |s, r| s[r.key] = r.attributes; s }.should == {key1 => cols, key2 => cols, key3 => cols}
           ensure
+            RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
             RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, default_count)
           end
         end
