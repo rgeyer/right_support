@@ -89,7 +89,7 @@ module RightSupport::Config
       rescue Exception => e
         error_message = "#{e}"
       end
-      raise ArgumentError, "Can't coerce #{something} into YAML/Hash. #{e}" unless return_value
+      raise ArgumentError, "Can't coerce #{something.inspect} into YAML/Hash. #{error_message}" unless return_value
       return_value
     end
 
