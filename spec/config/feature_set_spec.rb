@@ -67,9 +67,7 @@ describe RightSupport::Config::FeatureSet do
     end
   
     it 'raise error on wrong yaml' do
-      #wrong_yaml_config = {:a=>:b}.to_yaml + "::\n\na"
       wrong_yaml_config = {:a=>:b}.to_yaml + "::\n\na"
-      puts ">>>" + wrong_yaml_config
       lambda do
         @test_class.instance_eval{ @config = RightSupport::Config.features(wrong_yaml_config)}
       end.should raise_error(ArgumentError)
