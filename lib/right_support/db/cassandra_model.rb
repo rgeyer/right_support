@@ -336,8 +336,10 @@ module RightSupport::DB
         while (start_row != nil)
           clause = do_op(:create_idx_clause, [expr], start_row, row_count)
 
-          rows = self.conn.get_indexed_slices(column_family, clause, 'account_id',
-                                              :key_count => row_count, :key_start => start_row)
+          rows = self.conn.get_indexed_slices(column_family, clause, index,
+                                              :key_count => row_count,
+                                              :key_start => start_row)
+
           rows = rows.keys
           rows.shift unless start_row == ''
           start_row = rows.last
@@ -353,8 +355,10 @@ module RightSupport::DB
                                                    :start => start_column,
                                                    :count => column_count)
 
+              # Get first row's columns, because where are getting only one row [see clause, for more details]
               key = chunk.keys.first
-              columns = chunk.values.first
+              columns = chunk[key]
+
               columns.shift unless start_column == ''
               yield(key, columns) unless chunk.empty?
 
