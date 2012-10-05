@@ -45,13 +45,14 @@ module RightSupport::Net
 
     # As a kindness to unit test authors, count RSpec exceptions as fatal. Use some
     # reflection to handle ALL RSpec-related exceptions.
-    spec_namespaces = if defined?(RSpec)
+    spec_namespaces = if require_succeeds?('rspec')
       # RSpec 2.x
       [RSpec::Mocks, RSpec::Expectations]
-    elsif defined?(Spec)
+    elsif require_succeeds?('spec')
       # RSpec 1.x
       [Spec::Expectations]
     else
+      # RSpec is not present
       []
     end
     spec_namespaces.each do |namespace|
