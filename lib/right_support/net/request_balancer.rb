@@ -43,6 +43,26 @@ module RightSupport::Net
       RegexpError, ThreadError, TypeError, ZeroDivisionError
     ]
 
+    # As a kindness to unit test authors, count RSpec exceptions as fatal. Use some
+    # reflection to handle ALL RSpec-related exceptions.
+    spec_namespaces = if defined?(RSpec)
+      # RSpec 2.x
+      [RSpec::Mocks, RSpec::Expectations]
+    elsif defined?(Spec)
+      # RSpec 1.x
+      [Spec::Expectations]
+    else
+      []
+    end
+    spec_namespaces.each do |namespace|
+      namespace.constants.each do |konst|
+        konst = namespace.const_get(konst)
+        if konst.is_a?(Class) && konst.ancestors.include?(Exception)
+          DEFAULT_FATAL_EXCEPTIONS << konst
+        end
+      end
+    end
+
     DEFAULT_FATAL_PROC = lambda do |e|
       if DEFAULT_FATAL_EXCEPTIONS.any? { |c| e.is_a?(c) }
         #Some Ruby builtin exceptions indicate program errors
