@@ -8,21 +8,30 @@ describe RightSupport::Net::LB::HealthCheck do
   before(:each) do
     @endpoints = [1,2,3,4,5]
     @yellow_states = 4
-    @reset_time = 300
-    @policy = RightSupport::Net::LB::HealthCheck.new({
-                :yellow_states => @yellow_states, :reset_time => @reset_time})
+    @reset_time = 60
+    @policy = RightSupport::Net::LB::HealthCheck.new(
+                :yellow_states => @yellow_states,
+                :reset_time => @reset_time)
     @policy.set_endpoints(@endpoints)
     @trials = 2500
   end
 
-  context :good do
+  context :initialize do
+    it 'starts endpoints in yellow-1 state' do
+      stats = @policy.get_stats
+      @endpoints.each { |ep| stats[ep].should == 'yellow-1' }
+    end
+  end
 
+  context :good do
     context 'given a red server' do
-      it "changes to yellow-N" do
+      before(:each) do
         @red = @endpoints.first
         @yellow_states.times { @policy.bad(@red, 0, Time.now) }
         @policy.should have_red_endpoint(@red)
+      end
 
+      it "changes to yellow-N" do
         @policy.good(@red, 0, Time.now)
         @policy.should have_yellow_endpoint(@red, @yellow_states-1)
       end
@@ -31,29 +40,30 @@ describe RightSupport::Net::LB::HealthCheck do
     context 'given a yellow-N server' do
       before(:each) do
         @yellow = @endpoints.first
+        (@yellow_states-1).times { @policy.bad(@yellow, 0, Time.now) }
+        @policy.should have_yellow_endpoint(@yellow, @yellow_states)
       end
 
       it 'decreases the yellow level to N-1' do
-        2.times { @policy.bad(@yellow, 0, Time.now) }
-        @policy.should have_yellow_endpoint(@yellow, 2)
-
         @policy.good(@yellow, 0, Time.now)
-        @policy.should have_yellow_endpoint(@yellow, 1)
+        @policy.should have_yellow_endpoint(@yellow, @yellow_states-1)
       end
 
-      it 'changes to green if N == 0' do
-        @policy.bad(@yellow, 0, Time.now)
-        @policy.should have_yellow_endpoint(@yellow, 1)
-        @policy.good(@yellow, 0, Time.now)
-        @policy.should have_green_endpoint(@yellow)
-      end
+      context 'when N == 1' do
+        before(:each) do
+          @yellow = @endpoints[1] #this should be yellow-1 since we haven't tampered with it yet
+          @policy.get_stats[@yellow].should == 'yellow-1'
+        end
 
-      it 'performs a health check' do
-        pending
+        it 'changes to green' do
+          @policy.should have_yellow_endpoint(@yellow, 1)
+          @policy.good(@yellow, 0, Time.now)
+          @policy.should have_green_endpoint(@yellow)
+        end
       end
     end
 
-    context 'given a mixture of servers and callback enabled' do
+    context 'when on_health_change callback is enabled' do
       before(:each) do
         @yellow_states = 3
         @health_updates = []
@@ -61,6 +71,11 @@ describe RightSupport::Net::LB::HealthCheck do
                     :yellow_states => @yellow_states, :reset_time => @reset_time,
                     :on_health_change => lambda { |health| @health_updates << health }})
         @policy.set_endpoints(@endpoints)
+
+        # put everyone into green state, then forget all health updates. this helps us write an
+        # easier test.
+        @endpoints.each { |ep| @policy.good(ep, 0, Time.now) }
+        @health_updates = []
       end
 
       it "notifies of overall improving health only at transition points" do
@@ -91,9 +106,13 @@ describe RightSupport::Net::LB::HealthCheck do
 
   context :bad do
     context 'given a green server' do
-      it 'changes to yellow-1' do
+      before(:each) do
         @green = @endpoints.first
+        @policy.good(@green, 0, Time.now)
         @policy.should have_green_endpoint(@green)
+      end
+
+      it 'changes to yellow-1' do
         @policy.bad(@green, 0, Time.now)
         @policy.should have_yellow_endpoint(@green, 1)
       end
@@ -105,21 +124,21 @@ describe RightSupport::Net::LB::HealthCheck do
       end
 
       it 'increases the yellow level to N+1' do
-        n = 2
-        n.times {@policy.bad(@yellow, 0, Time.now)}
-        @policy.should have_yellow_endpoint(@yellow, n)
-
         @policy.bad(@yellow, 0, Time.now)
-        @policy.should have_yellow_endpoint(@yellow, n+1)
+        @policy.should have_yellow_endpoint(@yellow, 2)
       end
 
-      it 'changes to red if N >= @yellow_states' do
-        n = @yellow_states - 1
-        n.times { @policy.bad(@yellow, 0, Time.now) }
-        @policy.should have_yellow_endpoint(@yellow, n)
+      context 'when N == yellow_states-1' do
+        before(:each) do
+          n = @yellow_states - 2
+          n.times { @policy.bad(@yellow, 0, Time.now) }
+          @policy.should have_yellow_endpoint(@yellow, n+1)
+        end
 
-        @policy.bad(@yellow, 0, Time.now)
-        @policy.should have_red_endpoint(@yellow)
+        it 'changes to red' do
+          @policy.bad(@yellow, 0, Time.now)
+          @policy.should have_red_endpoint(@yellow)
+        end
       end
     end
 
@@ -134,7 +153,7 @@ describe RightSupport::Net::LB::HealthCheck do
       end
     end
 
-    context 'given a mixture of servers and callback enabled' do
+    context 'when on_health_change callback is enabled' do
       before(:each) do
         @yellow_states = 3
         @health_updates = []
@@ -142,12 +161,17 @@ describe RightSupport::Net::LB::HealthCheck do
                     :yellow_states => @yellow_states, :reset_time => @reset_time,
                     :on_health_change => lambda { |health| @health_updates << health }})
         @policy.set_endpoints(@endpoints)
+
+        # put everyone into green state, then forget all health updates. this helps us write an
+        # easier test.
+        @endpoints.each { |ep| @policy.good(ep, 0, Time.now) }
+        @health_updates = []
       end
 
       it "notifies of overall worsening health only at transition points" do
+        # make most endpoints yellow-1
         endpoints = @endpoints.shuffle
         endpoints[1..-1].each { |ep| @policy.bad(ep, 0, Time.now) }
-        @health_updates.should == []
         @policy.bad(endpoints[0], 0, Time.now)
         @health_updates.should == ['yellow-1']
         endpoints.each { |ep| @policy.bad(ep, 0, Time.now) }
@@ -230,39 +254,60 @@ describe RightSupport::Net::LB::HealthCheck do
       end
     end
 
-    context 'when @reset_time has passed since a server became red' do
-      it 'resets the server to yellow' do
+    context 'given a red server' do
+      before(:each) do
         @red = @endpoints.first
-        @yellow_states.times { @policy.bad(@red, 0, Time.now - 300) }
-        @policy.should have_red_endpoint(@red)
-        @policy.next
-        @policy.should have_yellow_endpoint(@red, @yellow_states-1)
+        (@yellow_states-1).times { @policy.bad(@red, 0, Time.now - 60) }
+      end
+
+      context 'when @reset_time passes' do
+        it 'resets the server to yellow' do
+          @policy.should have_red_endpoint(@red)
+          @policy.next
+          @policy.should have_yellow_endpoint(@red, @yellow_states-1)
+        end
+      end
+
+    end
+
+    context 'given a yellow-2 server' do
+      before(:each) do
+        @yellow = @endpoints.first
+        @policy.bad(@yellow, 0, Time.now - 60)
+        @policy.should have_yellow_endpoint(@yellow, 2)
+      end
+
+      context 'when @reset_time passes' do
+        it 'decreases the yellow level to N-1' do
+          @policy.next
+          @policy.should have_yellow_endpoint(@yellow, 1)
+        end
       end
     end
 
-    context 'when @reset_time has passed since a server became yellow' do
-      it 'decreases the yellow level to N-1' do
+    context 'given a yellow-1 server' do
+      before(:each) do
         @yellow = @endpoints.first
-        n = 2
-        n.times { @policy.bad(@yellow, 0, Time.now - 300) }
-        @policy.should have_yellow_endpoint(@yellow,n)
-        @policy.next
-        @policy.should have_yellow_endpoint(@yellow, n-1)
-      end
-
-      it 'changes to green if N == 0' do
-        @yellow = @endpoints.first
-        @policy.bad(@yellow, 0, Time.now - 300)
+        @policy.good(@yellow, 0, Time.now - 60)
+        @policy.bad(@yellow, 0, Time.now - 60)
         @policy.should have_yellow_endpoint(@yellow, 1)
-        @policy.next
-        @policy.should have_green_endpoint(@yellow)
       end
 
+      context 'when @reset_time passes' do
+        it 'resets the server to green' do
+          @policy.next
+          @policy.should have_green_endpoint(@yellow)
+        end
+      end
     end
   end
 
   context :get_stats do
     context 'given all green servers' do
+      before(:each) do
+        @endpoints.each { |ep| @policy.good(ep, 0, Time.now) }
+      end
+
       it 'reports all endpoints as green' do
         expected_stats = {}
         @endpoints.each { |ep| expected_stats[ep] = 'green' }
@@ -317,7 +362,6 @@ describe RightSupport::Net::LB::HealthCheck do
     end
 
     context 'given an existing endpoints stack' do
-
       it 'updates composition and saves previous statuses of endpoints' do
         expected_stats = {}
         @endpoints.each { |ep| expected_stats[ep] = "yellow-#{@yellow_states - 1}" }
@@ -328,7 +372,7 @@ describe RightSupport::Net::LB::HealthCheck do
         end
 
         @new_endpoins = [6,7]
-        @new_endpoins.each { |ep| expected_stats[ep] = "green" }
+        @new_endpoins.each { |ep| expected_stats[ep] = "yellow-1" }
 
         @updated_endpoints = @endpoints + @new_endpoins
         @policy.set_endpoints(@updated_endpoints)

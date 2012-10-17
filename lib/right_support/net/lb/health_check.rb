@@ -29,7 +29,8 @@ module RightSupport::Net::LB
   # instead of putting it here.
   class EndpointsStack
     DEFAULT_YELLOW_STATES = 4
-    DEFAULT_RESET_TIME    = 300
+    DEFAULT_RESET_TIME    = 60
+    INITIAL_N_LEVEL       = 1
 
     def initialize(policy, endpoints, yellow_states=nil, reset_time=nil, on_health_change=nil)
       @policy = policy
@@ -38,7 +39,15 @@ module RightSupport::Net::LB
       @reset_time = reset_time || DEFAULT_RESET_TIME
       @on_health_change = on_health_change
       @min_n_level = 0
-      endpoints.each { |ep| @endpoints[ep] = {:n_level => @min_n_level, :timestamp => 0} }
+      endpoints.each { |ep| @endpoints[ep] = {:n_level => INITIAL_N_LEVEL, :timestamp => 0} }
+    end
+
+    def inspect
+      "<#{self.class.name}: #{get_stats.inspect}>"
+    end
+
+    def to_s
+      inspect
     end
 
     def sweep
@@ -72,7 +81,7 @@ module RightSupport::Net::LB
 
     def state_color(n_level)
       color = 'green' if n_level == 0
-      color = 'red' if n_level == @yellow_states
+      color = 'red' if n_level >= @yellow_states
       color = "yellow-#{n_level}" if n_level > 0 && n_level < @yellow_states
       color
     end
@@ -85,9 +94,13 @@ module RightSupport::Net::LB
       stats
     end
 
-    def update!(endpoints)
-      @endpoints.each { |k,v| endpoints.include?(k) ? endpoints.delete(k) : @endpoints.delete(k) }
-      endpoints.each  { |ep| @endpoints[ep] = {:n_level => @min_n_level, :timestamp => 0} }
+    # Replace the set of endpoints that this object knows about. If any
+    # endpoint in the new set is already being tracked, remember its
+    # health. For any new endpoint, set its health to INITIAL_N_LEVEL.
+
+    def update!(new_endpoints)
+      @endpoints.each { |k,v| new_endpoints.include?(k) ? new_endpoints.delete(k) : @endpoints.delete(k) }
+      new_endpoints.each  { |ep| @endpoints[ep] = {:n_level => INITIAL_N_LEVEL, :timestamp => 0} }
     end
 
     # Return the logger that our surrounding policy uses
