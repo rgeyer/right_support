@@ -246,7 +246,7 @@ module RightSupport::Net
     end
 
     # Provide an interface so one can query the RequestBalancer for statistics on
-    # it's endpoints.  Merely proxies the balancing policy's get_stats method. If
+    # its endpoints.  Merely proxies the balancing policy's get_stats method. If
     # no method exists in the balancing policy, a hash of endpoints with "n/a" is
     # returned.
     # 

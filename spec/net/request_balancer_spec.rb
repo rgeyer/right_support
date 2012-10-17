@@ -380,7 +380,7 @@ describe RightSupport::Net::RequestBalancer do
       end
 
       context 'with default :retry option' do
-        it 'does mark endpoints as bad if they encounter retryable errors' do
+        it 'marks endpoints as bad if they encounter retryable errors' do
           rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
           expect = rb.get_stats
           codes = [401, 402, 403, 404, 405, 406, 407, 408, 409]
@@ -395,7 +395,6 @@ describe RightSupport::Net::RequestBalancer do
 
         it 'does not mark endpoints as bad if they raise fatal errors' do
           rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
-          expect = rb.get_stats
           codes = [401, 402, 403, 404, 405, 406, 407, 409]
           codes.each do |code|
             lambda do
@@ -403,7 +402,10 @@ describe RightSupport::Net::RequestBalancer do
             end.should raise_error
           end
 
-          rb.get_stats.should == expect
+          # The EPs started in yellow-1, then passed an initial health check which
+          # changed them to green, then executed a failing request, which should
+          # not count against them. They should still be green.
+          rb.get_stats.should == {1=>'green', 2=>'green', 3=>'green'}
         end
       end
     end
@@ -463,7 +465,7 @@ describe RightSupport::Net::RequestBalancer do
           health_check = Proc.new do |endpoint|
             false
           end
-          flexmock(@logger).should_receive(:info).times(4)
+          flexmock(@logger).should_receive(:info).times(8)
           
           lambda {
             balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::LB::HealthCheck, :health_check => health_check)
