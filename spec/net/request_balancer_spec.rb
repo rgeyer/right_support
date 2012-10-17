@@ -511,6 +511,43 @@ describe RightSupport::Net::RequestBalancer do
         @resolved_set_2.include?(@policy.next.first).should be_true
       end
     end
+
+    context 'when a request raises NoResult' do
+      before(:each) do
+        @endpoints = [1,2,3,4,5,6]
+        @exceptions = [BigDeal, NoBigDeal, OtherTestException]
+        @rb = RightSupport::Net::RequestBalancer.new(@endpoints)
+        @tries = 0
+        begin
+          @rb.request do |ep|
+            @tries += 1
+            raise @exceptions[@tries % @exceptions.size]
+          end
+        rescue Exception => e
+          @raised = e
+        end
+
+        @raised.should be_kind_of RightSupport::Net::NoResult
+      end
+
+      it 'provides detailed information about the exceptions' do
+        # We should have details about all six endpoints
+        @raised.details.should_not be_nil
+        @raised.details.keys.size.should == 6
+
+        # Three exception types across six endpoints, means we should
+        # see each exception type appear twice
+        seen = {}
+        @raised.details.each_pair do |_, exceptions|
+          exceptions.each do |exception|
+            seen[exception.class] ||= []
+            seen[exception.class] << exception
+          end
+        end
+        seen.keys.size.should == 3
+        seen.values.all? { |v| v.size == 2}.should be_true
+      end
+    end
   end
 
   context :get_stats do

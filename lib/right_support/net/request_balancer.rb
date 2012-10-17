@@ -1,7 +1,21 @@
 module RightSupport::Net
   # Raised to indicate the (uncommon) error condition where a RequestBalancer rotated
-  # through EVERY URL in a list without getting a non-nil, non-timeout response. 
-  class NoResult < Exception; end
+  # through EVERY URL in a list without getting a non-nil, non-timeout response.
+  #
+  # If the NoResult was due to a series of errors, then the #details attribute
+  # of this exception will let you access detailed information about the errors encountered
+  # while retrying the network request. #details is a Hash, the keys of which are endpoints,
+  # and the values of which are arrays of exceptions that we encountered while making
+  # requests to that endpoint.
+  class NoResult < Exception
+    # @return [Hash] a map of {endpoint => [exception_1, exception2, ...], ...}
+    attr_reader :details
+
+    def initialize(message, details={})
+      super(message)
+      @details = details
+    end
+  end
 
   # Utility class that allows network requests to be randomly distributed across
   # a set of network endpoints. Generally used for REST requests by passing an
@@ -38,7 +52,9 @@ module RightSupport::Net
     DEFAULT_FATAL_EXCEPTIONS = [
       NoMemoryError, SystemStackError, SignalException, SystemExit,
       ScriptError,
-      #Subclasses of StandardError, which we can't mention directly
+      # Subclasses of StandardError. We can't include the base class directly as
+      # a fatal exception, because there are some retryable exceptions that derive
+      # from StandardError.
       ArgumentError, IndexError, LocalJumpError, NameError, RangeError,
       RegexpError, ThreadError, TypeError, ZeroDivisionError
     ]
@@ -186,22 +202,21 @@ module RightSupport::Net
         @policy.set_endpoints(@ips)
       end
 
-      exceptions = []
+      exceptions = {}
       result     = nil
       complete   = false
       n          = 0
 
       loop do
-        if complete
-          break
-        else
+        if n > 0
           do_retry = @options[:retry] || DEFAULT_RETRY_PROC
           do_retry = do_retry.call(@ips || @endpoints, n) if do_retry.respond_to?(:call)
           break if (do_retry.is_a?(Integer) && n >= do_retry) || [nil, false].include?(do_retry)
         end
 
         endpoint, need_health_check  = @policy.next
-        raise NoResult, "No endpoints are available" unless endpoint
+        break unless endpoint
+
         n += 1
         t0 = Time.now
 
@@ -231,7 +246,8 @@ module RightSupport::Net
             raise(to_raise)
           else
             @policy.bad(endpoint, t0, Time.now)
-            exceptions << e
+            exceptions[endpoint] ||= []
+            exceptions[endpoint] << e
           end
         end
 
@@ -239,10 +255,16 @@ module RightSupport::Net
 
       return result if complete
 
-      exceptions = exceptions.map { |e| e.class.name }.uniq.join(', ')
-      msg = "No available endpoints from #{(@ips || @endpoints).inspect}! Exceptions: #{exceptions}"
+      # Produce a summary message for the exception that gives a bit of detail
+      summary = []
+      exceptions.each_pair do |_, list|
+        list.each { |e| summary << e.class }
+      end
+      summary = summary.uniq.join(', ')
+      msg = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints. Exceptions: #{summary}"
+
       logger.error "RequestBalancer: #{msg}"
-      raise NoResult, msg
+      raise NoResult.new(msg, exceptions)
     end
 
     # Provide an interface so one can query the RequestBalancer for statistics on
