@@ -99,7 +99,7 @@ end
 module RightSupport::DB
   # Exception that indicates database configuration info is missing.
   class MissingConfiguration < Exception; end
-
+  class UnsupportedRubyVersion < Exception; end
   # Base class for a column family in a keyspace
   # Used to access data persisted in Cassandra
   # Provides wrappers for Cassandra client methods
@@ -122,6 +122,11 @@ module RightSupport::DB
       @@current_keyspace = nil
 
       @@connections = {}
+
+      # Depricate usage of CassandraModel under Ruby < 1.9
+      def inherited(base)
+        raise UnsupportedRubyVersion, "Support only Ruby >= 1.9" unless RUBY_VERSION >= "1.9"
+      end
 
       def config
         @@config
@@ -270,7 +275,7 @@ module RightSupport::DB
             columns.merge!(chunk)
             if chunk.size == opt[:count]
               # Assume there are more chunks, use last key as start of next get
-              opt[:start] = chunk.keys.sort.last
+              opt[:start] = chunk.keys.last
             else
               # This must be the last chunk
               break
@@ -409,7 +414,7 @@ module RightSupport::DB
           end
           if chunk.size == count
             # Assume there are more chunks, use last key as start of next get
-            start = chunk.keys.sort.last
+            start = chunk.keys.last
           else
             # This must be the last chunk
             break
@@ -551,6 +556,7 @@ module RightSupport::DB
           config
         end
       end
+
     end # self
 
     attr_accessor :key, :attributes

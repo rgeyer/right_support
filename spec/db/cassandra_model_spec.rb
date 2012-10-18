@@ -320,9 +320,9 @@ describe RightSupport::DB::CassandraModel do
           RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
           RightSupport::DB::CassandraModel.const_set(:DEFAULT_COUNT, 2)
           begin
-            key1 = @key + '1'
-            key2 = @key + '2'
-            key3 = @key + '3'
+            key1 = @key + '8'
+            key2 = @key + '12'
+            key3 = @key + '13'
             cols = {'foo' => 'bar'}
             rows1 = {key1 => [@column_or_super], key2 => [@column_or_super]}
             rows2 = {key3 => [@column_or_super]}
