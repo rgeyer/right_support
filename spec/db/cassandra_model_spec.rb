@@ -243,6 +243,7 @@ describe RightSupport::DB::CassandraModel do
         end
 
         it 'returns all columns for the specified key if no count specified' do
+          pending "Unpredictable behavior on ruby < 1.9" unless RUBY_VERSION >= "1.9"
           default_count = RightSupport::DB::CassandraModel::DEFAULT_COUNT
 
           RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
@@ -315,6 +316,8 @@ describe RightSupport::DB::CassandraModel do
         end
 
         it 'returns all rows for the specified key if no count specified' do
+          pending "Unpredictable behavior on ruby < 1.9" unless RUBY_VERSION >= "1.9"
+
           default_count = RightSupport::DB::CassandraModel::DEFAULT_COUNT
 
           RightSupport::DB::CassandraModel.instance_eval { remove_const :DEFAULT_COUNT }
