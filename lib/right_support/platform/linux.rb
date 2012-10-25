@@ -138,16 +138,6 @@ module RightScale
         '/etc/rightscale.d'
       end
 
-      # Static (time-invariant) state that is specific to RightLink
-      def right_link_static_state_dir
-        '/etc/rightscale.d/right_link'
-      end
-
-      # Dynamic, persistent runtime state that is specific to RightLink
-      def right_link_dynamic_state_dir
-        '/var/lib/rightscale/right_link'
-      end
-
       # Data which is awaiting some kind of later processing
       def spool_dir
         '/var/spool'
@@ -178,15 +168,6 @@ module RightScale
       # Path to place pid files
       def pid_dir
         '/var/run'
-      end
-
-      # Path to right link configuration and internal usage scripts
-      def private_bin_dir
-        '/opt/rightscale/bin'
-      end
-
-      def sandbox_dir
-        '/opt/rightscale/sandbox'
       end
 
       # for windows compatibility; has no significance in linux
