@@ -20,8 +20,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-module RightScale
-
+module RightSupport
   # Mac OS specific implementation
   class Platform
 
@@ -162,7 +161,7 @@ module RightScale
       end
 
       def sandbox_ruby
-        "#{RightScale::Platform.filesystem.sandbox_dir}/bin/ruby"
+        "#{RightSupport::Platform.filesystem.sandbox_dir}/bin/ruby"
       end
 
       # Gets the current system uptime.

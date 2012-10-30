@@ -22,7 +22,7 @@
 
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
 
-if RightScale::Platform.windows?
+if RightSupport::Platform.windows?
   module OsInfoExtensions
     def set_osinfo(osinfo)
       @os_info = osinfo
@@ -33,9 +33,9 @@ if RightScale::Platform.windows?
     end
   end
 
-  describe RightScale::Platform do
+  describe RightSupport::Platform do
     before(:all) do
-      @platform = RightScale::Platform
+      @platform = RightSupport::Platform
     end
 
     context :volume_manager do
@@ -92,7 +92,7 @@ EOF
         it 'raises a parser error when diskpart output is malformed' do
           list_vol_resp = "foobarbaz"
 
-          lambda { @platform.volume_manager.send(:parse_volumes, list_vol_resp) }.should raise_error(RightScale::Platform::VolumeManager::ParserError)
+          lambda { @platform.volume_manager.send(:parse_volumes, list_vol_resp) }.should raise_error(RightSupport::Platform::VolumeManager::ParserError)
         end
 
         it 'can filter results with only one condition' do
@@ -172,11 +172,11 @@ EOF
         end
 
         it 'raises an exception when an invalid drive letter is specified' do
-          lambda{@platform.volume_manager.assign_device('0', 'C:')}.should raise_error(RightScale::Platform::VolumeManager::ArgumentError)
+          lambda{@platform.volume_manager.assign_device('0', 'C:')}.should raise_error(RightSupport::Platform::VolumeManager::ArgumentError)
         end
 
         it 'raises an exception when an invalid path is specified' do
-          lambda{@platform.volume_manager.assign_device('0', 'This is not a path')}.should raise_error(RightScale::Platform::VolumeManager::ArgumentError)
+          lambda{@platform.volume_manager.assign_device('0', 'This is not a path')}.should raise_error(RightSupport::Platform::VolumeManager::ArgumentError)
         end
 
         it 'raises an exception when a mount path is specified and OS is pre 2008' do
@@ -186,7 +186,7 @@ EOF
           old_osinfo = @platform.volume_manager.get_osinfo
           @platform.volume_manager.set_osinfo(osinfo)
 
-          lambda{@platform.volume_manager.assign_device(0, "C:\\Somepath")}.should raise_error(RightScale::Platform::VolumeManager::ArgumentError)
+          lambda{@platform.volume_manager.assign_device(0, "C:\\Somepath")}.should raise_error(RightSupport::Platform::VolumeManager::ArgumentError)
           @platform.volume_manager.set_osinfo(old_osinfo)
         end
 
@@ -290,7 +290,7 @@ EOF
           old_osinfo = @platform.volume_manager.get_osinfo
           @platform.volume_manager.set_osinfo(osinfo)
 
-          lambda{@platform.volume_manager.format_disk(0, "C:\\Somepath")}.should raise_error(RightScale::Platform::VolumeManager::ArgumentError)
+          lambda{@platform.volume_manager.format_disk(0, "C:\\Somepath")}.should raise_error(RightSupport::Platform::VolumeManager::ArgumentError)
           @platform.volume_manager.set_osinfo(old_osinfo)
         end
 

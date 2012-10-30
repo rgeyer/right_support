@@ -22,8 +22,8 @@
 
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
 
-describe RightScale::Platform do
-  subject { RightScale::Platform }
+describe RightSupport::Platform do
+  subject { RightSupport::Platform }
 
   context :shell do
     context :uptime do
