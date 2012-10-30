@@ -37,26 +37,25 @@ rescue LoadError => e
   raise e if !!(RbConfig::CONFIG['host_os'] =~ /mswin|win32|dos|mingw|cygwin/i)
 end
 
-module RightScale
-  # Throw when a Win32 API fails.  Message will contain the last error message
-  class Win32Error < Exception
-    include ::Windows::Error
-
-    def initialize(msg = "")
-      super(msg)
-      @last_error = get_last_error
-    end
-
-    def message
-      original_message = super
-      result = ""
-      result << "#{original_message}\n  Error Detail: " unless original_message.nil? || original_message.empty?
-      result << "#{@last_error}"
-    end
-  end
-
+module RightSupport
   # Windows specific implementation
   class Platform
+    # Throw when a Win32 API fails.  Message will contain the last error message
+    class Win32Error < Exception
+      include ::Windows::Error
+
+      def initialize(msg = "")
+        super(msg)
+        @last_error = get_last_error
+      end
+
+      def message
+        original_message = super
+        result = ""
+        result << "#{original_message}\n  Error Detail: " unless original_message.nil? || original_message.empty?
+        result << "#{@last_error}"
+      end
+    end
 
     attr_reader :flavor, :release
 
@@ -263,12 +262,12 @@ module RightScale
       #
       # === Raises
       # Win32Error:: if failed to create the link
-      # PlatformNotSupported:: if the current platform does not support the CreateSymbolicLink API
+      # RightSupport::Platform::Unsupported:: if the current platform does not support the CreateSymbolicLink API
       def create_symlink(old_name, new_name)
-        raise ::RightScale::PlatformNotSupported, "Cannot create symlinks on this platform" unless defined?(::Windows::File::CreateSymbolicLink)
+        raise RightSupport::Platform::Unsupported, "Cannot create symlinks on this platform" unless defined?(::Windows::File::CreateSymbolicLink)
         flags = File.directory?(old_name) ? ::Windows::File::SYMBOLIC_LINK_FLAG_DIRECTORY : 0
         result = ::Windows::File::CreateSymbolicLink.call(new_name, old_name, flags)
-        raise ::RightScale::Win32Error, "failed to create link from #{old_name} to #{new_name}"  unless (result == 1)
+        raise Win32Error, "failed to create link from #{old_name} to #{new_name}"  unless (result == 1)
         0
       end
     end # Filesystem
@@ -811,7 +810,7 @@ EOF
           File.open(script_file_path, "w") { |f| f.puts(script.strip) }
           executable_path = "diskpart.exe"
           executable_arguments = ["/s", File.normalize_path(script_file_path)]
-          shell = RightScale::Platform.shell
+          shell = RightSupport::Platform.shell
           executable_path, executable_arguments = shell.format_right_run_path(executable_path, executable_arguments)
           command = shell.format_executable_command(executable_path, executable_arguments)
           output_text = `#{command}`
@@ -1145,7 +1144,7 @@ EOF
       def sandbox_ruby
         unless @sandbox_ruby
           @sandbox_ruby = ENV['RS_RUBY_EXE'] ||
-                          File.normalize_path(File.join(RightScale::Platform.filesystem.sandbox_dir, 'Ruby', 'bin', 'ruby.exe'))
+                          File.normalize_path(File.join(RightSupport::Platform.filesystem.sandbox_dir, 'Ruby', 'bin', 'ruby.exe'))
         end
         @sandbox_ruby
       end
@@ -1297,7 +1296,7 @@ EOF
         process_memory_counters = "\0" * SIZEOF_PROCESS_MEMORY_COUNTERS
         result = @@get_process_memory_info.call(process_handle, process_memory_counters, process_memory_counters.size)
         # note that the 'B' return type is a Fixnum (i.e. not TrueClass or FalseClass) of 'zero' on failure or 'non-zero' on success
-        raise ::RightScale::Win32Error.new("Failed to get resident set size for process") if 0 == result
+        raise Win32Error, "Failed to get resident set size for process" if 0 == result
 
         # current .WorkingSetSize (bytes) is equivalent of Linux' ps resident set size (KB)
         return process_memory_counters[12..16].unpack("L")[0] / 1024  # bytes to KB
@@ -1306,7 +1305,7 @@ EOF
     
     class Installer
       def install(packages)
-        raise ::RightScale::Win32Error.new("Not implemented yet")
+        raise Win32Error, "Not implemented yet"
       end
     end
 
@@ -1326,4 +1325,4 @@ EOF
 
   end # Platform
 
-end # RightScale
+end # RightSupport

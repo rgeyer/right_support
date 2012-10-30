@@ -1,7 +1,7 @@
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
 
-describe RightScale::Platform do
-  subject { RightScale::Platform }
+describe RightSupport::Platform do
+  subject { RightSupport::Platform }
 
   context 'under Windows' do
     context :installer do
@@ -10,4 +10,4 @@ describe RightScale::Platform do
       end
     end
   end
-end if RightScale::Platform.windows?
+end if RightSupport::Platform.windows?

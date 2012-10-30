@@ -22,10 +22,10 @@
 
 require File.expand_path(File.join(File.dirname(__FILE__), '..', 'spec_helper'))
 
-if RightScale::Platform.linux?
-  describe RightScale::Platform do
+if RightSupport::Platform.linux?
+  describe RightSupport::Platform do
     before(:all) do
-      @platform = RightScale::Platform
+      @platform = RightSupport::Platform
     end
 
     context :volume_manager do
@@ -74,7 +74,7 @@ EOF
         it 'raises a parser error when blkid output is malformed' do
           blkid_resp = 'foobarbz'
 
-          lambda { @platform.volume_manager.parse_volumes(blkid_resp) }.should raise_error(RightScale::Platform::VolumeManager::ParserError)
+          lambda { @platform.volume_manager.parse_volumes(blkid_resp) }.should raise_error(RightSupport::Platform::VolumeManager::ParserError)
         end
 
         it 'returns an empty list of volumes when blkid output is empty' do
@@ -170,7 +170,7 @@ EOF
           mount_popen_mock = flexmock(:read => mount_resp)
           flexmock(IO).should_receive(:popen).with('mount',Proc).and_yield(mount_popen_mock)
 
-          lambda { @platform.volume_manager.mount_volume({:device => "/dev/xvdh1"}, "/var/spool/softlayer")}.should raise_error(RightScale::Platform::VolumeManager::VolumeError)
+          lambda { @platform.volume_manager.mount_volume({:device => "/dev/xvdh1"}, "/var/spool/softlayer")}.should raise_error(RightSupport::Platform::VolumeManager::VolumeError)
         end
 
         it 'raises volume error when a different device is already mounted to the specified mountpoint' do
@@ -193,7 +193,7 @@ EOF
           mount_popen_mock = flexmock(:read => mount_resp)
           flexmock(IO).should_receive(:popen).with('mount',Proc).and_yield(mount_popen_mock)
 
-          lambda { @platform.volume_manager.mount_volume({:device => "/dev/xvdh1"}, "/var/spool/softlayer")}.should raise_error(RightScale::Platform::VolumeManager::VolumeError)
+          lambda { @platform.volume_manager.mount_volume({:device => "/dev/xvdh1"}, "/var/spool/softlayer")}.should raise_error(RightSupport::Platform::VolumeManager::VolumeError)
         end
       end
     end

@@ -24,7 +24,7 @@
 # using short path. Since this is where we define the File.normalize_path
 # method to alleviate this issue, we have a chicken & egg problem. So detect if
 # we already required this file and skip the rest if that was the case.
-unless defined?(RightScale::Platform)
+unless defined?(RightSupport::Platform)
 
 # Note that the platform-specific submodules will be loaded on demand to resolve
 # some install-time gem dependency issues.
@@ -36,10 +36,7 @@ require 'rbconfig'
 # Load ruby interpreter monkey-patches first (to ensure File.normalize_path is defined, etc.).
 #require File.expand_path(File.join(File.dirname(__FILE__), 'monkey_patches', 'ruby_patch'))
 
-module RightScale
-  # Throw when the current platform is not supported for some reason
-  class PlatformNotSupported < Exception; end
-
+module RightSupport
   # A utility class that provides information about the platform on which the RightAgent is running
   # Available information includes:
   #  - which flavor cloud (EC2, Rackspace, Eucalyptus, ..)
@@ -68,6 +65,8 @@ module RightScale
   #     - centos?
   #     - suse?
   class Platform
+    # Raised whenever an operation or feature is unsupported on the current platform.
+    class Unsupported < Exception; end
 
     include RightSupport::Ruby::EasySingleton
 
@@ -313,7 +312,7 @@ module RightScale
     # res(Object):: Service instance
     #
     # === Raise
-    # RightScale::Exceptions::PlatformError:: If the service is not known
+    # NameError:: If the service is not known, or is unavailable on the current platform
     def platform_service(name)
       instance_var = "@#{name.to_s}".to_sym
       const_name = name.to_s.camelize
@@ -334,9 +333,9 @@ module RightScale
 
   end # Platform
 
-end # RightScale
+end # RightSupport
 
-# Initialize for current platform
-RightScale::Platform.load_platform_specific
+# Initialize platform-specific stuff for current platform
+RightSupport::Platform.load_platform_specific
 
 end # Unless already defined
