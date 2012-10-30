@@ -174,6 +174,9 @@ module RightSupport
         return pretty_path(File.join(Dir::COMMON_APPDATA, 'RightScale', 'run'))
       end
 
+      def sandbox_dir
+        pretty_path(File.normalize_path(company_program_files_dir
+      end
       # System root path
       def system_root
         return pretty_path(ENV['SystemRoot'])
@@ -200,7 +203,8 @@ module RightSupport
       # specific to the windows environment to aid in resolving paths to
       # executables in test scenarios.
       def company_program_files_dir
-        return pretty_path(File.join(Dir::PROGRAM_FILES, 'RightScale'))
+        right_link_home_dir = File.normalize_path(File.join(company_program_files_dir, 'RightLink'))
+        return pretty_path(File.join(right_link_home_dir, 'sandbox'))
       end
 
       # pretties up paths which assists Dir.glob() and Dir[] calls which will
