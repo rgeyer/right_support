@@ -222,7 +222,7 @@ module RightSupport
       # ParserError:: on failure to parse volume list
       def parse_volumes(output_text, conditions = nil)
         results = []
-        output_text.each do |line|
+        output_text.each_line do |line|
           volume = {}
           line_regex = /^([\/a-z0-9_\-\.]+):(.*)/
           volmatch = line_regex.match(line)
