@@ -59,12 +59,9 @@ class JUnit < RSpec::Core::Formatters::BaseFormatter
   end
 
   def classname_for(example)
-    file = example.metadata[:example_group_block].__file__
-    if file
-      File.basename(file)
-    else
-      '(unknown file)'
-    end
+    eg = example.metadata[:example_group]
+    eg = eg[:example_group] while eg.key?(:example_group)
+    eg[:description_args].to_s
   end
 
   def dump_summary(duration, example_count, failure_count, pending_count)
@@ -73,7 +70,17 @@ class JUnit < RSpec::Core::Formatters::BaseFormatter
     builder.testsuite :errors => 0, :failures => failure_count, :skipped => pending_count, :tests => example_count, :time => duration, :timestamp => Time.now.iso8601 do
       builder.properties
       @test_results.each do |test|
-        builder.testcase :classname => classname_for(test), :name => test.full_description, :time => test.metadata[:execution_result][:run_time] do
+        classname        = classname_for(test)
+        full_description = test.full_description
+        time             = test.metadata[:execution_result][:run_time]
+
+        # The full description always begins with the classname, but this is useless info when
+        # generating the XML report.
+        if full_description.start_with?(classname)
+          full_description = full_description[classname.length..-1].strip
+        end
+
+        builder.testcase(:classname => classname, :name => full_description, :time => time) do
           case test.metadata[:execution_result][:status]
           when "failed"
             builder.failure :message => "failed #{test.metadata[:full_description]}", :type => "failed" do
