@@ -49,14 +49,14 @@ namespace :ci do
   desc "Run unit tests"
   RSpec::Core::RakeTask.new do |t|
     t.pattern = Dir['**/*_spec.rb']
-    t.rspec_opts = %w{-r spec/junit.rb -f JUnit -o measurement/spec.xml}
+    t.rspec_opts = %w{-r spec/junit.rb -f JUnit -o measurement/rspec/rspec.xml}
   end
 
   task :spec => [:prep]
 
   desc "Run functional tests"
   Cucumber::Rake::Task.new do |t|
-    t.cucumber_opts = %w{--format progress}
+    t.cucumber_opts = %w{--no-color --format AlternateJunit --out measurement/cucumber}
   end
 
   task :cucumber => [:prep]
