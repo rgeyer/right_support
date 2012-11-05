@@ -316,7 +316,7 @@ describe RightSupport::Net::RequestBalancer do
       it 're-raises reasonable default fatal errors' do
         test_raise(nil, ArgumentError, [ArgumentError, 1])
         test_raise(nil, MockResourceNotFound, [MockResourceNotFound, 1])
-        test_raise(nil, Spec::Expectations::ExpectationNotMetError, [Spec::Expectations::ExpectationNotMetError, 1])
+        test_raise(nil, RSpec::Expectations::ExpectationNotMetError, [RSpec::Expectations::ExpectationNotMetError, 1])
       end
 
       it 'swallows StandardError and friends' do

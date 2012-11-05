@@ -28,10 +28,12 @@ describe RightSupport::Stats::Activity do
 
   before(:all) do
     @original_recent_size = RightSupport::Stats::Activity::RECENT_SIZE
+    RightSupport::Stats::Activity.instance_eval { remove_const(:RECENT_SIZE) }
     RightSupport::Stats::Activity.const_set(:RECENT_SIZE, 10)
   end
 
   after(:all) do
+    RightSupport::Stats::Activity.instance_eval { remove_const(:RECENT_SIZE) }
     RightSupport::Stats::Activity.const_set(:RECENT_SIZE, @original_recent_size)
   end
 

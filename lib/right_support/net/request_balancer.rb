@@ -66,7 +66,7 @@ module RightSupport::Net
       [RSpec::Mocks, RSpec::Expectations]
     elsif require_succeeds?('spec')
       # RSpec 1.x
-      [Spec::Expectations]
+      [RSpec::Expectations]
     else
       # RSpec is not present
       []

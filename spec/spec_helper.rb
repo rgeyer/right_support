@@ -4,7 +4,7 @@ require 'flexmock'
 require 'ruby-debug'
 require 'syntax'
 
-Spec::Runner.configure do |config|
+RSpec.configure do |config|
   config.mock_with :flexmock
 end
 
@@ -23,7 +23,7 @@ def corrupt(key, factor=4)
   key[0..(d-factor)] + key[d+factor..-1]
 end
 
-Spec::Matchers.define :have_green_endpoint do |endpoint|
+RSpec::Matchers.define :have_green_endpoint do |endpoint|
   match do |balancer|
     stack = balancer.instance_variable_get(:@stack)
     state = stack.instance_variable_get(:@endpoints)
@@ -35,7 +35,7 @@ Spec::Matchers.define :have_green_endpoint do |endpoint|
   end
 end
 
-Spec::Matchers.define :have_yellow_endpoint do |endpoint, n|
+RSpec::Matchers.define :have_yellow_endpoint do |endpoint, n|
   match do |balancer|
     stack = balancer.instance_variable_get(:@stack)
     max_n = stack.instance_variable_get(:@yellow_states)
@@ -53,7 +53,7 @@ Spec::Matchers.define :have_yellow_endpoint do |endpoint, n|
   end
 end
 
-Spec::Matchers.define :have_red_endpoint do |endpoint|
+RSpec::Matchers.define :have_red_endpoint do |endpoint|
   match do |balancer|
     stack = balancer.instance_variable_get(:@stack)
     max_n = stack.instance_variable_get(:@yellow_states)
@@ -88,7 +88,7 @@ def should_be_chosen_fairly(seen,trials,size)
   #Load should be evenly distributed
   chance = 1.0 / size
   seen.each_pair do |_, count|
-    (Float(count) / Float(trials)).should be_close(chance, 0.025) #allow 5% margin of error
+    (Float(count) / Float(trials)).should be_within(0.025).of(chance) #allow 5% margin of error
   end
 end
 

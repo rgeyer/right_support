@@ -14,7 +14,7 @@ describe RightSupport::Net::S3Helper do
     "#{@valid_params[:key]}:key"
   end
 
-  before(:all) do
+  before(:each) do
     @valid_params = { :key => "foo", :data => "bar" }
 
     # Mock right_aws config & objects with reasonable default behavior

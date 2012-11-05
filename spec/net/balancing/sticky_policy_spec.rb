@@ -3,9 +3,12 @@ require 'spec_helper'
 describe RightSupport::Net::LB::Sticky do
 
   before(:all) do
-    @policy = RightSupport::Net::LB::Sticky.new({})
     @endpoints = [1,2,3,4,5]
     @trials = 2500
+  end
+
+  before(:each) do
+    @policy = RightSupport::Net::LB::Sticky.new({})
   end
 
   context :initialize do
@@ -27,7 +30,7 @@ describe RightSupport::Net::LB::Sticky do
           @policy.next
         end
         seen.each_pair do |_, count|
-          (Float(count) / Float(@trials)).should be_close(chance, 0.025) #allow 5% margin of error
+          (Float(count) / Float(@trials)).should be_within(0.025).of(chance) #allow 5% margin of error
         end
       end
     end
