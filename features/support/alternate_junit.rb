@@ -1,13 +1,29 @@
 require 'cucumber/formatter/junit'
 
 class AlternateJunit < Cucumber::Formatter::Junit
-  def feature_name(keyword, name)
-    super
-    # We are disguising our feature name as a Java package; make sure it's valid according
-    # to Java syntax rules, to prevent any parsing issues in the tools that parse these
-    # JUnit XML test results.
-    @feature_name.gsub!(/[^A-Za-z0-9_]+/, '_')
-    # Prefix feature name with a "Cucumber" pseudo-package for grouping purposes.
-    @feature_name = "cucumber.#{@feature_name}"
+  private
+
+  def build_testcase(duration, status, exception = nil, suffix = "")
+    @time += duration
+    # Use "cucumber" as a pseudo-package, and the feature name as a pseudo-class
+    classname = "cucumber.#{@feature_name}"
+    name = "#{@scenario}#{suffix}"
+    pending = [:pending, :undefined].include?(status)
+    passed = (status == :passed || (pending && !@options[:strict]))
+
+    @builder.testcase(:classname => classname, :name => name, :time => "%.6f" % duration) do
+      unless passed
+        @builder.failure(:message => "#{status.to_s} #{name}", :type => status.to_s) do
+          @builder.cdata! @output
+          @builder.cdata!(format_exception(exception)) if exception
+        end
+        @failures += 1
+      end
+      if passed and (status == :skipped || pending)
+        @builder.skipped
+        @skipped += 1
+      end
+    end
+    @tests += 1
   end
 end
