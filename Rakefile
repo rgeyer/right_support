@@ -6,18 +6,15 @@ require 'rake'
 require 'rdoc/task'
 require 'rubygems/package_task'
 require 'rake/clean'
-require 'spec/rake/spectask'
+require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
 
 desc "Run unit tests"
 task :default => :spec
 
 desc "Run unit tests"
-Spec::Rake::SpecTask.new do |t|
-  t.spec_files = Dir['**/*_spec.rb']
-  t.spec_opts = lambda do
-    IO.readlines(File.join(File.dirname(__FILE__), 'spec', 'spec.opts')).map {|l| l.chomp.split " "}.flatten
-  end
+RSpec::Core::RakeTask.new do |t|
+  t.pattern = Dir['**/*_spec.rb']
 end
 
 desc "Run functional tests"
@@ -43,3 +40,16 @@ Gem::PackageTask.new(Gem::Specification.load("right_support.gemspec")) do |packa
 end
 
 CLEAN.include('pkg')
+
+namespace :ci do
+  desc "Run unit tests"
+  RSpec::Core::RakeTask.new do |t|
+    t.pattern = Dir['**/*_spec.rb']
+    t.rspec_opts = %w{-r spec/junit.rb -f JUnit -o results.xml}
+  end
+
+  desc "Run functional tests"
+  Cucumber::Rake::Task.new do |t|
+    t.cucumber_opts = %w{--color --format pretty}
+  end
+end
