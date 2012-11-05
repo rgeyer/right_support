@@ -61,7 +61,8 @@ class JUnit < RSpec::Core::Formatters::BaseFormatter
   def classname_for(example)
     eg = example.metadata[:example_group]
     eg = eg[:example_group] while eg.key?(:example_group)
-    eg[:description_args].to_s
+    klass = eg[:description_args].to_s
+    "rspec.#{klass}"
   end
 
   def dump_summary(duration, example_count, failure_count, pending_count)
