@@ -42,14 +42,22 @@ end
 CLEAN.include('pkg')
 
 namespace :ci do
+  task :prep do
+    FileUtils.mkdir_p('measurement')
+  end
+
   desc "Run unit tests"
   RSpec::Core::RakeTask.new do |t|
     t.pattern = Dir['**/*_spec.rb']
-    t.rspec_opts = %w{-r spec/junit.rb -f JUnit -o results.xml}
+    t.rspec_opts = %w{-r spec/junit.rb -f JUnit -o measurement/spec.xml}
   end
+
+  task :spec => [:prep]
 
   desc "Run functional tests"
   Cucumber::Rake::Task.new do |t|
-    t.cucumber_opts = %w{--color --format pretty}
+    t.cucumber_opts = %w{--format progress}
   end
+
+  task :cucumber => [:prep]
 end
