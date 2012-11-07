@@ -54,6 +54,35 @@ Given /^a trivial RSpec spec$/ do
   end
 end
 
+Given /^a trivial Cucumber feature$/ do
+  features_dir = ruby_app_path('features')
+  steps_dir    = ruby_app_path('features', 'step_definitions')
+  feature      = ruby_app_path('features', 'trivial.feature')
+  steps        = ruby_app_path('features', 'step_definitions', 'trivial_steps.rb')
+  FileUtils.mkdir_p(features_dir)
+  FileUtils.mkdir_p(steps_dir)
+
+  unless File.exist?(steps)
+    File.open(steps, 'w') do |file|
+      file.puts "When /^the night has come and the land is dark$/ do; end"
+      file.puts "When /^the moon is the only light we see$/ do; end"
+      file.puts "Then /^I won't be afraid.*$/ do; end"
+      file.puts "Then /^as long as you stand.*by me$/ do; end"
+    end
+  end
+  unless File.exist?(feature)
+    File.open(feature, 'w') do |file|
+      file.puts "Feature: Song Lyrics from the 1950s"
+      file.puts
+      file.puts "  Scenario: Stand By Me"
+      file.puts "    When the night has come and the land is dark"
+      file.puts "    And the moon is the only light we see"
+      file.puts "    Then I won't be afraid, oh, I won't be afraid"
+      file.puts "    And as long as you stand, stand by me"
+    end
+  end
+end
+
 When /^I install the bundle$/ do
   ruby_app_shell('bundle install')
 end

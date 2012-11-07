@@ -126,6 +126,10 @@ end
 # The Cucumber world
 World(RightSupportWorld)
 
+After do
+  FileUtils.rm_rf(ruby_app_root) if File.directory?(ruby_app_root)
+end
+
 class Object
   include RandomValueHelper
 end
