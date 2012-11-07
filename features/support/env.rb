@@ -21,12 +21,13 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #++
 
+require 'tmpdir'
+
 require 'rubygems'
 require 'bundler/setup'
 
-$basedir = File.expand_path('../../..', __FILE__)
-$libdir  = File.join($basedir, 'lib')
-require File.join($libdir, 'right_support')
+require 'right_support'
+require 'right_support/ci'
 
 module RandomValueHelper
   RANDOM_KEY_CLASSES   = [String, Integer, Float, TrueClass, FalseClass]
@@ -75,7 +76,60 @@ module RandomValueHelper
   end
 end
 
-World(RandomValueHelper)
+module RubyAppHelper
+  def ruby_app_root
+    @ruby_app_root ||= Dir.mktmpdir('right_support_cucumber_ruby')
+  end
+
+  def ruby_app_path(*args)
+    path = ruby_app_root
+    until args.empty?
+      item = args.shift
+      path = File.join(path, item)
+    end
+    path
+  end
+
+  # Run a shell command in app_dir, e.g. a rake task
+  def ruby_app_shell(cmd, options={})
+    ignore_errors = options[:ignore_errors] || false
+    log = !!(Cucumber.logger)
+
+    all_output = ''
+    Dir.chdir(ruby_app_root) do
+      Cucumber.logger.debug("bash> #{cmd}\n") if log
+      IO.popen("#{cmd} 2>&1", 'r') do |output|
+        output.sync = true
+        done = false
+        until done
+          begin
+            line = output.readline + "\n"
+            all_output << line
+            Cucumber.logger.debug(line) if log
+          rescue EOFError
+            done = true
+          end
+        end
+      end
+    end
+
+    $?.success?.should(be_true) unless ignore_errors
+    all_output
+  end
+end
+
+module RightSupportWorld
+  include RandomValueHelper
+  include RubyAppHelper
+end
+
+# The Cucumber world
+World(RightSupportWorld)
+
+After do
+  FileUtils.rm_rf(ruby_app_root) if File.directory?(ruby_app_root)
+end
+
 class Object
   include RandomValueHelper
 end
