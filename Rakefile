@@ -5,9 +5,13 @@ require 'bundler/setup'
 require 'rake'
 require 'rdoc/task'
 require 'rubygems/package_task'
+
 require 'rake/clean'
 require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
+
+# We use RightSupport's CI harness in its own Rakefile. Hooray dogfood!
+require 'right_support/ci/rake_task'
 
 desc "Run unit tests"
 task :default => :spec
@@ -41,23 +45,4 @@ end
 
 CLEAN.include('pkg')
 
-namespace :ci do
-  task :prep do
-    FileUtils.mkdir_p('measurement')
-  end
-
-  desc "Run unit tests"
-  RSpec::Core::RakeTask.new do |t|
-    t.pattern = Dir['**/*_spec.rb']
-    t.rspec_opts = %w{-r spec/junit.rb -f JUnit -o measurement/rspec/rspec.xml}
-  end
-
-  task :spec => [:prep]
-
-  desc "Run functional tests"
-  Cucumber::Rake::Task.new do |t|
-    t.cucumber_opts = %w{--no-color --format AlternateJunit --out measurement/cucumber}
-  end
-
-  task :cucumber => [:prep]
-end
+RightSupport::CI::RakeTask.new
