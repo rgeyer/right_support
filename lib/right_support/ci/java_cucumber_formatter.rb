@@ -1,6 +1,20 @@
+# Copyright (c) 2012- RightScale, Inc, All Rights Reserved Worldwide.
+#
+# THIS PROGRAM IS CONFIDENTIAL AND PROPRIETARY TO RIGHTSCALE
+# AND CONSTITUTES A VALUABLE TRADE SECRET.  Any unauthorized use,
+# reproduction, modification, or disclosure of this program is
+# strictly prohibited.  Any use of this program by an authorized
+# licensee is strictly subject to the terms and conditions,
+# including confidentiality obligations, set forth in the applicable
+# License Agreement between RightScale.com, Inc. and the licensee.
+
+# Cucumber naïvely requires JUST this file without necessarily requiring
+# RightSupport's main file. Make up for Cucumber's shortcomings.
+require 'right_support'
+
 module RightSupport::CI
   if require_succeeds?('cucumber/formatter/junit')
-    class JUnitCucumberFormatter < Cucumber::Formatter::Junit
+    class JavaCucumberFormatter < Cucumber::Formatter::Junit
       private
 
       def build_testcase(duration, status, exception = nil, suffix = "")

@@ -3,9 +3,9 @@ module RightSupport
   end
 end
 
-require 'right_support/ci/junit_cucumber_formatter'
-require 'right_support/ci/junit_rspec_formatter'
+require 'right_support/ci/java_cucumber_formatter'
+require 'right_support/ci/java_spec_formatter'
 
 # Don't auto-require the Rake task; it mixes the Rake DSL into everything!
-# Must defer loading of the Rake task to the Rakefiles
+# Must defer loading of the Rake task to the Rakefiles themselves.
 #require 'right_support/ci/rake_task'

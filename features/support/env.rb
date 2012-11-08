@@ -1,5 +1,5 @@
 #--
-# Copyright: Copyright (c) 2010 RightScale, Inc.
+# Copyright: Copyright (c) 2010- RightScale, Inc.
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -77,8 +77,6 @@ module RandomValueHelper
 end
 
 module RubyAppHelper
-  BUNDLER_ENV = ['BUNDLE_GEMFILE', 'GEM_HOME', 'GEM_PATH', 'GEM_DIR']
-
   def ruby_app_root
     @ruby_app_root ||= Dir.mktmpdir('right_support_cucumber_ruby')
   end
@@ -94,24 +92,24 @@ module RubyAppHelper
 
   # Run a shell command in app_dir, e.g. a rake task
   def ruby_app_shell(cmd, options={})
-    BUNDLER_ENV.each { |var| ENV.delete(var) }
-
     ignore_errors = options[:ignore_errors] || false
     log = !!(Cucumber.logger)
 
     all_output = ''
     Dir.chdir(ruby_app_root) do
       Cucumber.logger.debug("bash> #{cmd}\n") if log
-      IO.popen("#{cmd} 2>&1", 'r') do |output|
-        output.sync = true
-        done = false
-        until done
-          begin
-            line = output.readline + "\n"
-            all_output << line
-            Cucumber.logger.debug(line) if log
-          rescue EOFError
-            done = true
+      Bundler.with_clean_env do
+        IO.popen("#{cmd} 2>&1", 'r') do |output|
+          output.sync = true
+          done = false
+          until done
+            begin
+              line = output.readline + "\n"
+              all_output << line
+              Cucumber.logger.debug(line) if log
+            rescue EOFError
+              done = true
+            end
           end
         end
       end

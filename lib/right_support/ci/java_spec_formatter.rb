@@ -1,4 +1,4 @@
-# Copyright (c) 2009-2011 RightScale, Inc, All Rights Reserved Worldwide.
+# Copyright (c) 2012- RightScale, Inc, All Rights Reserved Worldwide.
 #
 # THIS PROGRAM IS CONFIDENTIAL AND PROPRIETARY TO RIGHTSCALE
 # AND CONSTITUTES A VALUABLE TRADE SECRET.  Any unauthorized use,
@@ -13,7 +13,7 @@ require 'time'
 module RightSupport::CI
   if require_succeeds?('spec/runner/formatter/base_text_formatter')
     # RSpec 1.x
-    class JUnitRSpecFormatter < Spec::Runner::Formatter::BaseTextFormatter
+    class JavaSpecFormatter < Spec::Runner::Formatter::BaseTextFormatter
       def initialize(*args)
         begin
           require 'builder'
@@ -100,7 +100,7 @@ module RightSupport::CI
     end
   elsif require_succeeds?('rspec/core/formatters/base_formatter')
     # RSpec 2.x
-    class JUnitRSpecFormatter < RSpec::Core::Formatters::BaseFormatter
+    class JavaSpecFormatter < RSpec::Core::Formatters::BaseFormatter
       def initialize(*args)
         begin
           require 'builder'

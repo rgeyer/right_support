@@ -13,6 +13,13 @@ require 'cucumber/rake/task'
 # We use RightSupport's CI harness in its own Rakefile. Hooray dogfood!
 require 'right_support/ci/rake_task'
 
+# But, we have a very special need, because OUR Cucumbers need to run with a pristine
+# environment that isn't polluted by RVM or RubyGems or anyone else, in order to validate
+# that RightSupport's CI harness doesn't break your app if those gems are unavailable.
+# Thus when our own Rake runs spec or cucumber as a subprocess, we need to give it
+# a pristine non-Bundlered environment.
+require 'features/support/file_utils_bundler_mixin'
+
 desc "Run unit tests"
 task :default => :spec
 
