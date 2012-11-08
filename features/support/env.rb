@@ -77,6 +77,8 @@ module RandomValueHelper
 end
 
 module RubyAppHelper
+  BUNDLER_ENV = ['BUNDLE_GEMFILE', 'GEM_HOME', 'GEM_PATH', 'GEM_DIR']
+
   def ruby_app_root
     @ruby_app_root ||= Dir.mktmpdir('right_support_cucumber_ruby')
   end
@@ -92,6 +94,8 @@ module RubyAppHelper
 
   # Run a shell command in app_dir, e.g. a rake task
   def ruby_app_shell(cmd, options={})
+    BUNDLER_ENV.each { |var| ENV.delete(var) }
+
     ignore_errors = options[:ignore_errors] || false
     log = !!(Cucumber.logger)
 

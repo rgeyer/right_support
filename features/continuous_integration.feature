@@ -1,41 +1,51 @@
-Feature: continuous integration reports
-  In order to facilitate TDD and enhance code quality
-  RightSupport should provide a Rake CI harness with JUnit XML output
-  So any Ruby project can have a beautiful, info-rich Jenkins project
+Feature: continuous integration disabled
+  In order to let minimize runtime dependencies
+  RightSupport's Rake CI harness should gracefully handle missing gems
+  So it runs predictably and reliably in production
 
   Background:
     Given a Ruby application
     And a Gemfile
+    And a gem dependency on 'rake ~> 0.9'
+
+  Scenario: all gems unavailable
+    Given the Rakefile contains a RightSupport::CI::RakeTask
+    When I install the bundle
+    And I rake '-T'
+    Then the output should not contain 'ci:cucumber'
+    And the output should not contain 'ci:spec'
+
+  Scenario: conditional availability of ci:cucumber
+    Given a gem dependency on 'rspec ~> 1.0'
+    And a gem dependency on 'builder ~> 3.0'
     And the Rakefile contains a RightSupport::CI::RakeTask
+    When I install the bundle
+    And I rake '-T'
+    Then the output should contain 'ci:spec'
+    And the output should not contain 'ci:cucumber'
+
+  Scenario: conditional availability of ci:rspec
+    Given a gem dependency on 'cucumber ~> 1.0'
+    And the Rakefile contains a RightSupport::CI::RakeTask
+    When I install the bundle
+    And I rake '-T'
+    Then the output should contain 'ci:cucumber'
+    And the output should not contain 'ci:spec'
 
   Scenario: list Rake tasks
     Given a gem dependency on 'rspec ~> 2.0'
     And a gem dependency on 'cucumber ~> 1.0'
+    And the Rakefile contains a RightSupport::CI::RakeTask
     When I install the bundle
     And I rake '-T'
-    Then the output should contain 'ci:spec'
     And the output should contain 'ci:cucumber'
+    And the output should contain 'ci:spec'
 
-  Scenario: run RSpec 1.x examples
-    Given a gem dependency on 'rspec ~> 1.0'
-    And a trivial RSpec spec
-    When I install the bundle
-    And I rake 'ci:spec'
-    Then the output should contain '** Execute ci:spec'
-    And the directory 'measurement/rspec' should contain files
-
-  Scenario: run RSpec 2.x examples
+  Scenario: override namespace
     Given a gem dependency on 'rspec ~> 2.0'
-    And a trivial RSpec spec
+    And a gem dependency on 'cucumber ~> 1.0'
+    And the Rakefile contains a RightSupport::CI::RakeTask with parameter ':funkalicious'
     When I install the bundle
-    And I rake 'ci:spec'
-    Then the output should contain '** Execute ci:spec'
-    And the directory 'measurement/rspec' should contain files
-
-  Scenario: run Cucumber features
-    Given a gem dependency on 'cucumber ~> 1.0'
-    And a trivial Cucumber feature
-    When I install the bundle
-    And I rake 'ci:cucumber'
-    Then the output should contain '** Execute ci:cucumber'
-    And the directory 'measurement/cucumber' should contain files
+    And I rake '-T'
+    Then the output should contain 'funkalicious:cucumber'
+    Then the output should contain 'funkalicious:spec'

@@ -46,17 +46,15 @@ module RightSupport::CI
         if require_succeeds?('rspec/core/rake_task')
           # RSpec 2
           desc "Run RSpec examples"
-          RSpec::Core::RakeTask.new do |t|
+          RSpec::Core::RakeTask.new(:spec => :prep) do |t|
             t.rspec_opts = ['-f', JUnitRSpecFormatter.name,
                             '-o', File.join(@output_path, 'rspec', 'rspec.xml')]
           end
-          task :spec => [:prep]
         elsif require_succeeds?('spec/rake/spectask')
           # RSpec 1
-          Spec::Rake::SpecTask.new(:spec => spec_prereq) do |t|
+          Spec::Rake::SpecTask.new(:spec => :prep) do |t|
             desc "Run RSpec Examples"
-            t.spec_opts = ['-f', JUnitRSpecFormatter.name,
-                           '-o', File.join(@output_path, 'rspec', 'rspec.xml')]
+            t.spec_opts = ['-f', JUnitRSpecFormatter.name + ":" + File.join(@output_path, 'rspec', 'rspec.xml')]
           end
         end
 

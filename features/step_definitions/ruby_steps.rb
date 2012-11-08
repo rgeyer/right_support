@@ -39,6 +39,15 @@ Given /^the Rakefile contains a RightSupport::CI::RakeTask$/ do
   end
 end
 
+Given /^the Rakefile contains a RightSupport::CI::RakeTask with parameter '(.*)'$/ do |ns|
+  Given 'a Rakefile'
+  rakefile = ruby_app_path('Rakefile')
+  File.open(rakefile, 'w') do |file|
+    file.puts "require 'right_support/ci/rake_task'"
+    file.puts "RightSupport::CI::RakeTask.new(#{ns})"
+  end
+end
+
 Given /^a trivial RSpec spec$/ do
   spec_dir = ruby_app_path('spec')
   spec = ruby_app_path('spec', 'trivial_spec.rb')
@@ -88,11 +97,15 @@ When /^I install the bundle$/ do
 end
 
 When /^I rake '(.*)'$/ do |task|
-  @ruby_app_output = ruby_app_shell("rake --trace #{task}")
+  @ruby_app_output = ruby_app_shell("bundle exec rake --trace #{task}")
 end
 
 Then /^the output should contain '(.*)'$/ do |expected_output|
-  @ruby_app_output.index(expected_output).should_not be_nil
+  @ruby_app_output.should include(expected_output)
+end
+
+Then /^the output should not contain '(.*)'$/ do |expected_output|
+  @ruby_app_output.should_not include(expected_output)
 end
 
 Then /^the directory '(.*)' should contain files/ do |dir|

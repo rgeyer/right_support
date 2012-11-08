@@ -63,10 +63,10 @@ module RightSupport::Net
     # reflection to handle ALL RSpec-related exceptions.
     spec_namespaces = if require_succeeds?('rspec')
       # RSpec 2.x
-      [RSpec::Mocks, RSpec::Expectations]
+      [::RSpec::Mocks, ::RSpec::Expectations]
     elsif require_succeeds?('spec')
       # RSpec 1.x
-      [RSpec::Expectations]
+      [::Spec::Expectations]
     else
       # RSpec is not present
       []
