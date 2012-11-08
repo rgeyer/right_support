@@ -13,7 +13,7 @@ Given /^a Gemfile$/ do
 end
 
 Given /^a gem dependency on '(.*)'$/ do |dependency|
-  Given 'a Gemfile'
+  step 'a Gemfile'
   gem, version = dependency.split(/\s+/, 2)
   gemfile = ruby_app_path('Gemfile')
   File.open(gemfile, 'a') do |file|
@@ -31,7 +31,7 @@ Given /^a Rakefile$/ do
 end
 
 Given /^the Rakefile contains a RightSupport::CI::RakeTask$/ do
-  Given 'a Rakefile'
+  step 'a Rakefile'
   rakefile = ruby_app_path('Rakefile')
   File.open(rakefile, 'w') do |file|
     file.puts "require 'right_support/ci/rake_task'"
@@ -40,7 +40,7 @@ Given /^the Rakefile contains a RightSupport::CI::RakeTask$/ do
 end
 
 Given /^the Rakefile contains a RightSupport::CI::RakeTask with parameter '(.*)'$/ do |ns|
-  Given 'a Rakefile'
+  step 'a Rakefile'
   rakefile = ruby_app_path('Rakefile')
   File.open(rakefile, 'w') do |file|
     file.puts "require 'right_support/ci/rake_task'"

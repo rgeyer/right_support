@@ -21,7 +21,7 @@ group :development do
   gem 'ruby-debug19', ">= 0.11.6", :platforms=>:ruby_19
   gem 'rdoc', '>= 2.4.2'
   gem 'rspec', "~> 2.0"
-  gem 'cucumber', "~> 0.8"
+  gem 'cucumber', "~> 1.0"
   gem 'flexmock', "~> 0.8"
   gem 'syntax', '~> 1.0.0' #rspec will syntax-highlight code snippets if this gem is available
 end
