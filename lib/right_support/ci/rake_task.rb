@@ -50,7 +50,9 @@ module RightSupport::CI
 
       namespace @ci_namespace do
         task :prep do
-          FileUtils.mkdir_p('measurement')
+          FileUtils.mkdir_p(@output_path)
+          FileUtils.mkdir_p(File.join(@output_path, 'rspec'))
+          FileUtils.mkdir_p(File.join(@output_path, 'cucumber'))
         end
 
         if require_succeeds?('rspec/core/rake_task')
