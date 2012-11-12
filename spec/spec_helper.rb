@@ -1,19 +1,39 @@
+# Copyright (c) 2012- RightScale Inc
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
 require 'rubygems'
 require 'bundler/setup'
 require 'flexmock'
 require 'ruby-debug'
 require 'syntax'
 
-Spec::Runner.configure do |config|
+require 'right_support'
+
+RSpec.configure do |config|
   config.mock_with :flexmock
 end
 
-$basedir = File.expand_path('../..', __FILE__)
-$libdir  = File.join($basedir, 'lib')
-require File.join($libdir, 'right_support')
-
 def read_fixture(fn)
-  fixtures_dir = File.join($basedir, 'spec', 'fixtures')
+  basedir = File.expand_path('../..', __FILE__)
+  fixtures_dir = File.join(basedir, 'spec', 'fixtures')
   File.read(File.join(fixtures_dir, fn))
 end
 
@@ -23,7 +43,7 @@ def corrupt(key, factor=4)
   key[0..(d-factor)] + key[d+factor..-1]
 end
 
-Spec::Matchers.define :have_green_endpoint do |endpoint|
+RSpec::Matchers.define :have_green_endpoint do |endpoint|
   match do |balancer|
     stack = balancer.instance_variable_get(:@stack)
     state = stack.instance_variable_get(:@endpoints)
@@ -35,7 +55,7 @@ Spec::Matchers.define :have_green_endpoint do |endpoint|
   end
 end
 
-Spec::Matchers.define :have_yellow_endpoint do |endpoint, n|
+RSpec::Matchers.define :have_yellow_endpoint do |endpoint, n|
   match do |balancer|
     stack = balancer.instance_variable_get(:@stack)
     max_n = stack.instance_variable_get(:@yellow_states)
@@ -53,7 +73,7 @@ Spec::Matchers.define :have_yellow_endpoint do |endpoint, n|
   end
 end
 
-Spec::Matchers.define :have_red_endpoint do |endpoint|
+RSpec::Matchers.define :have_red_endpoint do |endpoint|
   match do |balancer|
     stack = balancer.instance_variable_get(:@stack)
     max_n = stack.instance_variable_get(:@yellow_states)
@@ -84,11 +104,11 @@ def test_random_distribution(trials=25000, list=[1,2,3,4,5], &block)
   should_be_chosen_fairly(seen,trials,list.size)
 end
 
-def should_be_chosen_fairly(seen,trials,size)
+def should_be_chosen_fairly(seen, trials, size)
   #Load should be evenly distributed
   chance = 1.0 / size
   seen.each_pair do |_, count|
-    (Float(count) / Float(trials)).should be_close(chance, 0.025) #allow 5% margin of error
+    (Float(count) / Float(trials)).should be_within(0.025).of(chance) #allow 5% margin of error
   end
 end
 

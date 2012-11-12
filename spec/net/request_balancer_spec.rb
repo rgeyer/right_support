@@ -316,6 +316,7 @@ describe RightSupport::Net::RequestBalancer do
       it 're-raises reasonable default fatal errors' do
         test_raise(nil, ArgumentError, [ArgumentError, 1])
         test_raise(nil, MockResourceNotFound, [MockResourceNotFound, 1])
+        test_raise(nil, RSpec::Expectations::ExpectationNotMetError, [RSpec::Expectations::ExpectationNotMetError, 1])
       end
 
       it 'swallows StandardError and friends' do
@@ -379,7 +380,7 @@ describe RightSupport::Net::RequestBalancer do
       end
 
       context 'with default :retry option' do
-        it 'does mark endpoints as bad if they encounter retryable errors' do
+        it 'marks endpoints as bad if they encounter retryable errors' do
           rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
           expect = rb.get_stats
           codes = [401, 402, 403, 404, 405, 406, 407, 408, 409]
@@ -394,7 +395,6 @@ describe RightSupport::Net::RequestBalancer do
 
         it 'does not mark endpoints as bad if they raise fatal errors' do
           rb = RightSupport::Net::RequestBalancer.new([1,2,3], :policy => RightSupport::Net::LB::HealthCheck, :health_check => Proc.new {|endpoint| false})
-          expect = rb.get_stats
           codes = [401, 402, 403, 404, 405, 406, 407, 409]
           codes.each do |code|
             lambda do
@@ -402,7 +402,10 @@ describe RightSupport::Net::RequestBalancer do
             end.should raise_error
           end
 
-          rb.get_stats.should == expect
+          # The EPs started in yellow-1, then passed an initial health check which
+          # changed them to green, then executed a failing request, which should
+          # not count against them. They should still be green.
+          rb.get_stats.should == {1=>'green', 2=>'green', 3=>'green'}
         end
       end
     end
@@ -462,7 +465,7 @@ describe RightSupport::Net::RequestBalancer do
           health_check = Proc.new do |endpoint|
             false
           end
-          flexmock(@logger).should_receive(:info).times(4)
+          flexmock(@logger).should_receive(:info).times(8)
           
           lambda {
             balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::LB::HealthCheck, :health_check => health_check)
@@ -506,6 +509,43 @@ describe RightSupport::Net::RequestBalancer do
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
         @resolved_set_2.include?(@policy.next.first).should be_true
+      end
+    end
+
+    context 'when a request raises NoResult' do
+      before(:each) do
+        @endpoints = [1,2,3,4,5,6]
+        @exceptions = [BigDeal, NoBigDeal, OtherTestException]
+        @rb = RightSupport::Net::RequestBalancer.new(@endpoints)
+        @tries = 0
+        begin
+          @rb.request do |ep|
+            @tries += 1
+            raise @exceptions[@tries % @exceptions.size]
+          end
+        rescue Exception => e
+          @raised = e
+        end
+
+        @raised.should be_kind_of RightSupport::Net::NoResult
+      end
+
+      it 'provides detailed information about the exceptions' do
+        # We should have details about all six endpoints
+        @raised.details.should_not be_nil
+        @raised.details.keys.size.should == 6
+
+        # Three exception types across six endpoints, means we should
+        # see each exception type appear twice
+        seen = {}
+        @raised.details.each_pair do |_, exceptions|
+          exceptions.each do |exception|
+            seen[exception.class] ||= []
+            seen[exception.class] << exception
+          end
+        end
+        seen.keys.size.should == 3
+        seen.values.all? { |v| v.size == 2}.should be_true
       end
     end
   end

@@ -6,9 +6,8 @@ module RightSupport::Net
     #take effect.
   end
 
-  if require_succeeds?('restclient')
-    HAS_REST_CLIENT = true
-  end
+  # Constant to determine whether this class can be instantiated.
+  HAS_REST_CLIENT = require_succeeds?('restclient')
 
   # Raised to indicate that no suitable provider of REST/HTTP services was found. Since RightSupport's
   # REST support is merely a wrapper around other libraries, it cannot work in isolation. See the REST

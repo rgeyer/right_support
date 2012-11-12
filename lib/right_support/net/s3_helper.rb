@@ -23,6 +23,8 @@ module RightSupport::Net
   # RightSupport::Net::S3Helper.init(s3_config, Rightscale::S3, Encryptor)
   # s3_health = RightSupport::Net::S3Helper.health_check
   class S3Helper
+    class BucketNotFound < Exception; end
+
     # Init() is the first method which must be called.
     # This is configuration and integration with S3 and Encryptor
     #
@@ -36,12 +38,22 @@ module RightSupport::Net
     # @param  [Class] encryptor  Class which will be used to encrypt data
     #                              encrypt() and decrypt() methods must be implemented
     #
-    # Init() does not return anything
+    # @raise BucketNotFound if bucket name specified in config["bucket_name"] does not exist
+    #
+    # @return [true] always returns true
     def self.init(config, s3, encryptor)
       @config = config
       @s3class = s3
       @encryptor = encryptor
+
+      # Reset any S3 objects we'd been caching, since config may have changed
+      @s3 = @bucket = nil
+      # Make sure our bucket exists -- better to do it now than on first access!
+      self.bucket
+
+      true
     end
+
     # Checks S3 credentials syntax in config parameter
     #
     # @return  [Boolean]  true if s3 creadentials are ok or false if not
@@ -56,15 +68,16 @@ module RightSupport::Net
     def self.config
       @config
     end
-    # Creates (if does not exist) and return S3 object
+    # Create (if does not exist) and return S3 object
     def self.s3
       @s3 ||= @s3class.new config["creds"]["aws_access_key_id"], config["creds"]["aws_secret_access_key"]
     end
-    # Creates S3 Bucket object using created in s3() object
+    # Create Bucket object using S3 object
+    # @raise BucketNotFound if bucket name specified in config["bucket_name"] does not exist
     def self.bucket
-      #TO DISCUSS: second param 'true' means 'create new bucket'
-      #@bucket ||= s3.bucket(config["bucket_name"], true)
       @bucket ||= s3.bucket(config["bucket_name"])
+      raise BucketNotFound, "Bucket #{config["bucket_name"]} does not exist" if @bucket.nil?
+      @bucket
     end
     # Returns Master secret from config
     def self.master_secret

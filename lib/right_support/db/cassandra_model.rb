@@ -99,7 +99,7 @@ end
 module RightSupport::DB
   # Exception that indicates database configuration info is missing.
   class MissingConfiguration < Exception; end
-
+  class UnsupportedRubyVersion < Exception; end
   # Base class for a column family in a keyspace
   # Used to access data persisted in Cassandra
   # Provides wrappers for Cassandra client methods
@@ -123,12 +123,24 @@ module RightSupport::DB
 
       @@connections = {}
 
+      # Depricate usage of CassandraModel under Ruby < 1.9
+      def inherited(base)
+        raise UnsupportedRubyVersion, "Support only Ruby >= 1.9" unless RUBY_VERSION >= "1.9"
+      end
+
       def config
         @@config
       end
 
+      def env_config
+        env = ENV['RACK_ENV']
+        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" \
+            unless !@@config.nil? && @@config.keys.include?(env) && @@config[env]
+        @@config[env]
+      end
+
       def config=(value)
-        @@config = value
+        @@config = normalize_config(value) unless value.nil?
       end
 
       def logger=(l)
@@ -176,8 +188,9 @@ module RightSupport::DB
       # block(Proc):: Code that will be called in keyspace context
       def with_keyspace(keyspace, append_env=true, &block)
         @@current_keyspace = keyspace
-        if append_env
-          @@current_keyspace = "#{@@current_keyspace}_#{ENV['RACK_ENV'] || 'development'}"
+        env = ENV['RACK_ENV'] || 'development'
+        if append_env && @@current_keyspace !~ /_#{env}$/
+          @@current_keyspace = "#{@@current_keyspace}_#{env}"
         end
         block.call
         ensure
@@ -193,9 +206,7 @@ module RightSupport::DB
       def conn()
         @@connections ||= {}
 
-        # TODO remove hidden dependency on ENV['RACK_ENV'] (maybe require config= to accept a sub hash?)
-        config = @@config[ENV["RACK_ENV"]]
-        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
+        config = env_config
 
         thrift_client_options = {:timeout => RightSupport::DB::CassandraModel::DEFAULT_TIMEOUT}
         thrift_client_options.merge!({:protocol => Thrift::BinaryProtocolAccelerated})\
@@ -330,8 +341,10 @@ module RightSupport::DB
         while (start_row != nil)
           clause = do_op(:create_idx_clause, [expr], start_row, row_count)
 
-          rows = self.conn.get_indexed_slices(column_family, clause, 'account_id',
-                                              :key_count => row_count, :key_start => start_row)
+          rows = self.conn.get_indexed_slices(column_family, clause, index,
+                                              :key_count => row_count,
+                                              :key_start => start_row)
+
           rows = rows.keys
           rows.shift unless start_row == ''
           start_row = rows.last
@@ -347,8 +360,10 @@ module RightSupport::DB
                                                    :start => start_column,
                                                    :count => column_count)
 
+              # Get first row's columns, because where are getting only one row [see clause, for more details]
               key = chunk.keys.first
-              columns = chunk.values.first
+              columns = chunk[key]
+
               columns.shift unless start_column == ''
               yield(key, columns) unless chunk.empty?
 
@@ -492,8 +507,7 @@ module RightSupport::DB
       # === Return
       # true:: Always return true
       def reconnect
-        config = @@config[ENV["RACK_ENV"]]
-        raise MissingConfiguration, "CassandraModel config is missing a '#{ENV['RACK_ENV']}' section" unless config
+        config = env_config
 
         return false if keyspace.nil?
 
@@ -513,6 +527,34 @@ module RightSupport::DB
       # (Array):: Members of ring
       def ring
         conn.ring
+      end
+
+      private
+
+      # Massage configuration hash into a standard form.
+      # @return the config hash, with contents normalized
+      def normalize_config(untrasted_config)
+        untrasted_config.each do |env, config|
+          raise MissingConfiguration, "CassandraModel config is broken, a '#{ENV['RACK_ENV']}' missing 'server' option" \
+ unless config.keys.include?('server')
+          server = config['server']
+
+          if server.is_a?(String)
+            # Strip surrounding brackets, in case Ops put a YAML array into an input value
+            if server.start_with?('[') && server.end_with?(']')
+              server = server[1..-2]
+            end
+
+            # Transform comma-separated host lists into an Array
+            if server =~ /,/
+              server = server.split(/\s*,\s*/)
+            end
+          end
+
+          config['server'] = server
+
+          config
+        end
       end
 
     end # self

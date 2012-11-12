@@ -5,19 +5,28 @@ require 'bundler/setup'
 require 'rake'
 require 'rdoc/task'
 require 'rubygems/package_task'
+
 require 'rake/clean'
-require 'spec/rake/spectask'
+require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
+
+# We use RightSupport's CI harness in its own Rakefile. Hooray dogfood!
+require 'right_support/ci/rake_task'
+
+# But, we have a very special need, because OUR Cucumbers need to run with a pristine
+# environment that isn't polluted by RVM or RubyGems or anyone else, in order to validate
+# that RightSupport's CI harness doesn't break your app if those gems are unavailable.
+# Thus when our own Rake task runs spec or cucumber as a subprocess, we need to give it
+# a pristine non-bundled environment, so it can use Bundler.with_clean_env to launch
+# subprocesses.
+require File.expand_path('../features/support/file_utils_bundler_mixin', __FILE__)
 
 desc "Run unit tests"
 task :default => :spec
 
 desc "Run unit tests"
-Spec::Rake::SpecTask.new do |t|
-  t.spec_files = Dir['**/*_spec.rb']
-  t.spec_opts = lambda do
-    IO.readlines(File.join(File.dirname(__FILE__), 'spec', 'spec.opts')).map {|l| l.chomp.split " "}.flatten
-  end
+RSpec::Core::RakeTask.new do |t|
+  t.pattern = Dir['**/*_spec.rb']
 end
 
 desc "Run functional tests"
@@ -43,3 +52,5 @@ Gem::PackageTask.new(Gem::Specification.load("right_support.gemspec")) do |packa
 end
 
 CLEAN.include('pkg')
+
+RightSupport::CI::RakeTask.new

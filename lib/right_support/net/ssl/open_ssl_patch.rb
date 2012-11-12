@@ -1,5 +1,6 @@
 require 'openssl'
-require 'openssl/ssl'
+# Under Ruby 1.8 the OpenSSL bindings have a stuttering problem
+require 'openssl/ssl' if RUBY_VERSION < '1.9'
 
 module RightSupport::Net
   module SSL

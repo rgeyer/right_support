@@ -62,7 +62,7 @@ Then /^the serialized value should round-trip cleanly$/ do
   case @ruby_value
   when Float
     # Floating-point numbers lose some precision due to truncation
-    @serializer.load(@serialized_value).should be_close(@ruby_value, 0.000001)
+    @serializer.load(@serialized_value).should be_within(0.000001).of(@ruby_value)
   when Time
     # Times are stored with accuracy ~ 1 sec
     @serializer.load(@serialized_value).to_i.should == @ruby_value.to_i

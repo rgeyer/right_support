@@ -46,10 +46,9 @@ Feature: JSON serialization
     And the serialized value should round-trip cleanly
 
   Examples:
-    | ruby                                          | json                                      |
-    | Time.mktime(2009, 2, 13, 15, 31, 31, -8*3600) | "2009-02-13T23:31:30Z" |
-    | Time.at(1234567890)                           | "2009-02-13T23:31:30Z" |
-    | Time.at(1234567890).utc                       | "2009-02-13T23:31:30Z" |
+    | ruby                                                 | json                   |
+    | Time.at(1234567890)                                  | "2009-02-13T23:31:30Z" |
+    | Time.at(1234567890).utc                              | "2009-02-13T23:31:30Z" |
 
   Scenario Outline: object-escaped String
     When I serialize the Ruby value: <ruby>
