@@ -123,7 +123,7 @@ module RightSupport::DB
 
       @@connections = {}
 
-      @@methods_to_log = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
+      METHODS_TO_LOG = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
 
       # Depricate usage of CassandraModel under Ruby < 1.9
       def inherited(base)
@@ -508,7 +508,7 @@ module RightSupport::DB
 
       def do_op_log(time, meth, cf, key)
         time = Time.now - time
-        if @@methods_to_log.include?(meth)
+        if METHODS_TO_LOG.include?(meth)
           log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{cf}"
           if key.class == Array
             if key.size > 1
