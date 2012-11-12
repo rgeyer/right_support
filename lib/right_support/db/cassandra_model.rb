@@ -321,13 +321,13 @@ module RightSupport::DB
       end
 
       # This method is an attempt to circumvent the Cassandra gem limitation of returning only 100 columns for wide rows
-      # This method returns only columns that are within the result set specified by a secondary index equality query 
-      # This method will iterate through chunks of rows of the resultset and it will yield to the caller all of the 
+      # This method returns only columns that are within the result set specified by a secondary index equality query
+      # This method will iterate through chunks of rows of the resultset and it will yield to the caller all of the
       # columns in chunks of 1,000 until all of the columns have been retrieved
       #
       # == Parameters:
       # @param [String] index column name
-      # @param [String] index column value 
+      # @param [String] index column value
       #
       # == Yields:
       # @yield [Array<String, Array<CassandraThrift::ColumnOrSuperColumn>>] irray containing ndex column value passed in and an array of columns matching the index query
@@ -495,7 +495,26 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)
-        conn.send(meth, *args, &block)
+        time = Time.now
+        result = conn.send(meth, *args, &block)
+        time = Time.now - time
+        # Log
+        methods = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
+        if methods.include?(meth)
+          log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{args[0]}"
+          if args[1].class == Array
+            if args[1].size > 1
+              log_string += ", keys amount=#{args[1].size}"
+            else
+              log_string += ", key=#{args[1].inspect}"
+            end
+          else
+            log_string += ", key=#{args[1].inspect}"
+          end
+          log_string += ", time=#{time*1000.0}ms"
+          RightSupport::Log::Mixin.default_logger.debug(log_string)
+        end
+        return result
       rescue IOError
         reconnect
         retry
