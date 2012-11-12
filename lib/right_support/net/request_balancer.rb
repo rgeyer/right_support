@@ -262,7 +262,7 @@ module RightSupport::Net
         list.each { |e| summary << e.class }
         msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
       end
-      message = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints. {#{msg.join(', ')}}"
+      message = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints: (#{msg.join(', ')})"
 
       logger.error "RequestBalancer: #{message}"
       raise NoResult.new(message, exceptions)
