@@ -123,6 +123,8 @@ module RightSupport::DB
 
       @@connections = {}
 
+      @@methods_to_log = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
+
       # Depricate usage of CassandraModel under Ruby < 1.9
       def inherited(base)
         raise UnsupportedRubyVersion, "Support only Ruby >= 1.9" unless RUBY_VERSION >= "1.9"
@@ -321,13 +323,13 @@ module RightSupport::DB
       end
 
       # This method is an attempt to circumvent the Cassandra gem limitation of returning only 100 columns for wide rows
-      # This method returns only columns that are within the result set specified by a secondary index equality query 
-      # This method will iterate through chunks of rows of the resultset and it will yield to the caller all of the 
+      # This method returns only columns that are within the result set specified by a secondary index equality query
+      # This method will iterate through chunks of rows of the resultset and it will yield to the caller all of the
       # columns in chunks of 1,000 until all of the columns have been retrieved
       #
       # == Parameters:
       # @param [String] index column name
-      # @param [String] index column value 
+      # @param [String] index column value
       #
       # == Yields:
       # @yield [Array<String, Array<CassandraThrift::ColumnOrSuperColumn>>] irray containing ndex column value passed in and an array of columns matching the index query
@@ -495,10 +497,31 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)
-        conn.send(meth, *args, &block)
+        time = Time.now
+        result = conn.send(meth, *args, &block)
+        do_op_log(time, meth, args[0], args[1])
+        return result
       rescue IOError
         reconnect
         retry
+      end
+
+      def do_op_log(time, meth, cf, key)
+        time = Time.now - time
+        if @@methods_to_log.include?(meth)
+          log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{cf}"
+          if key.class == Array
+            if key.size > 1
+              log_string += ", keys amount=#{key.size}"
+            else
+              log_string += ", key=#{key.inspect}"
+            end
+          else
+            log_string += ", key=#{key.inspect}"
+          end
+          log_string += ", time=#{time*1000.0}ms"
+          RightSupport::Log::Mixin.default_logger.debug(log_string)
+        end
       end
 
       # Reconnect to Cassandra server
