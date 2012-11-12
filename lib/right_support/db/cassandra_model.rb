@@ -123,6 +123,8 @@ module RightSupport::DB
 
       @@connections = {}
 
+      @@methods_to_log = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
+
       # Depricate usage of CassandraModel under Ruby < 1.9
       def inherited(base)
         raise UnsupportedRubyVersion, "Support only Ruby >= 1.9" unless RUBY_VERSION >= "1.9"
@@ -497,27 +499,29 @@ module RightSupport::DB
       def do_op(meth, *args, &block)
         time = Time.now
         result = conn.send(meth, *args, &block)
-        time = Time.now - time
-        # Log
-        methods = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
-        if methods.include?(meth)
-          log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{args[0]}"
-          if args[1].class == Array
-            if args[1].size > 1
-              log_string += ", keys amount=#{args[1].size}"
-            else
-              log_string += ", key=#{args[1].inspect}"
-            end
-          else
-            log_string += ", key=#{args[1].inspect}"
-          end
-          log_string += ", time=#{time*1000.0}ms"
-          RightSupport::Log::Mixin.default_logger.debug(log_string)
-        end
+        do_op_log(time, meth, args[0], args[1])
         return result
       rescue IOError
         reconnect
         retry
+      end
+
+      def do_op_log(time, meth, cf, key)
+        time = Time.now - time
+        if @@methods_to_log.include?(meth)
+          log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{cf}"
+          if key.class == Array
+            if key.size > 1
+              log_string += ", keys amount=#{key.size}"
+            else
+              log_string += ", key=#{key.inspect}"
+            end
+          else
+            log_string += ", key=#{key.inspect}"
+          end
+          log_string += ", time=#{time*1000.0}ms"
+          RightSupport::Log::Mixin.default_logger.debug(log_string)
+        end
       end
 
       # Reconnect to Cassandra server
