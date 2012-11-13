@@ -123,7 +123,7 @@ module RightSupport::DB
 
       @@connections = {}
 
-      @@methods_to_log = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
+      METHODS_TO_LOG = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
 
       # Depricate usage of CassandraModel under Ruby < 1.9
       def inherited(base)
@@ -497,18 +497,29 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)
+        # log functionality
+        total_time ||= 0
+        retries ||= 0
+        total_time = Time.now if total_time == 0
         time = Time.now
+
+        # cassandra functionality
         result = conn.send(meth, *args, &block)
-        do_op_log(time, meth, args[0], args[1])
+
+        # log functionality
+        do_op_log(time, total_time, retries, meth, args[0], args[1])
         return result
       rescue IOError
         reconnect
+        retries += 1
         retry
       end
 
-      def do_op_log(time, meth, cf, key)
-        time = Time.now - time
-        if @@methods_to_log.include?(meth)
+      def do_op_log(time, total_time, retries, meth, cf, key)
+        now = Time.now
+        time = now - time
+        total_time = now - total_time
+        if METHODS_TO_LOG.include?(meth)
           log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{cf}"
           if key.class == Array
             if key.size > 1
@@ -519,7 +530,7 @@ module RightSupport::DB
           else
             log_string += ", key=#{key.inspect}"
           end
-          log_string += ", time=#{time*1000.0}ms"
+          log_string += ", request time=#{time*1000.0}ms, retries=#{retries}, total time=#{total_time*1000.0}ms"
           RightSupport::Log::Mixin.default_logger.debug(log_string)
         end
       end
