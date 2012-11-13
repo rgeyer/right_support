@@ -97,7 +97,7 @@ When /^I install the bundle$/ do
 end
 
 When /^I rake '(.*)'$/ do |task|
-  @ruby_app_output = ruby_app_shell("bundle exec rake --trace #{task}")
+  @ruby_app_output = ruby_app_shell("bundle exec rake #{task} --trace ")
 end
 
 When /^I debug the app shell$/ do
