@@ -475,12 +475,12 @@ module RightSupport::DB
         do_op(:batch, *args, &block)
       end
 
-      # Execute Cassandra request
-      # Automatically reconnect and retry if IOError encountered
+      # Perform a Cassandra operation on the connection object.
+      # Rescue IOError by automatically reconnecting and retrying the operation.
       #
       # === Parameters
       # meth(Symbol):: Method to be executed
-      # args(Array):: Method arguments
+      # *args(Array):: Method arguments to forward to the Cassandra connection
       #
       # === Block
       # Block if any to be executed by method
@@ -488,17 +488,16 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)
-        # log functionality
-        total_time ||= 0
-        retries ||= 0
-        total_time = Time.now if total_time == 0
-        time = Time.now
+        first_started_at ||= Time.now
+        retries          ||= 0
+        started_at         = Time.now
 
         # cassandra functionality
         result = conn.send(meth, *args, &block)
 
         # log functionality
-        do_op_log(time, total_time, retries, meth, args[0], args[1])
+        do_op_log(first_started_at, started_at, retries, meth, args[0], args[1])
+
         return result
       rescue IOError
         reconnect
@@ -506,22 +505,24 @@ module RightSupport::DB
         retry
       end
 
-      def do_op_log(time, total_time, retries, meth, cf, key)
-        now = Time.now
-        time = now - time
-        total_time = now - total_time
+      def do_op_log(first_started_at, started_at, retries, meth, cf, key)
+        now          = Time.now
+        attempt_time = now - started_at
+
         if METHODS_TO_LOG.include?(meth)
-          log_string = "Cassandra request: method=#{meth}, cf=#{cf}"
-          if key.class == Array
-            if key.size > 1
-              log_string += ", keys amount=#{key.size}"
-            else
-              log_string += ", key=#{key.inspect}"
-            end
+          if key.is_a?(Array)
+            key_count = key.size
           else
-            log_string += ", key=#{key.inspect}"
+            key_count = 1
           end
-          log_string += ", request time=" + sprintf("%.1f", time * 1000.0) + "ms, retries=#{retries}, total time=" + sprintf("%.1f", total_time * 1000.0) + "ms"
+
+          log_string = sprintf("CassandraModel %s, cf=%s, keys=%d, time=%.1fms", meth, cf, key_count, attempt_time)
+
+          if retries && retries > 0
+            total_time  = now - first_started_at
+            log_string += sprintf(", retries=%d, total_time=%.1fms", retries, total_time)
+          end
+
           logger.debug(log_string)
         end
       end
