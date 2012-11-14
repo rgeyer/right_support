@@ -104,6 +104,7 @@ module RightSupport::DB
   # Used to access data persisted in Cassandra
   # Provides wrappers for Cassandra client methods
   class CassandraModel
+    include RightSupport::Log::Mixin
 
     # Default timeout for client connection to Cassandra server
     DEFAULT_TIMEOUT = 10
@@ -113,8 +114,6 @@ module RightSupport::DB
 
     # Wrappers for Cassandra client
     class << self
-
-      @@logger = nil
 
       attr_reader   :default_keyspace
       attr_accessor :column_family
@@ -143,14 +142,6 @@ module RightSupport::DB
 
       def config=(value)
         @@config = normalize_config(value) unless value.nil?
-      end
-
-      def logger=(l)
-        @@logger = l
-      end
-
-      def logger
-        @@logger
       end
 
       # Return current keyspaces name as Array of String
@@ -484,12 +475,12 @@ module RightSupport::DB
         do_op(:batch, *args, &block)
       end
 
-      # Execute Cassandra request
-      # Automatically reconnect and retry if IOError encountered
+      # Perform a Cassandra operation on the connection object.
+      # Rescue IOError by automatically reconnecting and retrying the operation.
       #
       # === Parameters
       # meth(Symbol):: Method to be executed
-      # args(Array):: Method arguments
+      # *args(Array):: Method arguments to forward to the Cassandra connection
       #
       # === Block
       # Block if any to be executed by method
@@ -497,30 +488,42 @@ module RightSupport::DB
       # === Return
       # (Object):: Value returned by executed method
       def do_op(meth, *args, &block)
-        time = Time.now
+        first_started_at ||= Time.now
+        retries          ||= 0
+        started_at         = Time.now
+
+        # cassandra functionality
         result = conn.send(meth, *args, &block)
-        do_op_log(time, meth, args[0], args[1])
+
+        # log functionality
+        do_op_log(first_started_at, started_at, retries, meth, args[0], args[1])
+
         return result
       rescue IOError
         reconnect
+        retries += 1
         retry
       end
 
-      def do_op_log(time, meth, cf, key)
-        time = Time.now - time
+      def do_op_log(first_started_at, started_at, retries, meth, cf, key)
+        now          = Time.now
+        attempt_time = now - started_at
+
         if METHODS_TO_LOG.include?(meth)
-          log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{cf}"
-          if key.class == Array
-            if key.size > 1
-              log_string += ", keys amount=#{key.size}"
-            else
-              log_string += ", key=#{key.inspect}"
-            end
+          if key.is_a?(Array)
+            key_count = key.size
           else
-            log_string += ", key=#{key.inspect}"
+            key_count = 1
           end
-          log_string += ", time=#{time*1000.0}ms"
-          RightSupport::Log::Mixin.default_logger.debug(log_string)
+
+          log_string = sprintf("CassandraModel %s, cf=%s, keys=%d, time=%.1fms", meth, cf, key_count, attempt_time)
+
+          if retries && retries > 0
+            total_time  = now - first_started_at
+            log_string += sprintf(", retries=%d, total_time=%.1fms", retries, total_time)
+          end
+
+          logger.debug(log_string)
         end
       end
 
