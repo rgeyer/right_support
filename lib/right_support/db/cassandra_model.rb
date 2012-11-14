@@ -520,7 +520,7 @@ module RightSupport::DB
         time = now - time
         total_time = now - total_time
         if METHODS_TO_LOG.include?(meth)
-          log_string = "#{Time.now.to_s} Cassadra request: method=#{meth}, cf=#{cf}"
+          log_string = "Cassandra request: method=#{meth}, cf=#{cf}"
           if key.class == Array
             if key.size > 1
               log_string += ", keys amount=#{key.size}"
@@ -530,7 +530,7 @@ module RightSupport::DB
           else
             log_string += ", key=#{key.inspect}"
           end
-          log_string += ", request time=#{time*1000.0}ms, retries=#{retries}, total time=#{total_time*1000.0}ms"
+          log_string += ", request time=" + sprintf("%.1f", time * 1000.0) + "ms, retries=#{retries}, total time=" + sprintf("%.1f", total_time * 1000.0) + "ms"
           RightSupport::Log::Mixin.default_logger.debug(log_string)
         end
       end
