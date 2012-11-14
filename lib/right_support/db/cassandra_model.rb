@@ -104,6 +104,7 @@ module RightSupport::DB
   # Used to access data persisted in Cassandra
   # Provides wrappers for Cassandra client methods
   class CassandraModel
+    include RightSupport::Log::Mixin
 
     # Default timeout for client connection to Cassandra server
     DEFAULT_TIMEOUT = 10
@@ -113,8 +114,6 @@ module RightSupport::DB
 
     # Wrappers for Cassandra client
     class << self
-
-      @@logger = nil
 
       attr_reader   :default_keyspace
       attr_accessor :column_family
@@ -143,14 +142,6 @@ module RightSupport::DB
 
       def config=(value)
         @@config = normalize_config(value) unless value.nil?
-      end
-
-      def logger=(l)
-        @@logger = l
-      end
-
-      def logger
-        @@logger
       end
 
       # Return current keyspaces name as Array of String
@@ -531,7 +522,7 @@ module RightSupport::DB
             log_string += ", key=#{key.inspect}"
           end
           log_string += ", request time=" + sprintf("%.1f", time * 1000.0) + "ms, retries=#{retries}, total time=" + sprintf("%.1f", total_time * 1000.0) + "ms"
-          RightSupport::Log::Mixin.default_logger.debug(log_string)
+          logger.debug(log_string)
         end
       end
 
