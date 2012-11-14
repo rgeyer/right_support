@@ -26,7 +26,7 @@ end
 When /^a client makes a (buggy )?load-balanced request to '(.*)'$/ do |buggy, path|
   t = RightSupport::Net::HTTPClient::DEFAULT_OPTIONS[:timeout]
   o = RightSupport::Net::HTTPClient::DEFAULT_OPTIONS[:open_timeout]
-  When "a client makes a #{buggy}load-balanced request to '#{path}' with timeout #{t} and open_timeout #{o}"
+  step "a client makes a #{buggy}load-balanced request to '#{path}' with timeout #{t} and open_timeout #{o}"
 end
 
 When /^a client makes a (buggy )?load-balanced request to '(.*)' with timeout (\d+) and open_timeout (\d+)$/ do |buggy, path, timeout, open_timeout|
@@ -79,7 +79,7 @@ Then /^the request should (\w+ ?\w*)$/ do |behavior|
 end
 
 Then /^the request should (\w+ ?\w*) in less than (\d+) seconds?$/ do |behavior, time|
-  Then "the request should #{behavior}"
+  step "the request should #{behavior}"
   #allow 10% margin of error due to Ruby/OS scheduler variance
   (@request_t1.to_f - @request_t0.to_f).should <= (time.to_f * 1.10)
 end

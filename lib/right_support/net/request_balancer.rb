@@ -256,15 +256,16 @@ module RightSupport::Net
       return result if complete
 
       # Produce a summary message for the exception that gives a bit of detail
-      summary = []
-      exceptions.each_pair do |_, list|
+      msg = [] 
+      exceptions.each_pair do |endpoint, list|
+        summary = []
         list.each { |e| summary << e.class }
+        msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
       end
-      summary = summary.uniq.join(', ')
-      msg = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints. Exceptions: #{summary}"
+      message = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints: (#{msg.join(', ')})"
 
-      logger.error "RequestBalancer: #{msg}"
-      raise NoResult.new(msg, exceptions)
+      logger.error "RequestBalancer: #{message}"
+      raise NoResult.new(message, exceptions)
     end
 
     # Provide an interface so one can query the RequestBalancer for statistics on
