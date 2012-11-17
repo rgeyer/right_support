@@ -510,17 +510,13 @@ module RightSupport::DB
         attempt_time = now - started_at
 
         if METHODS_TO_LOG.include?(meth)
-          if key.is_a?(Array)
-            key_count = key.size
-          else
-            key_count = 1
-          end
+          key_count = key.is_a?(Array) ? key.size : 1
 
-          log_string = sprintf("CassandraModel %s, cf=%s, keys=%d, time=%.1fms", meth, cf, key_count, attempt_time)
+          log_string = sprintf("CassandraModel %s, cf=%s, keys=%d, time=%.1fms", meth, cf, key_count, attempt_time*1000)
 
           if retries && retries > 0
             total_time  = now - first_started_at
-            log_string += sprintf(", retries=%d, total_time=%.1fms", retries, total_time)
+            log_string += sprintf(", retries=%d, total_time=%.1fms", retries, total_time*1000)
           end
 
           logger.debug(log_string)

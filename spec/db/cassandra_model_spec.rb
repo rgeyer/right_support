@@ -350,28 +350,4 @@ describe RightSupport::DB::CassandraModel do
     end
   end
 
-  describe "do_op() logging" do
-
-    before(:each) do
-      @logger = flexmock(:logger)
-      flexmock(RightSupport::Log::Mixin).should_receive(:default_logger).and_return(@logger)
-      @logger.should_receive(:debug).with(String)
-      @conn = flexmock(:connection)
-      flexmock(RightSupport::DB::CassandraModel).should_receive(:conn).and_return(@conn)
-      @conn.should_receive(:multi_get).and_return(true)
-      @conn.should_receive(:get).and_return(true)
-      @conn.should_receive(:get_indexed_slices).and_return(true)
-      @conn.should_receive(:get_columns).and_return(true)
-      @conn.should_receive(:insert).and_return(true)
-      @conn.should_receive(:remove).and_return(true)
-    end
-
-    it "logs requests" do
-      [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove].each do |method|
-        RightSupport::DB::CassandraModel.do_op(method,'test_column_family', 'test_key')
-      end
-    end
-
-  end
-
 end
