@@ -70,7 +70,9 @@ module RightSupport::Net
     end
     # Create (if does not exist) and return S3 object
     def self.s3
-      @s3 ||= @s3class.new config["creds"]["aws_access_key_id"], config["creds"]["aws_secret_access_key"]
+      opt = {}
+      opt[:no_subdomains] = true if ['test', 'development'].include?(ENV['RACK_ENV']) && /\blocalhost\b/ .match(ENV["S3_URL"])
+      @s3 ||= @s3class.new config["creds"]["aws_access_key_id"], config["creds"]["aws_secret_access_key"], opt
     end
     # Create Bucket object using S3 object
     # @raise BucketNotFound if bucket name specified in config["bucket_name"] does not exist

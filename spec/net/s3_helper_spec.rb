@@ -26,7 +26,7 @@ describe RightSupport::Net::S3Helper do
     @s3_class  = flexmock("s3")
     @s3_object = flexmock("s3_object")
     @s3_bucket = flexmock("s3_bucket")
-    @s3_class.should_receive(:new).with(String, String).and_return(@s3_object)
+    @s3_class.should_receive(:new).with(String, String, Hash).and_return(@s3_object)
     @s3_object.should_receive(:bucket).with('my_own_personal_bucket').and_return(@s3_bucket).by_default
     @s3_bucket.should_receive(:key).and_return(@s3_object).by_default
     @s3_bucket.should_receive(:put).with(String, String, Hash).and_return(true).by_default
@@ -126,6 +126,74 @@ describe RightSupport::Net::S3Helper do
         RightSupport::Net::S3Helper.health_check.should == true
       end
     end
+  end
+
+  context 'test/development environment' do
+
+    before :each do
+      @key1 = 'aws_access_key_id'
+      @key2 = 'aws_secret_access_key'
+      @opt_with_no_subdomains = {:no_subdomains => true}
+      @opt_without_subdoamins = {}
+      @config = {}
+      @config["creds"] = {}
+      @config["creds"]["aws_access_key_id"] = @key1
+      @config["creds"]["aws_secret_access_key"] = @key2
+      @s3_class = flexmock('Rightscale::S3')
+      flexmock(RightSupport::Net::S3Helper).should_receive(:bucket).and_return(true)
+      @rack_env = ENV['RACK_ENV']
+      @s3_url = ENV['S3_URL']
+    end
+
+    after :each do
+      ENV['RACK_ENV'] = @rack_env
+      ENV['S3_URL'] = @s3_url
+    end
+
+    it 'uses :no_subdomains if RACK_ENV == ( test or development ) and S3_URL is localhost' do
+      @s3_class.should_receive(:new).with(@key1, @key2, @opt_with_no_subdomains)
+      ENV['RACK_ENV'] = 'test'
+      ENV['S3_URL'] = 'http://localhost:4567'
+      RightSupport::Net::S3Helper.init(@config, @s3_class, @s3_class)
+      RightSupport::Net::S3Helper.s3
+      ENV['RACK_ENV'] = 'development'
+      RightSupport::Net::S3Helper.s3
+    end
+
+    it ' does not use :no_subdomains if RACK_ENV == (test or development) and S3_URL is not localhost' do
+      @s3_class.should_receive(:new).with(@key1, @key2, @opt_without_subdoamins)
+      ENV['RACK_ENV'] = 'test'
+      ENV['S3_URL'] = 'http://localhosto:4567'
+      RightSupport::Net::S3Helper.init(@config, @s3_class, @s3_class)
+      RightSupport::Net::S3Helper.s3
+      ENV['RACK_ENV'] = 'development'
+      RightSupport::Net::S3Helper.s3
+    end
+
+    it ' does not use :no_subdomains if RACK_ENV != (test or development) and S3_URL is localhost' do
+      @s3_class.should_receive(:new).with(@key1, @key2, @opt_without_subdoamins)
+      ENV['RACK_ENV'] = 'stage'
+      ENV['S3_URL'] = 'http://localhost:4567'
+      RightSupport::Net::S3Helper.init(@config, @s3_class, @s3_class)
+      RightSupport::Net::S3Helper.s3
+    end
+
+    it ' does not use :no_subdomains if RACK_ENV != (test or development) and S3_URL is not localhost' do
+      @s3_class.should_receive(:new).with(@key1, @key2, @opt_without_subdoamins)
+      ENV['RACK_ENV'] = 'stage'
+      ENV['S3_URL'] = 'http://localhosto:4567'
+      RightSupport::Net::S3Helper.init(@config, @s3_class, @s3_class)
+      RightSupport::Net::S3Helper.s3
+    end
+
+    it ' does not use :no_subdomains if RACK_ENV and S3_URL are empty' do
+      @s3_class.should_receive(:new).with(@key1, @key2, @opt_without_subdoamins)
+      ENV['RACK_ENV'] = nil
+      ENV['S3_URL'] = nil
+      RightSupport::Net::S3Helper.init(@config, @s3_class, @s3_class)
+      RightSupport::Net::S3Helper.s3
+    end
+
   end
 
 end
