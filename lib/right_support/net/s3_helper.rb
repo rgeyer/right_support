@@ -41,10 +41,11 @@ module RightSupport::Net
     # @raise BucketNotFound if bucket name specified in config["bucket_name"] does not exist
     #
     # @return [true] always returns true
-    def self.init(config, s3, encryptor)
+    def self.init(config, s3, encryptor, options = {})
       @config = config
       @s3class = s3
       @encryptor = encryptor
+      @options = options
 
       # Reset any S3 objects we'd been caching, since config may have changed
       @s3 = @bucket = nil
@@ -70,7 +71,7 @@ module RightSupport::Net
     end
     # Create (if does not exist) and return S3 object
     def self.s3
-      @s3 ||= @s3class.new config["creds"]["aws_access_key_id"], config["creds"]["aws_secret_access_key"]
+      @s3 ||= @s3class.new config["creds"]["aws_access_key_id"], config["creds"]["aws_secret_access_key"], @options
     end
     # Create Bucket object using S3 object
     # @raise BucketNotFound if bucket name specified in config["bucket_name"] does not exist
