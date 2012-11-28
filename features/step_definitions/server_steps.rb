@@ -28,8 +28,22 @@ require 'webrick/httpservlet'
 class MockServer < WEBrick::HTTPServer
   attr_accessor :thread, :port, :url
 
+  # Overridden factory method that will tolerate Errno::EADDRINUSE in case a certain
+  # TCP port is already used
+  def self.new(*args)
+    tries ||= 0
+    super
+  rescue Errno::EADDRINUSE => e
+    tries += 1
+    if tries > 5
+      raise e
+    else
+      retry
+    end
+  end
+
   def initialize(options={})
-    @port = options[:port] || (4096 + rand(4096))
+    @port = options[:port] || (4096 + rand(32768-4096))
     @url = "http://localhost:#{@port}"
 
     logger = WEBrick::Log.new(STDERR, WEBrick::Log::FATAL)
