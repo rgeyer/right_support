@@ -48,7 +48,7 @@ module RightSupport::CI
         @test_failures[example] = failure
       end
 
-      def example_pending(example)
+      def example_pending(example, message, deprecated_pending_location=nil)
         @test_times[example] = Time.now - @example_started_at
         @test_results[example] = 'pending'
       end

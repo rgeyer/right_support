@@ -8,12 +8,21 @@ Feature: continuous integration of Cucumber features
     And a Gemfile
     And a gem dependency on 'rake ~> 0.9'
     And a gem dependency on 'builder ~> 3.0'
-
-  Scenario: run Cucumber features
-    Given a gem dependency on 'cucumber ~> 1.0'
+    And a gem dependency on 'cucumber ~> 1.0'
     And the Rakefile contains a RightSupport::CI::RakeTask
-    And a trivial Cucumber feature
+
+  Scenario: passing Cucumber features
+    Given a trivial Cucumber feature
     When I install the bundle
     And I rake 'ci:cucumber'
-    Then the output should contain '** Execute ci:cucumber'
+    Then the command should succeed
+    And the output should contain '** Execute ci:cucumber'
+    And the directory 'measurement/cucumber' should contain files
+
+  Scenario: failing Cucumber features
+    Given a trivial failing Cucumber feature
+    When I install the bundle
+    And I rake 'ci:cucumber'
+    Then the command should fail
+    And the output should contain '** Execute ci:cucumber'
     And the directory 'measurement/cucumber' should contain files

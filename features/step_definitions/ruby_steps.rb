@@ -48,7 +48,7 @@ Given /^the Rakefile contains a RightSupport::CI::RakeTask with parameter '(.*)'
   end
 end
 
-Given /^a trivial RSpec spec$/ do
+Given /^a trivial (failing )?RSpec spec$/ do |failing|
   spec_dir = ruby_app_path('spec')
   spec = ruby_app_path('spec', 'trivial_spec.rb')
   FileUtils.mkdir_p(spec_dir)
@@ -58,12 +58,22 @@ Given /^a trivial RSpec spec$/ do
       file.puts "  it 'has a size' do"
       file.puts "    'joe'.size.should == 3"
       file.puts "  end"
+      file.puts
+      file.puts "  it 'is stringy' do"
+      file.puts "    pending"
+      file.puts "  end"
+      unless failing.nil?
+        file.puts
+        file.puts "it 'meets an impossible ideal' do"
+        file.puts "  raise NotImplementedError, 'inconceivable!'"
+        file.puts "end"
+      end
       file.puts "end"
     end
   end
 end
 
-Given /^a trivial Cucumber feature$/ do
+Given /^a trivial (failing )?Cucumber feature$/ do |failing|
   features_dir = ruby_app_path('features')
   steps_dir    = ruby_app_path('features', 'step_definitions')
   feature      = ruby_app_path('features', 'trivial.feature')
@@ -77,6 +87,7 @@ Given /^a trivial Cucumber feature$/ do
       file.puts "When /^the moon is the only light we see$/ do; end"
       file.puts "Then /^I won't be afraid.*$/ do; end"
       file.puts "Then /^as long as you stand.*by me$/ do; end"
+      file.puts "Then /^you run away as fast as you can$/ do; raise NotImplementedError; end"
     end
   end
   unless File.exist?(feature)
@@ -87,7 +98,11 @@ Given /^a trivial Cucumber feature$/ do
       file.puts "    When the night has come and the land is dark"
       file.puts "    And the moon is the only light we see"
       file.puts "    Then I won't be afraid, oh, I won't be afraid"
-      file.puts "    And as long as you stand, stand by me"
+      if failing.nil?
+        file.puts "    And as long as you stand, stand by me"
+      else
+        file.puts "    And you run away as fast as you can"
+      end
     end
   end
 end
@@ -97,7 +112,7 @@ When /^I install the bundle$/ do
 end
 
 When /^I rake '(.*)'$/ do |task|
-  @ruby_app_output = ruby_app_shell("bundle exec rake #{task} --trace ")
+  @ruby_app_output = ruby_app_shell("bundle exec rake #{task} --trace ", :ignore_errors => true)
 end
 
 When /^I debug the app shell$/ do
@@ -124,4 +139,14 @@ Then /^the directory '(.*)' should contain files/ do |dir|
   dir = ruby_app_path(dir)
   File.directory?(dir).should be_true
   Dir[File.join(dir, '*')].should_not be_empty
+end
+
+Then /^the command should (succeed|fail)$/ do |success|
+  if success == 'succeed'
+    $?.exitstatus.should == 0
+  elsif success == 'fail'
+    $?.exitstatus.should_not == 0
+  else
+    raise NotImplementedError, "Unknown expectation #{success}"
+  end
 end
