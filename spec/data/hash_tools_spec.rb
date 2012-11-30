@@ -355,6 +355,11 @@ describe RightSupport::Data::HashTools do
     let(:flat_hash) do
       result = {}
       10.times do |i|
+        # try to ensure insertion order does not affect the unsorted extraction
+        # order by inserting keys out-of-order. insertion order historically has
+        # no affect on extraction order, but you never know about future Hash.
+        # if the Hash of tomorrow is always sorted, then goody.
+        i = (13 - i) % 10
         key = (i + 'a'[0]).chr
         key = key.to_sym if 0 == (i % 2)  # every other key is a symbol
         result[key] = i
