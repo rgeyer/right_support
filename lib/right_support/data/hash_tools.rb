@@ -20,6 +20,8 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+require 'json'
+
 module RightSupport::Data
 
   # various tools for manipulating hash-like classes.
@@ -255,6 +257,38 @@ module RightSupport::Data
         end
       end
       target
+    end
+
+    # A hash subclass which always enumerates/returns keys in sorted order.
+    # ensures sortability by converting all keys to strings (because symbols
+    # don't support <=> operator, etc.) which is consitent with the result of
+    # JSON.dump(hash)
+    class DeepSortedJsonifiedHash < Hash
+      def initialize(initial_hash={})
+        initial_hash.each do |key, value|
+          # ensure initializer calls the locally-defined assignment operator
+          self[key] = value
+        end
+      end
+
+      def [](key); super(key.to_s); end
+      def []=(key, value)
+        if RightSupport::Data::HashTools.hashable?(value)
+          value = DeepSortedJsonifiedHash.new(value)
+        end
+        super(key.to_s, value)
+      end
+      def has_key?(key); super(key.to_s); end
+      def keys; super.sort; end
+      def each; sort.each; end
+      def each_key; keys.each; end
+      def each_pair; sort.each; end
+    end
+
+    # Generates json from the given hash which is sorted by key at all levels.
+    def self.deep_sorted_json(hash, pretty=false)
+      sorted_hash = DeepSortedJsonifiedHash.new(hash)
+      pretty ? JSON::pretty_generate(sorted_hash) : ::JSON.dump(sorted_hash)
     end
 
   end

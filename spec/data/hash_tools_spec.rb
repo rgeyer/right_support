@@ -349,4 +349,118 @@ describe RightSupport::Data::HashTools do
       end
     end
   end
+
+  context '#deep_sorted_json' do
+
+    let(:flat_hash) do
+      result = {}
+      10.times do |i|
+        key = (i + 'a'[0]).chr
+        key = key.to_sym if 0 == (i % 2)  # every other key is a symbol
+        result[key] = i
+      end
+      result
+    end
+
+    let(:deep_hash) do
+      result          = {}
+      result['y']     = flat_hash.dup
+      result['y'][:z] = flat_hash.dup
+      result[:x]      = flat_hash.dup
+      result.merge!(flat_hash)
+      result
+    end
+
+    it 'should produce sorted json from a flat hash' do
+      expected = "{\"a\":0,\"b\":1,\"c\":2,\"d\":3,\"e\":4,\"f\":5,\"g\":6,\"h\":7,\"i\":8,\"j\":9}"
+      actual = subject.deep_sorted_json(flat_hash)
+      actual.should == expected
+    end
+
+    it 'should produce pretty sorted json from a flat hash' do
+      expected = <<EOF
+{
+  "a": 0,
+  "b": 1,
+  "c": 2,
+  "d": 3,
+  "e": 4,
+  "f": 5,
+  "g": 6,
+  "h": 7,
+  "i": 8,
+  "j": 9
+}
+EOF
+      expected = expected.strip
+      actual = subject.deep_sorted_json(flat_hash, pretty=true)
+      actual.should == expected
+    end
+
+    it 'should produce sorted json from a deep hash' do
+      expected = "{\"a\":0,\"b\":1,\"c\":2,\"d\":3,\"e\":4,\"f\":5,\"g\":6,\"h\":7,\"i\":8,\"j\":9," +
+                  "\"x\":{\"a\":0,\"b\":1,\"c\":2,\"d\":3,\"e\":4,\"f\":5,\"g\":6,\"h\":7,\"i\":8,\"j\":9}," +
+                  "\"y\":{\"a\":0,\"b\":1,\"c\":2,\"d\":3,\"e\":4,\"f\":5,\"g\":6,\"h\":7,\"i\":8,\"j\":9," +
+                         "\"z\":{\"a\":0,\"b\":1,\"c\":2,\"d\":3,\"e\":4,\"f\":5,\"g\":6,\"h\":7,\"i\":8,\"j\":9}}}"
+      actual = subject.deep_sorted_json(deep_hash)
+      actual.should == expected
+    end
+
+    it 'should produce pretty sorted json from a deep hash' do
+      expected = <<EOF
+{
+  "a": 0,
+  "b": 1,
+  "c": 2,
+  "d": 3,
+  "e": 4,
+  "f": 5,
+  "g": 6,
+  "h": 7,
+  "i": 8,
+  "j": 9,
+  "x": {
+    "a": 0,
+    "b": 1,
+    "c": 2,
+    "d": 3,
+    "e": 4,
+    "f": 5,
+    "g": 6,
+    "h": 7,
+    "i": 8,
+    "j": 9
+  },
+  "y": {
+    "a": 0,
+    "b": 1,
+    "c": 2,
+    "d": 3,
+    "e": 4,
+    "f": 5,
+    "g": 6,
+    "h": 7,
+    "i": 8,
+    "j": 9,
+    "z": {
+      "a": 0,
+      "b": 1,
+      "c": 2,
+      "d": 3,
+      "e": 4,
+      "f": 5,
+      "g": 6,
+      "h": 7,
+      "i": 8,
+      "j": 9
+    }
+  }
+}
+EOF
+      expected = expected.strip
+      actual = subject.deep_sorted_json(deep_hash, pretty=true)
+      actual.should == expected
+    end
+
+  end
 end
