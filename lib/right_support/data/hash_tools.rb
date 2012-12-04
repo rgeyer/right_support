@@ -259,37 +259,75 @@ module RightSupport::Data
       target
     end
 
-    # A hash subclass which always enumerates/returns keys in sorted order.
-    # ensures sortability by converting all keys to strings (because symbols
-    # don't support <=> operator, etc.) which is consitent with the result of
-    # JSON.dump(hash)
-    class DeepSortedJsonifiedHash < Hash
-      def initialize(initial_hash={})
-        initial_hash.each do |key, value|
-          # ensure initializer calls the locally-defined assignment operator
-          self[key] = value
+    class DeepSortedJsonState
+
+      # Initializer.
+      #
+      # === Parameters
+      # @param [TrueClass|FalseClass] pretty is true to invoke JSON::pretty_generate, false to call JSON::dump
+      def initialize(pretty)
+        # copy one of the JSON state prototypes in order to agree with recursive
+        # depth and other state variables.
+        @state = (pretty ? JSON::PRETTY_STATE_PROTOTYPE : JSON::FAST_STATE_PROTOTYPE).dup
+
+        # note that the native JSON extension *may* keep the following state
+        # strings as internal ruby strings in which case the state accessor (i.e.
+        # state.object_nl) returns a pointer to a char array instead of a String
+        # object. the trivial solution is to hardcode the 'pretty' strings here
+        # instead of trying to infer the proper string objects.
+        if pretty
+          @object_nl = "\n"
+          @indent    = '  '
+          @space     = ' '
+        else
+          @object_nl = ''
+          @indent    = ''
+          @space     = ''
         end
       end
 
-      def [](key); super(key.to_s); end
-      def []=(key, value)
-        if RightSupport::Data::HashTools.hashable?(value)
-          value = DeepSortedJsonifiedHash.new(value)
+      def generate(hash)
+        delim = ','
+        delim << @object_nl
+        result = '{'
+        result << @object_nl
+        depth = @state.depth += 1
+        first = true
+
+        sorted_pairs = hash.to_a.map { |key, value| [key.to_s, value] }.sort
+        sorted_pairs.each do |key, value|
+          result << delim unless first
+          result << @indent * depth
+          result << key.to_s.to_json(@state)
+          result << ':'
+          result << @space
+          if ::RightSupport::Data::HashTools.hashable?(value)
+            result << generate(value)
+          else
+            result << value.to_json(@state)
+          end
+          first = false
         end
-        super(key.to_s, value)
+        depth = @state.depth -= 1
+        result << @object_nl
+        result << @indent * depth
+        result << '}'
+        result
       end
-      def has_key?(key); super(key.to_s); end
-      def keys; super.sort; end
-      def each; sort.each; end
-      def each_key; keys.each; end
-      def each_pair; sort.each; end
     end
 
     # Generates json from the given hash which is sorted by key at all levels.
+    #
+    # === Parameters
+    # @param [Hash] hash from which to generate JSON
+    # @param [TrueClass|FalseClass] pretty is true to invoke JSON::pretty_generate, false to call JSON::dump
+    #
+    # === Return
+    # @return [String] result as a deep-sorted JSONized hash
     def self.deep_sorted_json(hash, pretty=false)
-      sorted_hash = DeepSortedJsonifiedHash.new(hash)
-      pretty ? JSON::pretty_generate(sorted_hash) : ::JSON.dump(sorted_hash)
+      raise ArgumentError("'hash' was not hashable") unless hashable?(hash)
+      state = ::RightSupport::Data::HashTools::DeepSortedJsonState.new(pretty)
+      state.generate(hash)
     end
-
   end
 end
