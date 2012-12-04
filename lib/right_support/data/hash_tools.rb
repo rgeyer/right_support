@@ -286,6 +286,17 @@ module RightSupport::Data
         end
       end
 
+      # Generates a JSONified hash string where key/value pairs are sorted by
+      # the stringified key.
+      #
+      # Note that this algoritm is loosely based on the json_pure implementation
+      # for Hash.
+      #
+      # === Parameters
+      # @param [Hash] hash from which to generate JSON
+      #
+      # === Return
+      # @return [String] result as sorted JSONified hash
       def generate(hash)
         delim = ','
         delim << @object_nl
@@ -316,7 +327,8 @@ module RightSupport::Data
       end
     end
 
-    # Generates json from the given hash which is sorted by key at all levels.
+    # Generates JSON from the given hash (of hashes) that is sorted by key at
+    # all levels. Does not handle case of hash to array of hashes, etc.
     #
     # === Parameters
     # @param [Hash] hash from which to generate JSON
