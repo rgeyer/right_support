@@ -360,7 +360,7 @@ describe RightSupport::Data::HashTools do
         # no affect on extraction order, but you never know about future Hash.
         # if the Hash of tomorrow is always sorted, then goody.
         i = (13 - i) % 10
-        key = (i + 'a'[0]).chr
+        key = (i + ?a.ord).chr
         key = key.to_sym if 0 == (i % 2)  # every other key is a symbol
         result[key] = i
       end
