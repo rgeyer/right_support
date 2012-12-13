@@ -20,12 +20,12 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-require 'json'
-
 module RightSupport::Data
 
   # various tools for manipulating hash-like classes.
   module HashTools
+
+    HAS_JSON = require_succeeds?('json')
 
     # Determines if given object is hashable (i.e. object responds to hash methods).
     #
@@ -327,6 +327,8 @@ module RightSupport::Data
       end
     end
 
+    class NoJson < Exception; end
+
     # Generates JSON from the given hash (of hashes) that is sorted by key at
     # all levels. Does not handle case of hash to array of hashes, etc.
     #
@@ -337,9 +339,13 @@ module RightSupport::Data
     # === Return
     # @return [String] result as a deep-sorted JSONized hash
     def self.deep_sorted_json(hash, pretty=false)
-      raise ArgumentError("'hash' was not hashable") unless hashable?(hash)
-      state = ::RightSupport::Data::HashTools::DeepSortedJsonState.new(pretty)
-      state.generate(hash)
+      if HAS_JSON
+        raise ArgumentError("'hash' was not hashable") unless hashable?(hash)
+        state = ::RightSupport::Data::HashTools::DeepSortedJsonState.new(pretty)
+        state.generate(hash)
+      else
+        raise NoJson, "JSON is unavailable"
+      end
     end
   end
 end
