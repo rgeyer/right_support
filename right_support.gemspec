@@ -8,9 +8,9 @@ spec = Gem::Specification.new do |s|
 
   s.name    = 'right_support'
   s.version = '2.6.6'
-  s.date    = '2012-11-29'
+  s.date    = '2012-12-12'
 
-  s.authors = ['Tony Spataro', 'Sergey Sergyenko', 'Ryan Williamson', 'Lee Kirchhoff', 'Sergey Enin', 'Alexey Karpik']
+  s.authors = ['Tony Spataro', 'Sergey Sergyenko', 'Ryan Williamson', 'Lee Kirchhoff', 'Sergey Enin', 'Alexey Karpik', 'Scott Messier']
   s.email   = 'support@rightscale.com'
   s.homepage= 'https://github.com/rightscale/right_support'
 
