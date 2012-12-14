@@ -26,8 +26,7 @@ module RightSupport::Log
   # respond to all of the messages you care to send; this class will perform no error checking
   # for you!
   class Multiplexer
-
-    # Access to underlying list of multiplexed objects
+    # Access to underlying list of multiplexed objects.
     attr_reader :targets
 
     # Prevent Kernel#warn from being called; #warn should be multiplexed to targets.
@@ -41,7 +40,7 @@ module RightSupport::Log
       @targets = targets || []
     end
 
-    # Add object to list of multiplexed targets
+    # Add object to list of multiplexed targets.
     #
     # === Parameters
     # target(Object):: Add target to list of multiplexed targets
@@ -53,7 +52,7 @@ module RightSupport::Log
       self
     end
 
-    # Remove object from list of multiplexed targets
+    # Remove object from list of multiplexed targets.
     #
     # === Parameters
     # target(Object):: Remove target from list of multiplexed targets
@@ -65,7 +64,7 @@ module RightSupport::Log
       self
     end
 
-    # Access target at given index
+    # Access target at given index.
     #
     # === Parameters
     # index(Integer):: Target index
@@ -76,7 +75,7 @@ module RightSupport::Log
       target = @targets[index]
     end
 
-    # Forward any method invocation to targets
+    # Forward any method invocation to targets.
     #
     # === Parameters
     # m(Symbol):: Method that should be multiplexed
@@ -89,5 +88,21 @@ module RightSupport::Log
       res[0]
     end
 
+    # Adhere to method_missing/respond_to metacontract: claim we
+    # respond to the message if any of our targets does.
+    #
+    # Dispatch will still fail if not ALL of the targets respond
+    # to a given method, hence the caveat that the user of this class
+    # needs to ensure his targets are duck-type compatible with the
+    # way they'll be used.
+    #
+    # === Parameters
+    # m(Symbol):: Name of method
+    #
+    # === Return
+    # respond_to(true|false):: true if this object or its targets respond to m, false otherwise
+    def respond_to?(m)
+      super(m) || @targets.any? { |t| t.respond_to?(m) }
+    end
   end
 end
