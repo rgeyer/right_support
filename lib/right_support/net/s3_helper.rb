@@ -9,9 +9,11 @@
 # License Agreement between RightScale.com, Inc. and the licensee.
 
 module RightSupport::Net
-  # Class provides S3 functionality.
+  # Class that provides S3 functionality.
   # As part of RightSupport S3Helper does not include Rightscale::S3 and Encryptor modules.
   # This modules must be included in application.
+  #
+  # @deprecated do not use; please use RightServices::Util::S3Storage instead!
   #
   # Example:
   #
