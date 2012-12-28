@@ -493,14 +493,14 @@ describe RightSupport::Net::RequestBalancer do
       end
 
       it 'resolves ip addresses for specified list of endpoints' do
-        @dns.should_receive(:resolve_all_ip_addresses).with(@endpoints).once.and_return(@resolved_set_1)
+        @dns.should_receive(:resolve).with(@endpoints).once.and_return(@resolved_set_1)
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
         @resolved_set_1.include?(@policy.next.first).should be_true
       end
 
       it 're-resolves list of ip addresses if TTL is expired' do
-        @dns.should_receive(:resolve_all_ip_addresses).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
+        @dns.should_receive(:resolve).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
         @resolved_set_1.include?(@policy.next.first).should be_true
