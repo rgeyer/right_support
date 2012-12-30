@@ -21,7 +21,7 @@ describe 'RightSupport::Log::SystemLogger' do
   end
 
   after(:each) do
-    subject.instance_eval { @@syslog = nil }
+    subject.instance_eval { class_variable_set(:@@syslog, nil) }
   end
 
   context :initialize do

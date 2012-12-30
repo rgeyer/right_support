@@ -112,7 +112,7 @@ module RightSupport::Net
     end
 
     def resolve(endpoints)
-      endpoints = RightSupport::Net::DNS.resolve_all_ip_addresses(endpoints)
+      endpoints = RightSupport::Net::DNS.resolve(endpoints)
       @resolved_at = Time.now.to_i
       endpoints
     end
