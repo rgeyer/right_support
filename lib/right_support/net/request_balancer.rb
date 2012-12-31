@@ -112,12 +112,13 @@ module RightSupport::Net
     end
 
     def resolve(endpoints)
-      endpoints = RightSupport::Net::DNS.resolve(endpoints)
+      resolved_endpoints = RightSupport::Net::DNS.resolve(endpoints)
       @resolved_at = Time.now.to_i
-      endpoints
+      logger.info("RequestBalancer: resolved #{endpoints.inspect} to #{resolved_endpoints.inspect}")
+      resolved_endpoints
     end
 
-    def expired?
+    def need_resolve?
       @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
     end
 
@@ -205,7 +206,8 @@ module RightSupport::Net
     # Return the first non-nil value provided by the block.
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
-      if self.expired?
+
+      if need_resolve?
         @ips = self.resolve(@endpoints)
         @policy.set_endpoints(@ips)
       end
