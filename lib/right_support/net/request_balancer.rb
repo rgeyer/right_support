@@ -112,12 +112,13 @@ module RightSupport::Net
     end
 
     def resolve(endpoints)
-      endpoints = RightSupport::Net::DNS.resolve(endpoints)
+      resolved_endpoints = RightSupport::Net::DNS.resolve(endpoints)
       @resolved_at = Time.now.to_i
-      endpoints
+      logger.info("RequestBalancer: resolved #{endpoints.inspect} to #{resolved_endpoints.inspect}")
+      resolved_endpoints
     end
 
-    def expired?
+    def need_resolve?
       @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
     end
 
@@ -125,12 +126,20 @@ module RightSupport::Net
     # creation time; however, the ordering of the endpoints does not change thereafter
     # and the sequence is tried from the beginning for every request.
     #
+    # If you pass the :resolve option, then the list of endpoints is treated as a list
+    # of hostnames (or URLs containing hostnames) and the list is expanded out into a
+    # larger list with each hostname replaced by several entries, one for each of its IP
+    # addresses. If a single DNS hostname is associated with multiple A records, the
+    # :resolve option allows the balancer to treat each backing server as a distinct
+    # endpoint with its own health state, etc.
+    #
     # === Parameters
     # endpoints(Array):: a set of network endpoints (e.g. HTTP URLs) to be load-balanced
     #
     # === Options
     # retry:: a Class, array of Class or decision Proc to determine whether to keep retrying; default is to try all endpoints
     # fatal:: a Class, array of Class, or decision Proc to determine whether an exception is fatal and should not be retried
+    # resolve(Integer):: how often to re-resolve DNS hostnames of endpoints; default is nil (never resolve)
     # on_exception(Proc):: notification hook that accepts three arguments: whether the exception is fatal, the exception itself,
     #   and the endpoint for which the exception happened
     # health_check(Proc):: callback that allows balancer to check an endpoint health; should raise an exception if the endpoint
@@ -197,7 +206,8 @@ module RightSupport::Net
     # Return the first non-nil value provided by the block.
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
-      if self.expired?
+
+      if need_resolve?
         @ips = self.resolve(@endpoints)
         @policy.set_endpoints(@ips)
       end

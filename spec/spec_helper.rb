@@ -159,16 +159,21 @@ end
 
 module SpecHelper
   module SocketMocking
-    def mock_getaddrinfo(hostname, addresses)
+    def mock_getaddrinfo(hostname, result, times=1)
       boring_args = [nil, Socket::AF_INET, Socket::SOCK_STREAM, Socket::IPPROTO_TCP]
 
-      infos = []
+      if result.is_a?(Class) && result.ancestors.include?(Exception)
+        e = result.new("Mock exception raised by getaddrinfo")
+        flexmock(Socket).should_receive(:getaddrinfo).with(hostname, *boring_args).times(times).ordered.and_raise(e)
+      else
+        infos = []
 
-      addresses.each do |addr|
-        infos << [0,0,0,addr]
+        result.each do |addr|
+          infos << [0,0,0,addr]
+        end
+
+        flexmock(Socket).should_receive(:getaddrinfo).with(hostname, *boring_args).times(times).ordered.and_return(infos)
       end
-
-      flexmock(Socket).should_receive(:getaddrinfo).with(hostname, *boring_args).once.and_return(infos)
     end
   end
 end
