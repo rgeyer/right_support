@@ -16,7 +16,8 @@ module RightSupport::Net
     DEFAULT_RESOLVE_OPTIONS = {
       :address_family => Socket::AF_INET,
       :socket_type    => Socket::SOCK_STREAM,
-      :protocol       => Socket::IPPROTO_TCP
+      :protocol       => Socket::IPPROTO_TCP,
+      :retry          => 3
     }
 
     # Resolve a set of DNS hostnames to the individual IP addresses to which they map. Only handles
@@ -58,6 +59,7 @@ module RightSupport::Net
     # options are exposed just in case.
     #
     # @param [Array<String>] endpoints a mixed list of hostnames, IPv4 addresses or URIs that contain them
+    # @option opts [Integer] :retry number of times to retry SocketError; default is 3
     # @option opts [Integer] :address_family what kind of IP addresses to resolve; default is Socket::AF_INET (IPv4)
     # @option opts [Integer] :socket_type socket-type context to pass to getaddrinfo, default is Socket::SOCK_STREAM
     # @option opts [Integer] :protocol protocol context to pass to getaddrinfo, default is Socket::IPPROTO_TCP
@@ -71,29 +73,39 @@ module RightSupport::Net
       endpoints = [endpoints] unless endpoints.respond_to?(:each)
 
       resolved_endpoints = []
+      retries = 0
 
       endpoints.each do |endpoint|
-        if endpoint.include?(':')
-          # It contains a colon, therefore it must be a URI -- we don't support IPv6
-          uri = URI.parse(endpoint)
-          hostname = uri.host
-          raise URI::InvalidURIError, "Could not parse host component of URI" unless hostname
+        begin
+          if endpoint.include?(':')
+            # It contains a colon, therefore it must be a URI -- we don't support IPv6
+            uri = URI.parse(endpoint)
+            hostname = uri.host
+            raise URI::InvalidURIError, "Could not parse host component of URI" unless hostname
 
-          infos = Socket.getaddrinfo(hostname, nil,
-                                     opts[:address_family], opts[:socket_type], opts[:protocol])
+            infos = Socket.getaddrinfo(hostname, nil,
+                                       opts[:address_family], opts[:socket_type], opts[:protocol])
 
-          infos.each do |info|
-            transformed_uri = uri.dup
-            transformed_uri.host = info[3]
-            resolved_endpoints << transformed_uri.to_s
+            infos.each do |info|
+              transformed_uri = uri.dup
+              transformed_uri.host = info[3]
+              resolved_endpoints << transformed_uri.to_s
+            end
+          else
+            # No colon; it's a hostname or IP address
+            infos = Socket.getaddrinfo(endpoint, nil,
+                                       opts[:address_family], opts[:socket_type], opts[:protocol])
+
+            infos.each do |info|
+              resolved_endpoints << info[3]
+            end
           end
-        else
-          # No colon; it's a hostname or IP address
-          infos = Socket.getaddrinfo(endpoint, nil,
-                                     opts[:address_family], opts[:socket_type], opts[:protocol])
-
-          infos.each do |info|
-            resolved_endpoints << info[3]
+        rescue SocketError => e
+          retries += 1
+          if retries < opts[:retry]
+            retry
+          else
+            raise e
           end
         end
       end
