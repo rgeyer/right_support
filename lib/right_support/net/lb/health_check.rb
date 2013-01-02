@@ -197,7 +197,11 @@ module RightSupport::Net::LB
 
     # Proxy to EndpointStack
     def get_stats
-      @stack.get_stats
+      if @stack
+        @stack.get_stats
+      else
+        {}
+      end
     end
 
   end

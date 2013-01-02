@@ -355,7 +355,6 @@ describe RightSupport::Net::LB::HealthCheck do
       end
 
       it 'acts as initializer' do
-        lambda { @policy.get_stats }.should raise_error
         @policy.set_endpoints(@endpoints)
         @endpoints.include?(@policy.next.first).should be_true
       end
