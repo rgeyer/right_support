@@ -17,7 +17,7 @@ describe RightSupport::DB::CassandraModel do
     RightSupport::DB::CassandraModel.config = {"#{env}" => {"server" => server}}
   end
 
-  describe "initialization" do
+  context "initialization" do
     # This method determines the current keyspace based on the return value of the CassandraModel.keyspace method
     # which looks at the value of @@current_keyspace or @@default_keyspace to determine the keyspace it is operating
     # under. If a connection already exists for the keyspace it will re-use it.  If a connection does not exist,
@@ -83,7 +83,7 @@ describe RightSupport::DB::CassandraModel do
     end
   end
 
-  describe "use" do
+  context "use" do
 
     before(:each) do
       @column_family  = "TestApp"
@@ -350,4 +350,10 @@ describe RightSupport::DB::CassandraModel do
     end
   end
 
+  context '.calculate_random_partitioner_token' do
+    it 'works' do
+      expected = 73001115008341200964825964898370608784
+      described_class.calculate_random_partitioner_token('71:foomonkeys').should == expected
+    end
+  end
 end

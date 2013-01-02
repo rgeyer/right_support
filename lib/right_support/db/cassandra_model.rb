@@ -124,7 +124,7 @@ module RightSupport::DB
 
       METHODS_TO_LOG = [:multi_get, :get, :get_indexed_slices, :get_columns, :insert, :remove, 'multi_get', 'get', 'get_indexed_slices', 'get_columns', 'insert', 'remove']
 
-      # Depricate usage of CassandraModel under Ruby < 1.9
+      # Deprecate usage of CassandraModel under Ruby < 1.9
       def inherited(base)
         raise UnsupportedRubyVersion, "Support only Ruby >= 1.9" unless RUBY_VERSION >= "1.9"
       end
@@ -144,20 +144,38 @@ module RightSupport::DB
         @@config = normalize_config(value) unless value.nil?
       end
 
-      # Return current keyspaces name as Array of String
+      # Compute the token for a given row key, which can provide information on the progress of very large
+      # "each" operations, e.g. iterating over all rows of a column family.
+      #
+      # @param [String] key byte-vector (binary String) representation of the row key
+      # @return [Integer] the 128-bit token for a given row key, as used by Cassandra's RandomPartitioner
+      def calculate_random_partitioner_token(key)
+        number = Digest::MD5.hexdigest(key).to_i(16)
+
+        if number >= (2**127)
+          # perform two's complement, basically this takes the absolute value of the number as
+          # if it were a 128-bit signed number. Equivalent to Java BigInteger.abs() operation.
+          result = (number ^ (2**128)-1) + 1
+        else
+          # we're good
+          result = number
+        end
+
+        result
+      end
+
+      # Return current keyspace names as Array of String (any keyspace that has been used this session).
       #
       # === Return
       # (Array):: keyspaces names
-
       def keyspaces
         @@connections.keys
       end
 
-      # Returns current active keyspace.
+      # Return current active keyspace.
       #
       # === Return
       # keyspace(String):: current_keyspace or default_keyspace
-
       def keyspace
         @@current_keyspace || @@default_keyspace
       end
