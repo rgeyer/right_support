@@ -140,7 +140,7 @@ module RightSupport::Net::LB
         @stack.update!(endpoints)
       else
         @health_check = @options.delete(:health_check)
-        @counter = rand(0xffff) % endpoints.size
+        @counter = Process.pid
         @last_size = endpoints.size
         @stack = EndpointsStack.new(self, endpoints, @options[:yellow_states], @options[:reset_time], @options[:on_health_change])
       end
@@ -152,9 +152,10 @@ module RightSupport::Net::LB
       endpoints = @stack.sweep_and_return_yellow_and_green
       return nil if endpoints.empty?
 
-      # Selection of the next endpoint using RoundRobin
+      # From the available set, use a RoundRobin-like algorithm to select the next endpoint.
+      # When the size of the available set changes, try not to disturb our index into the list.
       @counter += 1 unless endpoints.size < @last_size
-      @counter = 0 if @counter == endpoints.size
+      @counter %= endpoints.size
       @last_size = endpoints.size
 
       # Hash#select returns a Hash in ruby1.9, but an Array of pairs in ruby1.8.
@@ -196,7 +197,11 @@ module RightSupport::Net::LB
 
     # Proxy to EndpointStack
     def get_stats
-      @stack.get_stats
+      if @stack
+        @stack.get_stats
+      else
+        {}
+      end
     end
 
   end
