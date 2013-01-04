@@ -7,23 +7,23 @@ Feature: continuous integration of RSpec 2.x specs
     Given a Ruby application
     And a Gemfile
     And a gem dependency on 'rake ~> 0.9'
-    Given a gem dependency on 'rspec ~> 2.0'
+    And a gem dependency on 'rspec ~> 2.0'
     And a gem dependency on 'builder ~> 3.0'
 
-  Scenario: passing RSpec 2.x examples
+  Scenario: passing examples
     Given the Rakefile contains a RightSupport::CI::RakeTask
     And a trivial RSpec spec
     When I install the bundle
     And I rake 'ci:spec'
     Then the command should succeed
-    And the output should contain '** Execute ci:spec'
-    And the directory 'measurement/rspec' should contain files
+    And the file 'measurement/rspec/rspec.xml' should mention 2 passing test cases
+    And the file 'measurement/rspec/rspec.xml' should mention 0 failing test cases
 
-  Scenario: failing RSpec 2.x examples
+  Scenario: failing examples
     Given the Rakefile contains a RightSupport::CI::RakeTask
     And a trivial failing RSpec spec
     When I install the bundle
     And I rake 'ci:spec'
     Then the command should fail
-    And the output should contain '** Execute ci:spec'
-    And the directory 'measurement/rspec' should contain files
+    And the file 'measurement/rspec/rspec.xml' should mention 2 passing test cases
+    And the file 'measurement/rspec/rspec.xml' should mention 1 failing test case

@@ -1,3 +1,5 @@
+require 'nokogiri'
+
 Given /^a Ruby application$/ do
   ruby_app_root.should_not be_nil
 end
@@ -139,6 +141,28 @@ Then /^the directory '(.*)' should contain files/ do |dir|
   dir = ruby_app_path(dir)
   File.directory?(dir).should be_true
   Dir[File.join(dir, '*')].should_not be_empty
+end
+
+Then /^the file '(.*)' should mention ([0-9]) (passing|failing) test cases?$/ do |file, n, pass_fail|
+  file = ruby_app_path(file)
+  n = Integer(n)
+
+  Pathname.new(file).should exist
+
+  doc = Nokogiri.XML(File.open(file, 'r'))
+
+  all_testcases = doc.css('testcase').size
+  failing_testcases = doc.css('testcase failure').size
+  passing_testcases = all_testcases - failing_testcases
+
+  case pass_fail
+  when 'passing'
+    passing_testcases.should == n
+  when 'failing'
+    failing_testcases.should == n
+  else
+    raise NotImplementedError, "WTF #{pass_fail}"
+  end
 end
 
 Then /^the command should (succeed|fail)$/ do |success|
