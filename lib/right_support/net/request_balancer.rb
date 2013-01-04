@@ -111,17 +111,6 @@ module RightSupport::Net
       new(endpoints, options).request(&block)
     end
 
-    def resolve(endpoints)
-      resolved_endpoints = RightSupport::Net::DNS.resolve(endpoints)
-      @resolved_at = Time.now.to_i
-      logger.info("RequestBalancer: resolved #{endpoints.inspect} to #{resolved_endpoints.inspect}")
-      resolved_endpoints
-    end
-
-    def need_resolve?
-      @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
-    end
-
     # Constructor. Accepts a sequence of request endpoints which it shuffles randomly at
     # creation time; however, the ordering of the endpoints does not change thereafter
     # and the sequence is tried from the beginning for every request.
@@ -185,8 +174,10 @@ module RightSupport::Net
       @endpoints = endpoints
 
       if @options[:resolve]
-        @resolved_at = 0
+        # Perform initial DNS resolution
+        resolve
       else
+        # Use endpoints as-is
         @policy.set_endpoints(@endpoints)
       end
     end
@@ -207,10 +198,7 @@ module RightSupport::Net
     def request
       raise ArgumentError, "Must call this method with a block" unless block_given?
 
-      if need_resolve?
-        @ips = self.resolve(@endpoints)
-        @policy.set_endpoints(@ips)
-      end
+      resolve if need_resolve?
 
       exceptions = {}
       result     = nil
@@ -330,6 +318,18 @@ module RightSupport::Net
       else
         return nil
       end
+    end
+
+    def resolve
+      resolved_endpoints = RightSupport::Net::DNS.resolve(@endpoints)
+      logger.info("RequestBalancer: resolved #{@endpoints.inspect} to #{resolved_endpoints.inspect}")
+      @ips = resolved_endpoints
+      @policy.set_endpoints(@ips)
+      @resolved_at = Time.now.to_i
+    end
+
+    def need_resolve?
+      @options[:resolve] && Time.now.to_i - @resolved_at > @options[:resolve]
     end
 
     def test_policy_duck_type(object)

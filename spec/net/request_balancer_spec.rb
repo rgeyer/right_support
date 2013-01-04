@@ -225,7 +225,6 @@ describe RightSupport::Net::RequestBalancer do
     end
 
     context 'with :health_check option' do
-
       before(:each) do
         @health_check = Proc.new {|endpoint| "HealthCheck passed for #{endpoint}!" }
       end
@@ -253,7 +252,6 @@ describe RightSupport::Net::RequestBalancer do
     end
 
     context 'with :on_health_change option' do
-
       before(:each) do
         @health_updates = []
         @on_health_change = Proc.new {|health| @health_updates << health }
@@ -267,19 +265,17 @@ describe RightSupport::Net::RequestBalancer do
     end
 
     context 'with :resolve option' do
-
       before(:each) do
-        @resolve = 15
-        @balancer = RightSupport::Net::RequestBalancer.new([1,2], :resolve => @resolve)
+        flexmock(RightSupport::Net::DNS).should_receive(:resolve).
+            with(['host1', 'host2']).and_return(['1.1.1.1', '2.2.2.2', '3.3.3.3'])
+        @balancer = RightSupport::Net::RequestBalancer.new(['host1', 'host2'], :resolve => 15)
       end
 
-      it 'initializes an empty balancing policy' do
-        @policy = @balancer.instance_variable_get("@policy")
-        @policy.next.should be_nil
-      end
-
-      it 'initializes timestamp as a TTL for resolver' do
-        @balancer.instance_variable_get("@resolved_at").should == 0
+      it 'performs an initial resolution' do
+        @balancer.instance_variable_get("@resolved_at").to_f.should be_close(Time.now.to_f, 1.0)
+        @balancer.instance_variable_get("@ips").should include('1.1.1.1')
+        @balancer.instance_variable_get("@ips").should include('2.2.2.2')
+        @balancer.instance_variable_get("@ips").should include('3.3.3.3')
       end
     end
   end
@@ -485,15 +481,16 @@ describe RightSupport::Net::RequestBalancer do
 
     context 'with :resolve option' do
       before(:each) do
-        @endpoints = [1,2,3,4]
-        @resolved_set_1 = ['1.1.1.1','2.2.2.2','3.3.3.3','4.4.4.4']
-        @resolved_set_2 = ['5.5.5.5','6.6.6.6','7.7.7.7','8.8.8.8']
+        @endpoints = ['host1', 'host2', 'host3', 'host4']
+        @resolved_set_1 = ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']
+        @resolved_set_2 = ['5.5.5.5', '6.6.6.6', '7.7.7.7', '8.8.8.8']
         @dns = flexmock(RightSupport::Net::DNS)
-        @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
       end
 
       it 'resolves ip addresses for specified list of endpoints' do
-        @dns.should_receive(:resolve).with(@endpoints).once.and_return(@resolved_set_1)
+        @dns.should_receive(:resolve).with(@endpoints).and_return(@resolved_set_1)
+        @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
+
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
         @resolved_set_1.include?(@policy.next.first).should be_true
@@ -501,6 +498,8 @@ describe RightSupport::Net::RequestBalancer do
 
       it 're-resolves list of ip addresses if TTL is expired' do
         @dns.should_receive(:resolve).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
+        @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
+
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
         @resolved_set_1.include?(@policy.next.first).should be_true
