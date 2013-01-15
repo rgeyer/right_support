@@ -182,6 +182,13 @@ module RightSupport::Net
       end
     end
 
+    # Un-resolve an IP address.
+    #
+    # === Parameters
+    # endpoint:: a network endpoint (e.g. HTTP URL) to be un-resolved
+    #
+    # === Return
+    # Return the first hostname that resolved to the IP (there should only ever be one)
     def lookup_hostname(endpoint)
       @resolved_hostnames.select{ |k,v| v.include?(endpoint) }.shift[0]
     end
@@ -331,7 +338,7 @@ module RightSupport::Net
     end
 
     def resolve
-      @resolved_hostnames = RightSupport::Net::DNS.resolve(@endpoints)
+      @resolved_hostnames = RightSupport::Net::DNS.resolve_with_hostnames(@endpoints)
       resolved_endpoints = []
       @resolved_hostnames.each_value{ |v| resolved_endpoints.concat(v) }
       logger.info("RequestBalancer: resolved #{@endpoints.inspect} to #{resolved_endpoints.inspect}")
