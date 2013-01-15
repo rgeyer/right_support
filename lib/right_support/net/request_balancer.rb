@@ -254,11 +254,16 @@ module RightSupport::Net
       return result if complete
 
       # Produce a summary message for the exception that gives a bit of detail
-      msg = [] 
+      msg = []
       exceptions.each_pair do |endpoint, list|
         summary = []
         list.each { |e| summary << e.class }
-        msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
+        if @resolved_hostnames
+          hostname = @resolved_hostnames.select{ |k,v| v.include?(endpoint) }.shift[0]
+          msg << "'#{hostname}'(#{endpoint}) => [#{summary.uniq.join(', ')}]"
+        else
+          msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
+        end
       end
       message = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints: (#{msg.join(', ')})"
 
@@ -270,7 +275,7 @@ module RightSupport::Net
     # its endpoints.  Merely proxies the balancing policy's get_stats method. If
     # no method exists in the balancing policy, a hash of endpoints with "n/a" is
     # returned.
-    # 
+    #
     # Examples
     #
     # A RequestBalancer created with endpoints [1,2,3,4,5] and using a HealthCheck
@@ -321,7 +326,7 @@ module RightSupport::Net
     end
 
     def resolve
-      resolved_endpoints = RightSupport::Net::DNS.resolve(@endpoints)
+      @resolved_hostnames,resolved_endpoints = RightSupport::Net::DNS.resolve(@endpoints)
       logger.info("RequestBalancer: resolved #{@endpoints.inspect} to #{resolved_endpoints.inspect}")
       @ips = resolved_endpoints
       @policy.set_endpoints(@ips)
