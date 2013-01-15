@@ -326,7 +326,9 @@ module RightSupport::Net
     end
 
     def resolve
-      @resolved_hostnames,resolved_endpoints = RightSupport::Net::DNS.resolve(@endpoints)
+      @resolved_hostnames = RightSupport::Net::DNS.resolve(@endpoints)
+      resolved_endpoints = []
+      @resolved_hostnames.each_value{ |v| resolved_endpoints.concat(v) }
       logger.info("RequestBalancer: resolved #{@endpoints.inspect} to #{resolved_endpoints.inspect}")
       @ips = resolved_endpoints
       @policy.set_endpoints(@ips)

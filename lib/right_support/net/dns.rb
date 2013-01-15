@@ -72,13 +72,12 @@ module RightSupport::Net
       opts = DEFAULT_RESOLVE_OPTIONS.merge(opts)
       endpoints = [endpoints] unless endpoints.respond_to?(:each)
 
-      resolved_endpoints = []
+      hostname_hash = {}
       retries = 0
 
-      hostname_hash = {}
       endpoints.each do |endpoint|
         begin
-          endpointsArray = []
+          resolved_endpoints = []
           if endpoint.include?(':')
             # It contains a colon, therefore it must be a URI -- we don't support IPv6
             uri = URI.parse(endpoint)
@@ -92,7 +91,6 @@ module RightSupport::Net
               transformed_uri = uri.dup
               transformed_uri.host = info[3]
               resolved_endpoints << transformed_uri.to_s
-              endpointsArray << transformed_uri.to_s
             end
           else
             # No colon; it's a hostname or IP address
@@ -101,10 +99,9 @@ module RightSupport::Net
 
             infos.each do |info|
               resolved_endpoints << info[3]
-              endpointsArray << info[3]
             end
           end
-          hostname_hash[endpoint.to_s] = endpointsArray
+          hostname_hash[endpoint.to_s] = resolved_endpoints
         rescue SocketError => e
           retries += 1
           if retries < opts[:retry]
@@ -115,7 +112,7 @@ module RightSupport::Net
         end
       end
 
-      [hostname_hash,resolved_endpoints]
+      hostname_hash
     end
 
   end
