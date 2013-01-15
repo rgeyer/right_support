@@ -182,6 +182,10 @@ module RightSupport::Net
       end
     end
 
+    def lookup_hostname(endpoint)
+      @resolved_hostnames.select{ |k,v| v.include?(endpoint) }.shift[0]
+    end
+
     # Perform a request.
     #
     # === Block
@@ -259,7 +263,7 @@ module RightSupport::Net
         summary = []
         list.each { |e| summary << e.class }
         if @resolved_hostnames
-          hostname = @resolved_hostnames.select{ |k,v| v.include?(endpoint) }.shift[0]
+          hostname = lookup_hostname(endpoint)
           msg << "'#{hostname}'(#{endpoint}) => [#{summary.uniq.join(', ')}]"
         else
           msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
@@ -313,7 +317,8 @@ module RightSupport::Net
       #class
       fatal = fatal.any?{ |c| e.is_a?(c) } if fatal.respond_to?(:any?)
       duration = sprintf('%.4f', Time.now - t0)
-      msg = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} during request to #{endpoint}: #{e.message} after #{duration} seconds"
+      ept = @resolved_hostnames ? "#{lookup_hostname(endpoint)}(#{endpoint})" : "#{endpoint}"
+      msg = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} during request to #{ept}: #{e.message} after #{duration} seconds"
       logger.error msg
       @options[:on_exception].call(fatal, e, endpoint) if @options[:on_exception]
 
