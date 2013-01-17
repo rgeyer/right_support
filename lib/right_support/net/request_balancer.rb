@@ -266,14 +266,16 @@ module RightSupport::Net
 
       # Produce a summary message for the exception that gives a bit of detail
       msg = []
+      stats = get_stats
       exceptions.each_pair do |endpoint, list|
         summary = []
         list.each { |e| summary << e.class }
+        health = stats[endpoint] if stats[endpoint] != 'n/a'
         if @resolved_hostnames
           hostname = lookup_hostname(endpoint)
-          msg << "'#{hostname}'(#{endpoint}) => [#{summary.uniq.join(', ')}]"
+          msg << "'#{hostname}'(#{endpoint}#{","+health if health}) => [#{summary.uniq.join(', ')}]"
         else
-          msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
+          msg << "'#{endpoint}'#{"("+health+")" if health} => [#{summary.uniq.join(', ')}]"
         end
       end
       message = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints: (#{msg.join(', ')})"
