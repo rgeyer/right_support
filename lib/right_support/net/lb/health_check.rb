@@ -99,6 +99,7 @@ module RightSupport::Net::LB
     # health. For any new endpoint, set its health to INITIAL_N_LEVEL.
 
     def update!(new_endpoints)
+      new_endpoints = Array.new(new_endpoints) #copy array, so we dont modify the passed one.
       @endpoints.each { |k,v| new_endpoints.include?(k) ? new_endpoints.delete(k) : @endpoints.delete(k) }
       new_endpoints.each  { |ep| @endpoints[ep] = {:n_level => INITIAL_N_LEVEL, :timestamp => 0} }
     end
@@ -147,7 +148,7 @@ module RightSupport::Net::LB
     end
 
     def next
-      # Returns the array of hashes which consists of yellow and green endpoints with the 
+      # Returns the array of hashes which consists of yellow and green endpoints with the
       # following structure: [ [EP1, {:n_level => ..., :timestamp => ... }], [EP2, ... ] ]
       endpoints = @stack.sweep_and_return_yellow_and_green
       return nil if endpoints.empty?
