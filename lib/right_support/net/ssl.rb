@@ -23,7 +23,7 @@ module RightSupport::Net
       block.call
     rescue Exception => e
       Thread.current[:right_support_net_ssl_expected_hostname] = nil
-      raise e
+      raise
     ensure
       Thread.current[:right_support_net_ssl_expected_hostname] = nil
     end

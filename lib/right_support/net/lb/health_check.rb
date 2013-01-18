@@ -192,7 +192,7 @@ module RightSupport::Net::LB
     rescue Exception => e
       t1 = Time.now
       @stack.increase_state(endpoint, t0, t1)
-      raise e
+      raise
     end
 
     # Proxy to EndpointStack

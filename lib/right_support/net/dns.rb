@@ -105,7 +105,7 @@ module RightSupport::Net
           if retries < opts[:retry]
             retry
           else
-            raise e
+            raise
           end
         end
       end
