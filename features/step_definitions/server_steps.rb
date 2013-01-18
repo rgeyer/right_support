@@ -36,7 +36,7 @@ class MockServer < WEBrick::HTTPServer
   rescue Errno::EADDRINUSE => e
     tries += 1
     if tries > 5
-      raise e
+      raise
     else
       retry
     end

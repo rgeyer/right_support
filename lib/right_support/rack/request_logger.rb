@@ -61,7 +61,7 @@ module RightSupport::Rack
       return [status, header, body]
     rescue Exception => e
       log_exception(logger, e)
-      raise e
+      raise
     end
 
     private

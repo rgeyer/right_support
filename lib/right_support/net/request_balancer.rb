@@ -49,7 +49,8 @@ module RightSupport::Net
     #
     # A good example of this phenomenon is the rest-client gem, whose base exception
     # class is derived from RuntimeError!!
-    DEFAULT_FATAL_EXCEPTIONS = [
+    FATAL_RUBY_EXCEPTIONS = [
+      # Exceptions that indicate something is seriously wrong with the Ruby VM.
       NoMemoryError, SystemStackError, SignalException, SystemExit,
       ScriptError,
       # Subclasses of StandardError. We can't include the base class directly as
@@ -59,26 +60,38 @@ module RightSupport::Net
       RegexpError, ThreadError, TypeError, ZeroDivisionError
     ]
 
-    # As a kindness to unit test authors, count RSpec exceptions as fatal. Use some
-    # reflection to handle ALL RSpec-related exceptions.
-    spec_namespaces = if require_succeeds?('rspec')
+    spec_namespaces = []
+
+    if require_succeeds?('rspec')
       # RSpec 2.x
-      [::RSpec::Mocks, ::RSpec::Expectations]
+      spec_namespaces += [::RSpec::Mocks, ::RSpec::Expectations]
     elsif require_succeeds?('spec')
       # RSpec 1.x
-      [::Spec::Expectations]
-    else
-      # RSpec is not present
-      []
+      spec_namespaces += [::Spec::Expectations]
     end
+
+    if require_succeeds?('test/unit')
+      # Test::Unit is built into Ruby, but what the hey...
+      spec_namespaces += [Test::Unit]
+    end
+
+    # As a kindness to unit test authors, count test-framework exceptions as fatal.
+    FATAL_TEST_EXCEPTIONS = []
+
+    # Use some reflection to locate all RSpec and Test::Unit exceptions
     spec_namespaces.each do |namespace|
       namespace.constants.each do |konst|
         konst = namespace.const_get(konst)
         if konst.is_a?(Class) && konst.ancestors.include?(Exception)
-          DEFAULT_FATAL_EXCEPTIONS << konst
+          FATAL_TEST_EXCEPTIONS << konst
         end
       end
     end
+
+    # Well-considered exceptions that should count as fatal (non-retryable) by the balancer.
+    # Used by default, and if you provide a :fatal option to the balancer, you should probably
+    # consult this list in your overridden fatal determination!
+    DEFAULT_FATAL_EXCEPTIONS = FATAL_RUBY_EXCEPTIONS + FATAL_TEST_EXCEPTIONS
 
     DEFAULT_FATAL_PROC = lambda do |e|
       if DEFAULT_FATAL_EXCEPTIONS.any? { |c| e.is_a?(c) }
@@ -228,7 +241,13 @@ module RightSupport::Net
             end
           rescue Exception => e
             logger.error "RequestBalancer: health check failed to #{endpoint} because of #{e.class.name}: #{e.message}"
-            next
+            if fatal_exception?(e)
+              # Fatal exceptions should still raise, even if only during a health check
+              raise
+            else
+              # Nonfatal exceptions: keep on truckin'
+              next
+            end
           end
 
           logger.info "RequestBalancer: health check succeeded to #{endpoint}"
@@ -294,30 +313,37 @@ module RightSupport::Net
     # Decide what to do with an exception. The decision is influenced by the :fatal
     # option passed to the constructor.
     def handle_exception(endpoint, e, t0)
-      fatal = @options[:fatal] || DEFAULT_FATAL_PROC
-
-      #The option may be a proc or lambda; call it to get input
-      fatal = fatal.call(e) if fatal.respond_to?(:call)
-
-      #The options may be single exception classes, in which case we want to expand
-      #it out into a list
-      fatal = [fatal] if fatal.is_a?(Class)
-
-      #The option may be a list of exception classes, in which case we want to evaluate
-      #whether the exception we're handling is an instance of any mentioned exception
-      #class
-      fatal = fatal.any?{ |c| e.is_a?(c) } if fatal.respond_to?(:any?)
+      fatal    = fatal_exception?(e)
       duration = sprintf('%.4f', Time.now - t0)
-      msg = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} during request to #{endpoint}: #{e.message} after #{duration} seconds"
+      msg      = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} " +
+                 "during request to #{endpoint}: #{e.message} after #{duration} seconds"
       logger.error msg
       @options[:on_exception].call(fatal, e, endpoint) if @options[:on_exception]
 
       if fatal
-        #Final decision: did we identify it as fatal?
         return e
       else
         return nil
       end
+    end
+
+    def fatal_exception?(e)
+      fatal = @options[:fatal] || DEFAULT_FATAL_PROC
+
+      # We may have a proc or lambda; call it to get dynamic input
+      fatal = fatal.call(e) if fatal.respond_to?(:call)
+
+      # We may have a single exception class, in which case we want to expand
+      # it out into a list
+      fatal = [fatal] if fatal.is_a?(Class)
+
+      # We may have a list of exception classes, in which case we want to evaluate
+      # whether the exception we're handling is an instance of any mentioned exception
+      # class.
+      fatal = fatal.any?{ |c| e.is_a?(c) } if fatal.respond_to?(:any?)
+
+      # Our final decision!
+      fatal
     end
 
     def resolve

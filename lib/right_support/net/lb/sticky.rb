@@ -74,7 +74,7 @@ module RightSupport::Net::LB
     rescue Exception => e
       t1 = Time.now
       @counter += 1
-      raise e
+      raise
     end
 
   end
