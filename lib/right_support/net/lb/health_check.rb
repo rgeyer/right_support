@@ -99,7 +99,7 @@ module RightSupport::Net::LB
     # health. For any new endpoint, set its health to INITIAL_N_LEVEL.
 
     def update!(new_endpoints)
-      new_endpoints = Array.new(new_endpoints) #copy array, so we dont modify the passed one.
+      new_endpoints = new_endpoints.dup # duplicate the array, so we don't modify the passed one.
       @endpoints.each { |k,v| new_endpoints.include?(k) ? new_endpoints.delete(k) : @endpoints.delete(k) }
       new_endpoints.each  { |ep| @endpoints[ep] = {:n_level => INITIAL_N_LEVEL, :timestamp => 0} }
     end
