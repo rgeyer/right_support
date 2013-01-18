@@ -49,7 +49,8 @@ module RightSupport::Net
     #
     # A good example of this phenomenon is the rest-client gem, whose base exception
     # class is derived from RuntimeError!!
-    DEFAULT_FATAL_EXCEPTIONS = [
+    FATAL_RUBY_EXCEPTIONS = [
+      # Exceptions that indicate something is seriously wrong with the Ruby VM.
       NoMemoryError, SystemStackError, SignalException, SystemExit,
       ScriptError,
       # Subclasses of StandardError. We can't include the base class directly as
@@ -59,26 +60,38 @@ module RightSupport::Net
       RegexpError, ThreadError, TypeError, ZeroDivisionError
     ]
 
-    # As a kindness to unit test authors, count RSpec exceptions as fatal. Use some
-    # reflection to handle ALL RSpec-related exceptions.
-    spec_namespaces = if require_succeeds?('rspec')
+    spec_namespaces = []
+
+    if require_succeeds?('rspec')
       # RSpec 2.x
-      [::RSpec::Mocks, ::RSpec::Expectations]
+      spec_namespaces += [::RSpec::Mocks, ::RSpec::Expectations]
     elsif require_succeeds?('spec')
       # RSpec 1.x
-      [::Spec::Expectations]
-    else
-      # RSpec is not present
-      []
+      spec_namespaces += [::Spec::Expectations]
     end
+
+    if require_succeeds?('test/unit')
+      # Test::Unit is built into Ruby, but what the hey...
+      spec_namespaces += [Test::Unit]
+    end
+
+    # As a kindness to unit test authors, count test-framework exceptions as fatal.
+    FATAL_TEST_EXCEPTIONS = []
+
+    # Use some reflection to locate all RSpec and Test::Unit exceptions
     spec_namespaces.each do |namespace|
       namespace.constants.each do |konst|
         konst = namespace.const_get(konst)
         if konst.is_a?(Class) && konst.ancestors.include?(Exception)
-          DEFAULT_FATAL_EXCEPTIONS << konst
+          FATAL_TEST_EXCEPTIONS << konst
         end
       end
     end
+
+    # Well-considered exceptions that should count as fatal (non-retryable) by the balancer.
+    # Used by default, and if you provide a :fatal option to the balancer, you should probably
+    # consult this list in your overridden fatal determination!
+    DEFAULT_FATAL_EXCEPTIONS = FATAL_RUBY_EXCEPTIONS + FATAL_TEST_EXCEPTIONS
 
     DEFAULT_FATAL_PROC = lambda do |e|
       if DEFAULT_FATAL_EXCEPTIONS.any? { |c| e.is_a?(c) }
