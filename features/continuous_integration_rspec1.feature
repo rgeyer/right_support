@@ -16,13 +16,13 @@ Feature: continuous integration of RSpec 1.x specs
     When I install the bundle
     And I rake 'ci:spec'
     Then the command should succeed
-    And the output should contain '** Execute ci:spec'
-    And the directory 'measurement/rspec' should contain files
+    And the file 'measurement/rspec/rspec.xml' should mention 2 passing test cases
+    And the file 'measurement/rspec/rspec.xml' should mention 0 failing test cases
 
   Scenario: failing RSpec 1.x examples
     Given a trivial failing RSpec spec
     When I install the bundle
     And I rake 'ci:spec'
     Then the command should fail
-    And the output should contain '** Execute ci:spec'
-    And the directory 'measurement/rspec' should contain files
+    And the file 'measurement/rspec/rspec.xml' should mention 2 passing test cases
+    And the file 'measurement/rspec/rspec.xml' should mention 1 failing test case
