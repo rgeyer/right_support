@@ -83,11 +83,19 @@ module RightSupport::CI
         output.puts builder.target!
       end
 
+      def dump_failure(counter, failure)
+        # no-op; our summary contains everything
+      end
+
+      def dump_pending()
+        # no-op; our summary contains everything
+      end
+
       private
 
       def failure_details_for(example)
         exception = @test_failures[example].exception
-        exception.nil? ? "" : "#{exception.message}\n#{format_backtrace(exception.backtrace, example).join("\n")}"
+        exception.nil? ? "" : "#{exception.message}\n#{format_backtrace(exception.backtrace)}"
       end
 
       def classname_for(example)
