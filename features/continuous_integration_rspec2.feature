@@ -9,9 +9,9 @@ Feature: continuous integration of RSpec 2.x specs
     And a gem dependency on 'rake ~> 0.9'
     And a gem dependency on 'rspec ~> 2.0'
     And a gem dependency on 'builder ~> 3.0'
+    And the Rakefile contains a RightSupport::CI::RakeTask
 
   Scenario: passing examples
-    Given the Rakefile contains a RightSupport::CI::RakeTask
     And a trivial RSpec spec
     When I install the bundle
     And I rake 'ci:spec'
@@ -20,7 +20,6 @@ Feature: continuous integration of RSpec 2.x specs
     And the file 'measurement/rspec/rspec.xml' should mention 0 failing test cases
 
   Scenario: failing examples
-    Given the Rakefile contains a RightSupport::CI::RakeTask
     And a trivial failing RSpec spec
     When I install the bundle
     And I rake 'ci:spec'
