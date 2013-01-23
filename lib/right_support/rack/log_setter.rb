@@ -31,6 +31,8 @@ module RightSupport::Rack
   # this middleware will set it before calling the next middleware. Therefore,
   # RequestLogger can be used standalone to fulfill all logging needs, or combined
   # with Rack::Logger or another middleware that provides logging services.
+  #
+  # @deprecated this class will be removed in RightSupport 3.0, please do not use it
   class LogSetter
     # Initialize an instance of the middleware. For backward compatibility, the order of the
     # logger and level parameters can be switched.
@@ -43,6 +45,7 @@ module RightSupport::Rack
     def initialize(app, options={})
       @app    = app
       @logger = options[:logger]
+      warn "#{self.class.name} is deprecated and will be removed in 3.0, please refrain from using it"
     end
 
     # Add a logger to the Rack environment and call the next middleware.
