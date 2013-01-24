@@ -70,11 +70,6 @@ module RightSupport::Net
       spec_namespaces += [::Spec::Expectations]
     end
 
-    if require_succeeds?('test/unit')
-      # Test::Unit is built into Ruby, but what the hey...
-      spec_namespaces += [Test::Unit]
-    end
-
     # As a kindness to unit test authors, count test-framework exceptions as fatal.
     FATAL_TEST_EXCEPTIONS = []
 
