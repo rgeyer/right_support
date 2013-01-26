@@ -1,4 +1,6 @@
 module RightSupport
+  # @deprecated Please do not use the contents of this module
+  # @see RightDevelop::CI
   module CI
   end
 end

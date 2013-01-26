@@ -28,6 +28,9 @@ require 'right_support'
 module RightSupport::CI
   # A Rake task definition that creates a CI namespace with appropriate
   # tests.
+  #
+  # @deprecated Please do not use this class
+  # @see RightDevelop::CI::RakeTask
   class RakeTask < ::Rake::TaskLib
     include ::Rake::DSL if defined?(::Rake::DSL)
 

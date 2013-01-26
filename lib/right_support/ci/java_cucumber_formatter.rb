@@ -14,6 +14,8 @@ require 'right_support'
 
 module RightSupport::CI
   if require_succeeds?('cucumber/formatter/junit')
+    # @deprecated Please do not use this class
+    # @see RightDevelop::CI::JavaCucumberFormatter
     class JavaCucumberFormatter < Cucumber::Formatter::Junit
       private
 

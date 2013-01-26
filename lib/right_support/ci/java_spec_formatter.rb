@@ -13,6 +13,9 @@ require 'time'
 module RightSupport::CI
   if require_succeeds?('spec/runner/formatter/base_text_formatter')
     # RSpec 1.x
+    #
+    # @deprecated Please do not use this class
+    # @see RightDevelop::CI::JavaSpecFormatter
     class JavaSpecFormatter < Spec::Runner::Formatter::BaseTextFormatter
       def initialize(*args)
         begin
@@ -108,6 +111,9 @@ module RightSupport::CI
     end
   elsif require_succeeds?('rspec/core/formatters/base_formatter')
     # RSpec 2.x
+    #
+    # @deprecated Please do not use this class
+    # @see RightDevelop::CI::JavaSpecFormatter
     class JavaSpecFormatter < RSpec::Core::Formatters::BaseFormatter
       def initialize(*args)
         begin
