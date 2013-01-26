@@ -73,7 +73,7 @@ module RightSupport::Net
     # As a kindness to unit test authors, count test-framework exceptions as fatal.
     FATAL_TEST_EXCEPTIONS = []
 
-    # Use some reflection to locate all RSpec and Test::Unit exceptions
+    # Use some reflection to locate all RSpec exceptions
     spec_namespaces.each do |namespace|
       namespace.constants.each do |konst|
         konst = namespace.const_get(konst)
