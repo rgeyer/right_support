@@ -45,11 +45,18 @@ Rake::RDocTask.new(:rdoc) do |rdoc|
   rdoc.rdoc_files.exclude('spec/**/*')
 end
 
-desc "Build right_support gem"
-Gem::PackageTask.new(Gem::Specification.load("right_support.gemspec")) do |package|
-  package.need_zip = true
-  package.need_tar = true
+require 'jeweler'
+Jeweler::Tasks.new do |gem|
+  # gem is a Gem::Specification; see http://docs.rubygems.org/read/chapter/20 for more options
+  gem.name = "right_support"
+  gem.homepage = "https://github.com/rightscale/right_support"
+  gem.license = "MIT"
+  gem.summary = %Q{Reusable foundation code.}
+  gem.description = %Q{A toolkit of useful, reusable foundation code created by RightScale.}
+  gem.email = "support@rightscale.com"
+  gem.authors = ['Tony Spataro', 'Sergey Sergyenko', 'Ryan Williamson', 'Lee Kirchhoff', 'Alexey Karpik', 'Scott Messier']
 end
+Jeweler::RubygemsDotOrgTasks.new
 
 CLEAN.include('pkg')
 
