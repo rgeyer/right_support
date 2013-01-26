@@ -2,13 +2,16 @@
 require 'thread'
 
 require 'right_support/ruby'
-require 'right_support/log'
-require 'right_support/data'
-require 'right_support/validation'
-require 'right_support/crypto'
-require 'right_support/rack'
-require 'right_support/db'
-require 'right_support/net'
-require 'right_support/config'
-require 'right_support/stats'
-require 'right_support/ci'
+
+module RightSupport
+  autoload :Log, 'right_support/log'
+  autoload :Data, 'right_support/data'
+  autoload :Validation, 'right_support/validation'
+  autoload :Crypto, 'right_support/crypto'
+  autoload :Rack, 'right_support/rack'
+  autoload :DB, 'right_support/db'
+  autoload :Net, 'right_support/net'
+  autoload :Config, 'right_support/config'
+  autoload :Stats, 'right_support/stats'
+  autoload :CI, 'right_support/ci'
+end
