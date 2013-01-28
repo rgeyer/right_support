@@ -99,37 +99,62 @@ describe RightSupport::Stats do
   context "enough_precision" do
     it "converts floating point values to decimal digit string with at least two digit precision" do
       @helpers.enough_precision(100.5).should == "101"
+      @helpers.enough_precision(-100.5).should == "-101"
       @helpers.enough_precision(100.4).should == "100"
+      @helpers.enough_precision(-100.4).should == "-100"
       @helpers.enough_precision(99.0).should == "99"
+      @helpers.enough_precision(-99.0).should == "-99"
       @helpers.enough_precision(10.5).should == "11"
+      @helpers.enough_precision(-10.5).should == "-11"
       @helpers.enough_precision(10.4).should == "10"
+      @helpers.enough_precision(-10.4).should == "-10"
       @helpers.enough_precision(9.15).should == "9.2"
+      @helpers.enough_precision(-9.15).should == "-9.2"
       @helpers.enough_precision(9.1).should == "9.1"
+      @helpers.enough_precision(-9.1).should == "-9.1"
       @helpers.enough_precision(1.05).should == "1.1"
+      @helpers.enough_precision(-1.05).should == "-1.1"
       @helpers.enough_precision(1.01).should == "1.0"
+      @helpers.enough_precision(-1.01).should == "-1.0"
       @helpers.enough_precision(1.0).should == "1.0"
+      @helpers.enough_precision(-1.0).should == "-1.0"
       @helpers.enough_precision(0.995).should == "1.00"
+      @helpers.enough_precision(-0.995).should == "-1.00"
       @helpers.enough_precision(0.991).should == "0.99"
+      @helpers.enough_precision(-0.991).should == "-0.99"
       @helpers.enough_precision(0.0995).should == "0.100"
+      @helpers.enough_precision(-0.0995).should == "-0.100"
       @helpers.enough_precision(0.0991).should == "0.099"
+      @helpers.enough_precision(-0.0991).should == "-0.099"
       @helpers.enough_precision(0.00995).should == "0.0100"
+      @helpers.enough_precision(-0.00995).should == "-0.0100"
       @helpers.enough_precision(0.00991).should == "0.0099"
+      @helpers.enough_precision(-0.00991).should == "-0.0099"
       @helpers.enough_precision(0.000995).should == "0.00100"
+      @helpers.enough_precision(-0.000995).should == "-0.00100"
       @helpers.enough_precision(0.000991).should == "0.00099"
-      @helpers.enough_precision(0.000005).should == "0.00001"
-      @helpers.enough_precision(0.000001).should == "0.00000"
+      @helpers.enough_precision(-0.000991).should == "-0.00099"
+      @helpers.enough_precision(0.0000995).should == "0.000100"
+      @helpers.enough_precision(-0.0000995).should == "-0.000100"
+      @helpers.enough_precision(0.0000991).should == "0.000099"
+      @helpers.enough_precision(-0.0000991).should == "-0.000099"
+      @helpers.enough_precision(0.0000005).should == "0.000001"
+      @helpers.enough_precision(-0.0000005).should == "-0.000001"
+      @helpers.enough_precision(0.0000001).should == "0"
+      @helpers.enough_precision(-0.0000001).should == "0"
       @helpers.enough_precision(0.0).should == "0"
       @helpers.enough_precision(55).should == "55"
+      @helpers.enough_precision(-55).should == "-55"
       @helpers.enough_precision({"a" => 65.0, "b" => 23.0, "c" => 12.0}).should == {"a" => "65", "b" => "23", "c" => "12"}
       @helpers.enough_precision({"a" => 65.0, "b" => 33.0, "c" => 2.0}).should == {"a" => "65.0", "b" => "33.0", "c" => "2.0"}
       @helpers.enough_precision({"a" => 10.45, "b" => 1.0, "c" => 0.011}).should == {"a" => "10.5", "b" => "1.0", "c" => "0.011"}
-      @helpers.enough_precision({"a" => 1000.0, "b" => 0.1, "c" => 0.0, "d" => 0.0001, "e" => 0.00001, "f" => 0.000001}).should ==
-                                  {"a" => "1000.0", "b" => "0.10", "c" => "0.0", "d" => "0.00010", "e" => "0.00001", "f" => "0.00000"}
+      @helpers.enough_precision({"a" => 1000.0, "b" => 0.1, "c" => 0.0, "d" => 0.0001, "e" => 0.00001, "f" => 0.0000001}).should ==
+                                {"a" => "1000.0", "b" => "0.10", "c" => "0.0", "d" => "0.00010", "e" => "0.000010", "f" => "0.0"}
       @helpers.enough_precision([["a", 65.0], ["b", 23.0], ["c", 12.0]]).should == [["a", "65"], ["b", "23"], ["c", "12"]]
       @helpers.enough_precision([["a", 65.0], ["b", 33.0], ["c", 2.0]]).should == [["a", "65.0"], ["b", "33.0"], ["c", "2.0"]]
       @helpers.enough_precision([["a", 10.45], ["b", 1.0], ["c", 0.011]]).should == [["a", "10.5"], ["b", "1.0"], ["c", "0.011"]]
-      @helpers.enough_precision([["a", 1000.0], ["b", 0.1], ["c", 0.0], ["d", 0.0001], ["e", 0.00001], ["f", 0.000001]]).should ==
-                                [["a", "1000.0"], ["b", "0.10"], ["c", "0.0"], ["d", "0.00010"], ["e", "0.00001"], ["f", "0.00000"]]
+      @helpers.enough_precision([["a", 1000.0], ["b", 0.1], ["c", 0.0], ["d", 0.0001], ["e", 0.00001], ["f", 0.0000001]]).should ==
+                                [["a", "1000.0"], ["b", "0.10"], ["c", "0.0"], ["d", "0.00010"], ["e", "0.000010"], ["f", "0.0"]]
     end
   end
 
