@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    right_support (2.6.15)
+    right_support (2.6.16)
 
 GEM
   remote: http://rubygems.org/
