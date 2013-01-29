@@ -38,6 +38,7 @@ module RightSupport::Net
   class RequestBalancer
     include RightSupport::Log::Mixin
 
+    # @deprecated please do not refer to this constant; it will be removed in RightSupport 3.0
     DEFAULT_RETRY_PROC = lambda do |ep, n|
       n < ep.size
     end
@@ -49,6 +50,7 @@ module RightSupport::Net
     #
     # A good example of this phenomenon is the rest-client gem, whose base exception
     # class is derived from RuntimeError!!
+    # @deprecated please do not refer to this constant; it will be removed in RightSupport 3.0
     FATAL_RUBY_EXCEPTIONS = [
       # Exceptions that indicate something is seriously wrong with the Ruby VM.
       NoMemoryError, SystemStackError, SignalException, SystemExit,
@@ -60,34 +62,16 @@ module RightSupport::Net
       RegexpError, ThreadError, TypeError, ZeroDivisionError
     ]
 
-    spec_namespaces = []
-
-    if require_succeeds?('rspec')
-      # RSpec 2.x
-      spec_namespaces += [::RSpec::Mocks, ::RSpec::Expectations]
-    elsif require_succeeds?('spec')
-      # RSpec 1.x
-      spec_namespaces += [::Spec::Expectations]
-    end
-
-    # As a kindness to unit test authors, count test-framework exceptions as fatal.
+    # @deprecated please do not refer to this constant; it will be removed in RightSupport 3.0
     FATAL_TEST_EXCEPTIONS = []
-
-    # Use some reflection to locate all RSpec exceptions
-    spec_namespaces.each do |namespace|
-      namespace.constants.each do |konst|
-        konst = namespace.const_get(konst)
-        if konst.is_a?(Class) && konst.ancestors.include?(Exception)
-          FATAL_TEST_EXCEPTIONS << konst
-        end
-      end
-    end
 
     # Well-considered exceptions that should count as fatal (non-retryable) by the balancer.
     # Used by default, and if you provide a :fatal option to the balancer, you should probably
     # consult this list in your overridden fatal determination!
+    # @deprecated please do not refer to this constant; it will be removed in RightSupport 3.0
     DEFAULT_FATAL_EXCEPTIONS = FATAL_RUBY_EXCEPTIONS + FATAL_TEST_EXCEPTIONS
 
+    # @deprecated please do not refer to this constant; it will be removed in RightSupport 3.0
     DEFAULT_FATAL_PROC = lambda do |e|
       if DEFAULT_FATAL_EXCEPTIONS.any? { |c| e.is_a?(c) }
         #Some Ruby builtin exceptions indicate program errors
