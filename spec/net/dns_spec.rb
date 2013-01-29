@@ -117,7 +117,7 @@ describe RightSupport::Net::DNS do
           mock_getaddrinfo('www.example.com', ['1.1.1.1', '2.2.2.2'])
           mock_getaddrinfo('www.example.net', ['3.3.3.3', '4.4.4.4'])
 
-          subject.resolve(endpoints).should == output
+          subject.resolve(endpoints).sort.should == output
         end
       end
 
