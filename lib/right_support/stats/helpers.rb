@@ -106,13 +106,15 @@ module RightSupport
     # === Return
     # (String|Array|Hash):: Value(s) converted to decimal digit string
     def self.enough_precision(value)
-      scale = [1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0]
-      enough = lambda { |v| (v >= 10.0   ? 0 :
-                            (v >= 1.0    ? 1 :
-                            (v >= 0.1    ? 2 :
-                            (v >= 0.01   ? 3 :
-                            (v >  0.001  ? 4 :
-                            (v >  0.0    ? 5 : 0)))))) }
+      scale = [1.0, 10.0, 100.0, 1000.0, 10000.0, 100000.0, 1000000.0]
+      enough = lambda { |v| v = v.abs
+                            (v >= 10.0      ? 0 :
+                            (v >= 1.0       ? 1 :
+                            (v >= 0.1       ? 2 :
+                            (v >= 0.01      ? 3 :
+                            (v >= 0.001     ? 4 :
+                            (v >= 0.0001    ? 5 :
+                            (v >= 0.0000005 ? 6 : 0))))))) }
       digit_str = lambda { |p, v| sprintf("%.#{p}f", (v * scale[p]).round / scale[p])}
 
       if value.is_a?(Float)
