@@ -117,7 +117,7 @@ describe RightSupport::Net::DNS do
           mock_getaddrinfo('www.example.com', ['1.1.1.1', '2.2.2.2'])
           mock_getaddrinfo('www.example.net', ['3.3.3.3', '4.4.4.4'])
 
-          subject.resolve(endpoints).should == output
+          subject.resolve(endpoints).sort.should == output
         end
       end
 
@@ -134,4 +134,19 @@ describe RightSupport::Net::DNS do
       end
     end
   end
+
+  context :resolve_with_hostnames do
+    context 'given common inputs' do
+      let(:endpoints) { ['www.example1.com','www.example2.com'] }
+      let(:output) { {'www.example1.com'=>['1.1.1.1', '2.2.2.2'],
+                      'www.example2.com'=>['3.3.3.3', '4.4.4.4']} }
+
+      it 'resolves to IP addresses' do
+        mock_getaddrinfo('www.example1.com', ['1.1.1.1', '2.2.2.2'])
+        mock_getaddrinfo('www.example2.com', ['3.3.3.3', '4.4.4.4'])
+        subject.resolve_with_hostnames(endpoints).should == output
+      end
+    end
+  end
+
 end

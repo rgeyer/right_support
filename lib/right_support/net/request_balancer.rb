@@ -190,6 +190,17 @@ module RightSupport::Net
       end
     end
 
+    # Un-resolve an IP address.
+    #
+    # === Parameters
+    # endpoint:: a network endpoint (e.g. HTTP URL) to be un-resolved
+    #
+    # === Return
+    # Return the first hostname that resolved to the IP (there should only ever be one)
+    def lookup_hostname(endpoint)
+      @resolved_hostnames.select{ |k,v| v.include?(endpoint) }.shift[0]
+    end
+
     # Perform a request.
     #
     # === Block
@@ -268,11 +279,18 @@ module RightSupport::Net
       return result if complete
 
       # Produce a summary message for the exception that gives a bit of detail
-      msg = [] 
+      msg = []
+      stats = get_stats
       exceptions.each_pair do |endpoint, list|
         summary = []
         list.each { |e| summary << e.class }
-        msg << "'#{endpoint}' => [#{summary.uniq.join(', ')}]"
+        health = stats[endpoint] if stats[endpoint] != 'n/a'
+        if @resolved_hostnames
+          hostname = lookup_hostname(endpoint)
+          msg << "'#{hostname}' (#{endpoint}#{", "+health if health}) => [#{summary.uniq.join(', ')}]"
+        else
+          msg << "'#{endpoint}' #{"("+health+")" if health} => [#{summary.uniq.join(', ')}]"
+        end
       end
       message = "Request failed after #{n} tries to #{exceptions.keys.size} endpoints: (#{msg.join(', ')})"
 
@@ -284,7 +302,7 @@ module RightSupport::Net
     # its endpoints.  Merely proxies the balancing policy's get_stats method. If
     # no method exists in the balancing policy, a hash of endpoints with "n/a" is
     # returned.
-    # 
+    #
     # Examples
     #
     # A RequestBalancer created with endpoints [1,2,3,4,5] and using a HealthCheck
@@ -310,8 +328,9 @@ module RightSupport::Net
     def handle_exception(endpoint, e, t0)
       fatal    = fatal_exception?(e)
       duration = sprintf('%.4f', Time.now - t0)
-      msg      = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} " +
-                 "during request to #{endpoint}: #{e.message} after #{duration} seconds"
+      ept      = @resolved_hostnames ? "#{lookup_hostname(endpoint)}(#{endpoint})" : "#{endpoint}"
+      msg      = "RequestBalancer: rescued #{fatal ? 'fatal' : 'retryable'} #{e.class.name} " + 
+                 "during request to #{ept}: #{e.message} after #{duration} seconds"
       logger.error msg
       @options[:on_exception].call(fatal, e, endpoint) if @options[:on_exception]
 
@@ -342,7 +361,9 @@ module RightSupport::Net
     end
 
     def resolve
-      resolved_endpoints = RightSupport::Net::DNS.resolve(@endpoints)
+      @resolved_hostnames = RightSupport::Net::DNS.resolve_with_hostnames(@endpoints)
+      resolved_endpoints = []
+      @resolved_hostnames.each_value{ |v| resolved_endpoints.concat(v) }
       logger.info("RequestBalancer: resolved #{@endpoints.inspect} to #{resolved_endpoints.inspect}")
       @ips = resolved_endpoints
       @policy.set_endpoints(@ips)

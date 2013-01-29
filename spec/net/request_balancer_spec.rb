@@ -235,7 +235,7 @@ describe RightSupport::Net::RequestBalancer do
         }.should_not raise_error
       end
 
-      it 'calls specified block' do 
+      it 'calls specified block' do
         @balancer = RightSupport::Net::RequestBalancer.new([1,2], :health_check => @health_check)
         @options = @balancer.instance_variable_get("@options")
         @options[:health_check].call(1).should be_eql("HealthCheck passed for 1!")
@@ -244,7 +244,7 @@ describe RightSupport::Net::RequestBalancer do
     end
 
     context 'with default :health_check option' do
-      it 'calls default block' do 
+      it 'calls default block' do
         @balancer = RightSupport::Net::RequestBalancer.new([1,2])
         @options = @balancer.instance_variable_get("@options")
         @options[:health_check].call(1).should be_true
@@ -266,8 +266,8 @@ describe RightSupport::Net::RequestBalancer do
 
     context 'with :resolve option' do
       before(:each) do
-        flexmock(RightSupport::Net::DNS).should_receive(:resolve).
-            with(['host1', 'host2']).and_return(['1.1.1.1', '2.2.2.2', '3.3.3.3'])
+        flexmock(RightSupport::Net::DNS).should_receive(:resolve_with_hostnames).
+            with(['host1', 'host2']).and_return({'host1' => ['1.1.1.1', '2.2.2.2'], 'host2' => ['3.3.3.3']})
         @balancer = RightSupport::Net::RequestBalancer.new(['host1', 'host2'], :resolve => 15)
       end
 
@@ -455,14 +455,14 @@ describe RightSupport::Net::RequestBalancer do
           }.should raise_error(RightSupport::Net::NoResult)
         end
       end
-      
+
       context 'when the health of an endpoint changes' do
         it 'logs the change' do
           health_check = Proc.new do |endpoint|
             false
           end
           flexmock(@logger).should_receive(:info).times(8)
-          
+
           lambda {
             balancer = RightSupport::Net::RequestBalancer.new([1,2,3,4], :policy => RightSupport::Net::LB::HealthCheck, :health_check => health_check)
             balancer.request do |ep|
@@ -482,32 +482,34 @@ describe RightSupport::Net::RequestBalancer do
     context 'with :resolve option' do
       before(:each) do
         @endpoints = ['host1', 'host2', 'host3', 'host4']
-        @resolved_set_1 = ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']
-        @resolved_set_2 = ['5.5.5.5', '6.6.6.6', '7.7.7.7', '8.8.8.8']
+        @resolved_set_1 = {'host1' => ['1.1.1.1', '2.2.2.2', '3.3.3.3', '4.4.4.4']}
+        @resolved_set_2 = {'host1'=>['5.5.5.5'],'host2'=>['6.6.6.6'],'host3'=>['7.7.7.7'],'host4'=>['8.8.8.8']}
+        @resolved_set_2_array = []
+        @resolved_set_2.each_value{ |v| @resolved_set_2_array.concat(v) }
         @dns = flexmock(RightSupport::Net::DNS)
       end
 
       it 'resolves ip addresses for specified list of endpoints' do
-        @dns.should_receive(:resolve).with(@endpoints).and_return(@resolved_set_1)
+        @dns.should_receive(:resolve_with_hostnames).with(@endpoints).and_return(@resolved_set_1)
         @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
 
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
-        @resolved_set_1.include?(@policy.next.first).should be_true
+        @resolved_set_1['host1'].include?(@policy.next.first).should be_true
       end
 
       it 're-resolves list of ip addresses if TTL is expired' do
-        @dns.should_receive(:resolve).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
+        @dns.should_receive(:resolve_with_hostnames).with(@endpoints).twice.and_return(@resolved_set_1, @resolved_set_2)
         @rb = RightSupport::Net::RequestBalancer.new(@endpoints, :resolve => 15)
 
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
-        @resolved_set_1.include?(@policy.next.first).should be_true
+        @resolved_set_1['host1'].include?(@policy.next.first).should be_true
 
         @rb.instance_variable_set("@resolved_at", Time.now.to_i - 16)
         @rb.request { true }
         @policy = @rb.instance_variable_get("@policy")
-        @resolved_set_2.include?(@policy.next.first).should be_true
+        @resolved_set_2_array.include?(@policy.next.first).should be_true
       end
     end
 

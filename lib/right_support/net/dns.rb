@@ -69,14 +69,47 @@ module RightSupport::Net
     # @raise URI::InvalidURIError if endpoints contains an invalid or URI
     # @raise SocketError if endpoints contains an invalid or unresolvable hostname
     def self.resolve(endpoints, opts={})
+      resolved_hostnames = resolve_with_hostnames(endpoints, opts)
+      resolved_endpoints = []
+      resolved_hostnames.each_value{ |v| resolved_endpoints.concat(v) }
+      return resolved_endpoints
+    end
+
+    # Similar to resolve, but return a hash of { hostnames => [endpoints] }
+    #
+    # Perform DNS resolution on a set of endpoints, where the endpoints may be hostnames or URIs.
+    # Expand out the list to include one entry per distinct address that is assigned to a given
+    # hostname, but preserve other aspects of the endpoints --. URIs will remain URIs with the
+    # same protocol, path-info, and so forth, but the hostname component will be resolved to IP
+    # addresses and the URI will be duplicated in the output, once for each distinct IP address.
+    #
+    # Although this method does accept IPv4 dotted-quad addresses as input, it does not accept
+    # IPv6 addresses. However, given hostnames or URIs as input, one _can_ resolve the hostnames
+    # to IPv6 addresses by specifying the appropriate address_family in the options.
+    #
+    # It should never be necessary to specify a different :socket_type or :protocol, but these
+    # options are exposed just in case.
+    #
+    # @param [Array<String>] endpoints a mixed list of hostnames, IPv4 addresses or URIs that contain them
+    # @option opts [Integer] :retry number of times to retry SocketError; default is 3
+    # @option opts [Integer] :address_family what kind of IP addresses to resolve; default is Socket::AF_INET (IPv4)
+    # @option opts [Integer] :socket_type socket-type context to pass to getaddrinfo, default is Socket::SOCK_STREAM
+    # @option opts [Integer] :protocol protocol context to pass to getaddrinfo, default is Socket::IPPROTO_TCP
+    #
+    # @return [Hash<hostnames => [endpoints]>] Hash with keys of hostnames and values of arrays of all associated IP addresses
+    #
+    # @raise URI::InvalidURIError if endpoints contains an invalid or URI
+    # @raise SocketError if endpoints contains an invalid or unresolvable hostname
+    def self.resolve_with_hostnames(endpoints, opts={})
       opts = DEFAULT_RESOLVE_OPTIONS.merge(opts)
       endpoints = [endpoints] unless endpoints.respond_to?(:each)
 
-      resolved_endpoints = []
+      hostname_hash = {}
       retries = 0
 
       endpoints.each do |endpoint|
         begin
+          resolved_endpoints = []
           if endpoint.include?(':')
             # It contains a colon, therefore it must be a URI -- we don't support IPv6
             uri = URI.parse(endpoint)
@@ -100,6 +133,7 @@ module RightSupport::Net
               resolved_endpoints << info[3]
             end
           end
+          hostname_hash[endpoint.to_s] = resolved_endpoints
         rescue SocketError => e
           retries += 1
           if retries < opts[:retry]
@@ -110,7 +144,7 @@ module RightSupport::Net
         end
       end
 
-      resolved_endpoints
+      hostname_hash
     end
 
   end
