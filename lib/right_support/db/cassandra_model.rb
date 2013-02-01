@@ -346,8 +346,10 @@ module RightSupport::DB
         expr = do_op(:create_idx_expr, index, key, "EQ")
 
         start_row = ''
-        row_count = 10
+        row_count = 2
         has_more_rows = true
+        timeout_retries = 0
+        retry_timeout = 5
 
         while (start_row != nil)
           clause = do_op(:create_idx_clause, [expr], start_row, row_count)
@@ -362,14 +364,30 @@ module RightSupport::DB
 
           rows.each do |row|
             start_column = ''
-            column_count = 1_000
+            column_count = 100
             has_more_columns = true
 
             while has_more_columns
               clause = do_op(:create_idx_clause, [expr], row, 1)
-              chunk = self.conn.get_indexed_slices(column_family, clause, nil,
-                                                   :start => start_column,
-                                                   :count => column_count)
+
+              begin
+                chunk = self.conn.get_indexed_slices(column_family, clause, nil,
+                                                     :start => start_column,
+                                                     :count => column_count)
+              rescue Exception => e
+                wrapped_timeout      = e.is_a?(CassandraThrift::TimedOutException)
+                unwrapped_timeout    = e.is_a?(Thrift::TransportException) && (e.type == Thrift::TransportException::TIMED_OUT)
+                unwrapped_disconnect = e.is_a?(Thrift::TransportException) && (e.type == Thrift::TransportException::NOT_OPEN)
+
+                if (wrapped_timeout || unwrapped_timeout || unwrapped_disconnect) &&
+                   (timeout_retries < retry_timeout)
+                  timeout_retries += 1
+                  retry
+                else
+                  timeout_retries = 0
+                  raise e
+                end
+              end
 
               # Get first row's columns, because where are getting only one row [see clause, for more details]
               key = chunk.keys.first
@@ -381,7 +399,7 @@ module RightSupport::DB
               if columns.size >= column_count - 1
                 #Assume there are more columns, use last column as start of next slice
                 start_column = columns.last.column.name
-                column_count = 1_001
+                column_count = 101
               else
                 has_more_columns = false
               end
