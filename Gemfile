@@ -25,4 +25,6 @@ group :development do
   gem 'flexmock', "~> 0.8"
   gem 'syntax', '~> 1.0.0' #rspec will syntax-highlight code snippets if this gem is available
   gem 'nokogiri', '~> 1.5'
+  gem 'right_develop', '~> 1.0',
+      :git => 'git://github.com/rightscale/right_develop.git'
 end
