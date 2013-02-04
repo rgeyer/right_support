@@ -1,3 +1,14 @@
+GIT
+  remote: git://github.com/rightscale/right_develop.git
+  revision: cc7cfabc2e2d4e213c7def0a940c304678435c9a
+  specs:
+    right_develop (1.0.0)
+      builder (~> 3.0)
+      cucumber (~> 1.0)
+      rake (>= 0.8.7, < 0.10)
+      right_support (~> 2.0)
+      rspec (>= 1.3, < 3.0)
+
 PATH
   remote: .
   specs:
@@ -17,9 +28,9 @@ GEM
       json (>= 1.4.6)
     diff-lcs (1.1.3)
     flexmock (0.9.0)
-    gherkin (2.11.2)
-      json (>= 1.4.6)
-    json (1.7.5)
+    gherkin (2.11.6)
+      json (>= 1.7.6)
+    json (1.7.6)
     linecache (0.46)
       rbx-require-relative (> 0.0.4)
     linecache19 (0.5.12)
@@ -35,14 +46,14 @@ GEM
       json (~> 1.4)
     rest-client (1.6.7)
       mime-types (>= 1.16)
-    rspec (2.11.0)
-      rspec-core (~> 2.11.0)
-      rspec-expectations (~> 2.11.0)
-      rspec-mocks (~> 2.11.0)
-    rspec-core (2.11.1)
-    rspec-expectations (2.11.3)
+    rspec (2.12.0)
+      rspec-core (~> 2.12.0)
+      rspec-expectations (~> 2.12.0)
+      rspec-mocks (~> 2.12.0)
+    rspec-core (2.12.2)
+    rspec-expectations (2.12.1)
       diff-lcs (~> 1.1.3)
-    rspec-mocks (2.11.3)
+    rspec-mocks (2.12.2)
     ruby-debug (0.10.4)
       columnize (>= 0.1)
       ruby-debug-base (~> 0.10.4.0)
@@ -78,6 +89,7 @@ DEPENDENCIES
   rake (= 0.8.7)
   rdoc (>= 2.4.2)
   rest-client (~> 1.6)
+  right_develop (~> 1.0)!
   right_support!
   rspec (~> 2.0)
   ruby-debug (>= 0.10)

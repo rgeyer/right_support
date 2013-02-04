@@ -10,8 +10,7 @@ require 'rake/clean'
 require 'rspec/core/rake_task'
 require 'cucumber/rake/task'
 
-# We use RightSupport's CI harness in its own Rakefile. Hooray dogfood!
-require 'right_support/ci/rake_task'
+require 'right_develop/ci/rake_task'
 
 # But, we have a very special need, because OUR Cucumbers need to run with a pristine
 # environment that isn't polluted by RVM or RubyGems or anyone else, in order to validate
@@ -53,4 +52,4 @@ end
 
 CLEAN.include('pkg')
 
-RightSupport::CI::RakeTask.new
+RightDevelop::CI::RakeTask.new
